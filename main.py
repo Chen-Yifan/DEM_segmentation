@@ -41,8 +41,8 @@ weights_path = '/home/yifanc3/checkpoints/weights.{epoch:02d}-{val_loss:.2f}.hdf
 inputs = Input((256,256,5))
 base = model.get_fcn_vgg16_32s(inputs)
 # softmax
-reshape= Reshape((-1,2))(base)
-act = Activation('softmax')(reshape)
+#reshape= Reshape((-1,2))(base)
+act = Activation('softmax')(base)
 m = Model(inputs=inputs, outputs=act)
 m.summary()
 

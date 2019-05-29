@@ -47,7 +47,7 @@ def data_gen(img_folder, mask_folder, batch_size):
         # change it to one-hot
 #         mask = to_categorical(mask, 2) 
 #         mask = mask.reshape(batch_size,256,256,2)
-        mask = mask.reshape(batch_size,IMAGE_H*IMAGE_W,NUMBER_OF_CLASSES)
+        #mask = mask.reshape(batch_size,IMAGE_H*IMAGE_W,NUMBER_OF_CLASSES)
     
         c+=batch_size
         if(c+batch_size>=len(os.listdir(img_folder))):
@@ -86,7 +86,7 @@ def test_gen(img_folder, mask_folder):
         #test_mask = to_categorical(test_mask, 2)
         mask[i,:,:,0] = np.squeeze(test_mask)
         mask[i,:,:,1] = np.squeeze(1-test_mask)
-        mask = mask.reshape(len(n),IMAGE_H*IMAGE_W,NUMBER_OF_CLASSES)
+        #mask = mask.reshape(len(n),IMAGE_H*IMAGE_W,NUMBER_OF_CLASSES)
         
     #mask = to_categorical(mask, 2) 
         
