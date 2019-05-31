@@ -6,6 +6,7 @@ import os
 import tensorflow as tf
 import keras.backend as K
 import model
+from model import dice_coef_loss, dice_coef
 from utils import *
 import numpy as np
 from keras.layers import Input, Conv2D, MaxPooling2D, UpSampling2D, Conv2D, Reshape
@@ -15,7 +16,7 @@ from keras.optimizers import Adadelta, Adam
 
 
 BATCH_SIZE = 32
-NO_OF_EPOCHS = 2
+NO_OF_EPOCHS = 50
 
 #TRAIN
 train_frame_path = '/home/yifanc3/dataset/npy/train_frames'
@@ -39,11 +40,9 @@ weights_path = '/home/yifanc3/checkpoints/weights.{epoch:02d}-{val_loss:.2f}.hdf
 
 #vgg16_32s
 inputs = Input((256,256,5))
-base = model.get_fcn_vgg16_32s(inputs)
-# softmax
-#reshape= Reshape((-1,2))(base)
-act = Activation('softmax')(base)
-m = Model(inputs=inputs, outputs=act)
+base = model.get_unet(inputs)
+print('base shape,',base.get_shape())
+m = Model(inputs=inputs, outputs=base)
 m.summary()
 
 # opt = Adam(lr=1E-5, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
@@ -51,15 +50,15 @@ m.summary()
 # m.compile(loss=soft_dice_loss,
 #                optimizer=opt,
 #                metrics=[Mean_IOU])
-m.compile(optimizer = Adam(lr = 1e-4), loss = 'categorical_crossentropy', metrics = [Mean_IOU])
+m.compile( optimizer=Adadelta(), loss = pixel_wise_loss, metrics = [Mean_IOU])
 
 checkpoint = ModelCheckpoint(weights_path, monitor='val_loss',
-                             verbose=1, save_best_only=True, mode='max')
+                             verbose=1, save_best_only=True, mode='min')
 
 csv_logger = CSVLogger('./log.out', append=True, separator=';')
 
 earlystopping = EarlyStopping(monitor = 'val_loss', verbose = 1,
-                             min_delta = 0.01, patience = 3, mode = 'max')
+                             min_delta = 0.01, patience = 3, mode = 'min')
 
 callbacks_list = [checkpoint, csv_logger, earlystopping]
 
@@ -76,14 +75,15 @@ print('======Start Testing======')
 test_frame_path = '/home/yifanc3/dataset/npy/test_frames'
 test_mask_path = '/home/yifanc3/dataset/npy/test_masks'
 
-saveMask_256("../results/orig_mask", test_mask_path)
+
 # test_gene = test_gen(test_frame_path, test_mask_path)
 # results = m.predict_generator(test_gene, 30, verbose=1)
 
 X,Y = test_gen(test_frame_path, test_mask_path)
+saveMask_256("/home/yifanc3/results/orig_mask",test_mask_path,Y)
 
 score = m.evaluate(X, Y, verbose=0)
-print("%s: %.2f%%" % (m.metrics_names[1], score[1]*100))
+#print("%s: %.2f%%" % (m.metrics_names[1], score[1]*100))
 # print("%s: %.2f%%" % (m.metrics_names[2], score[2]*100))
 # print("%s: %.2f%%" % (m.metrics_names[3], score[3]*100))
 # print("%s: %.2f%%" % (m.metrics_names[4], score[4]*100))
@@ -91,9 +91,12 @@ print("%s: %.2f%%" % (m.metrics_names[1], score[1]*100))
 # print("%s: %.2f%%" % (m.metrics_names[6], score[6]*100))
 
 results = m.predict(X)
-print(np.unique(results))
+new_r = np.argmax(results,axis=-1)
+
+print(np.unique(new_r))
+print(np.where(new_r == 1))
 #save image
-saveResult("../results/v1",test_mask_path,results)
+saveResult("/home/yifanc3/results/v1",test_mask_path,results)
 
 
 

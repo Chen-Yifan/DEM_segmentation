@@ -1,0 +1,14 @@
+#!/bin/bash
+
+#SBATCH --job-name='myjob'
+#SBATCH --output='myjob.%j.%N.out'
+#SBATCH --error='myjob.%j.%N.err'
+#SBATCH --partition=debug
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --gres=gpu:v100:1
+#SBATCH --reservation uiuc_8
+#SBATCH --export=ALL
+#SBATCH -t 00:10:00
+module load powerai
+python main.py

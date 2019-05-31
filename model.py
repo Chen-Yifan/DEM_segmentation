@@ -180,8 +180,9 @@ def get_unet(inputs,n_classes=2, pretrained_weights = None):
     conv9 = Conv2D(32, (3, 3), activation='relu', padding='same')(up9)
     conv9 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv9)
 
-    conv10 = Conv2D(n_classes, (1, 1), activation='softmax')(conv9)
+    conv10 = Conv2D(n_classes, (1, 1),activation='softmax')(conv9) # no softmax
 
+    reshape = Reshape((-1,2))(conv10) # for entropy loss
 #    model = Model(inputs=[inputs], outputs=[conv10])
 #     model.compile(optimizer=Adam(lr=1e-5), loss=dice_coef_loss,
 #                   metrics=[dice_coef, 'accuracy', precision, recall, f1score, Mean_IOU])
@@ -189,7 +190,7 @@ def get_unet(inputs,n_classes=2, pretrained_weights = None):
     
 #    model.summary()
 
-    return model
+    return reshape
 
 
 def FCN_Vgg16_32s(pretrained_weights = None, input_shape=(256,256,5), weight_decay=0., batch_momentum=0.9, batch_shape=None, classes=2):
@@ -283,5 +284,9 @@ def get_fcn_vgg16_32s(inputs, n_classes=2):
     x = Conv2D(512, (3, 3), activation='relu', padding="same")(x)
     
     x = Conv2DTranspose(n_classes, kernel_size=(64, 64), strides=(32, 32), activation='linear', padding='same')(x)
-    
+#     x = Activation('softmax')(x)
+    #x = np.argmax(x)
+#     x = Lambda(K.argmax, arguments={'axis':-1})(x)
+#     x = Lambda(lambda x: K.cast(x,"float"))(x)
+
     return x
