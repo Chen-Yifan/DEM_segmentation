@@ -5,7 +5,7 @@ import os
 import random
 from keras.utils import to_categorical
 
-NUMBER_OF_CLASSES = 1
+NUMBER_OF_CLASSES = 2
 IMAGE_W = 256
 IMAGE_H = 256
 
@@ -45,7 +45,8 @@ def data_gen(img_folder, mask_folder, batch_size):
             mask[i-c,:,:,1] = np.squeeze(1-train_mask)
 #             mask[i-c] = train_mask
         #print(mask.shape)
-        #mask = mask.reshape(batch_size,IMAGE_H*IMAGE_W)
+        mask = mask.reshape(batch_size,IMAGE_H*IMAGE_W, 2)
+        
         c+=batch_size
         if(c+batch_size>=len(os.listdir(img_folder))):
             c=0
@@ -71,7 +72,7 @@ def test_gen(img_folder, mask_folder):
             test_img[:,:,a] = cv2.resize(test_img_0[:,:,a], (256, 256))
 
         img[i] = test_img #add to array - img[0], img[1], and so on.
-
+        
         
         test_mask_0 = np.load(mask_folder+'/'+n[i]) # 1.0 or 2.0
 #         #change 2--0
@@ -83,7 +84,8 @@ def test_gen(img_folder, mask_folder):
 #        mask[i] = test_mask
         mask[i,:,:,0] = np.squeeze(test_mask)
         mask[i,:,:,1] = np.squeeze(1-test_mask)
-    #mask = mask.reshape(len(n),IMAGE_H*IMAGE_W,NUMBER_OF_CLASSES)
+    
+    mask = mask.reshape(len(n),IMAGE_H*IMAGE_W,2)
         
     #mask = to_categorical(mask, 2) 
         

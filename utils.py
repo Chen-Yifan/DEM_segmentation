@@ -24,7 +24,7 @@ def saveResult(save_path, test_mask_path, results, flag_multi_class = False, num
     n = os.listdir(test_mask_path)
     shape = np.shape(results)
     print(shape)
-    #results = results.reshape(len(n),256,256,1)
+    results = results.reshape(len(n),256,256,2)
     #results = results.astype('uint8')
     for i in range(shape[0]):
         img = np.argmax(results[i],axis = -1)
@@ -34,7 +34,7 @@ def saveResult(save_path, test_mask_path, results, flag_multi_class = False, num
         
 def saveMask_256(save_path, test_mask_path, test_mask):
     n = os.listdir(test_mask_path)
-    #test_mask = test_mask.reshape(387,256,256,2)
+    test_mask = test_mask.reshape(len(n),256,256,2)
     for i in range(387):
 #         test_mask_0 = np.load(test_mask_path+'/'+n[i]) # 1.0 or 2.0
 # #         #change 2--0
@@ -62,7 +62,7 @@ def pixel_wise_loss(y_true, y_pred):
 #     y_true = K.argmax(y_true)
     print(K.int_shape(y_pred))
     y_true = tf.reshape(tensor=y_true, shape=(-1, 256*256, 2))
-    pos_weight = tf.constant([[1.0, 1000.0]])
+    pos_weight = tf.constant([[1.0, 500.0]])# 150 won't change val_Mean_IOU while 500 makes IoU hard to exceed 0.60
     loss = tf.nn.weighted_cross_entropy_with_logits(
         y_true,
         y_pred,
@@ -139,9 +139,10 @@ def Mean_IOU(y_true, y_pred):
     print(s)
 
     # reshape such that w and h dim are multiplied together
-    y_true_reshaped = K.reshape( y_true, tf.stack( [-1, s[1]*s[2], s[-1]] ) )
+    #revise
+    y_true_reshaped = tf.reshape(tensor=y_true, shape=(-1, 256*256, 2))
     print(y_true.shape)
-    y_pred_reshaped = K.reshape( y_pred, tf.stack( [-1, s[1]*s[2], s[-1]] ) )
+    y_pred_reshaped = tf.reshape(tensor=y_pred, shape=(-1, 256*256, 2))
     print(y_pred.shape)
     # correctly classified
     clf_pred = K.one_hot( K.argmax(y_pred_reshaped), num_classes = s[-1])
