@@ -1,2 +1,4 @@
 
-Model.h5
+*.h5
+*.out
+/output
