@@ -35,7 +35,7 @@ def saveResult(save_path, test_mask_path, results, flag_multi_class = False, num
 def saveMask_256(save_path, test_mask_path, test_mask):
     n = os.listdir(test_mask_path)
     test_mask = test_mask.reshape(len(n),256,256,2)
-    for i in range(387):
+    for i in range(len(n)):
 #         test_mask_0 = np.load(test_mask_path+'/'+n[i]) # 1.0 or 2.0
 # #         #change 2--0
 #         test_mask = np.where(test_mask_0==2, 0, test_mask_0)
@@ -49,6 +49,11 @@ def saveMask_256(save_path, test_mask_path, test_mask):
 # #         img[:,:,1] = np.squeeze(1-test_mask)
         img = np.argmax(test_mask[i],axis = -1)
         np.save(os.path.join(save_path,"%s"%n[i]),img)
+        
+def saveFrame_256(save_path, test_frame_path, test_frame):
+    n = os.listdir(test_frame_path)
+    for i in range(len(n)):
+        np.save(os.path.join(save_path,"%s"%n[i]),test_frame[i])
     
     
         

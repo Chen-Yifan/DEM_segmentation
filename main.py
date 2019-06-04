@@ -16,7 +16,7 @@ from keras.optimizers import Adadelta, Adam
 import matplotlib.pyplot as plt
 
 BATCH_SIZE = 32
-NO_OF_EPOCHS = 100
+NO_OF_EPOCHS = 1
 Model_name = 'Model_v3'
 result_name = 'Model_v3'
 
@@ -91,7 +91,7 @@ plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='upper left')
 plt.savefig('loss.png')
 
-m.save('%s.h5',Model_name)
+m.save('%s.h5'%Model_name)
 
 #TEST
 print('======Start Testing======')
@@ -117,13 +117,17 @@ results = m.predict(X)
 new_r = np.argmax(results,axis=-1)
 
 #save image
-result_path = os.path.join("/home/yifanc3/results/", result_name)
+save_frame_path = "/home/yifanc3/results/orig_frames_256"
+result_path = os.path.join("/home/yifanc3/results/",result_name)
 
-if !os.path.isdir(result_path):
+if not os.path.isdir(result_path):
     os.makedirs(result_path)
     
+if not os.path.isdir(save_frame_path):
+    os.makedirs(save_frame_path)
+    
 saveResult(result_path, test_mask_path,results)
-
+saveFrame_256(save_frame_path, test_frame_path, X)
 
 
 
