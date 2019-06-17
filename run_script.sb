@@ -1,13 +1,13 @@
 #!/bin/bash
 
-#SBATCH --job-name='yifan'
-#SBATCH --output='seg0531_4.%j.%N.out'
-#SBATCH --error='seg0531_4.%j.%N.err'
-#SBATCH --partition=debug
+#SBATCH --job-name='yifanDL'
+#SBATCH --output='300w_unet3Adal_cv5_128_50ep.%j.%N.out'
+#SBATCH --error='300w_unet3Adal_cv5_128_50eps.%j.%N.err'
+#SBATCH --partition=solo
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:v100:1
 #SBATCH --export=ALL
-#SBATCH -t 01:00:00
+#SBATCH -t 08:00:00
 module load powerai
-python main.py
+python cv_main.py
