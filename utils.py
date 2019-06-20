@@ -40,9 +40,9 @@ def pixel_wise_loss(y_true, y_pred):
 #     y_pred = K.argmax(y_pred)
 #     y_true = K.argmax(y_true)
 
-    y_true = tf.reshape(tensor=y_true, shape=(-1, 128*128, 2))
-    y_pred = tf.reshape(tensor=y_pred, shape=(-1, 128*128, 2))
-    pos_weight = tf.constant([[1.0, 800.0]])# 150 won't change val_Mean_IOU while 500 makes IoU hard to exceed 0.60
+    y_true = tf.reshape(tensor=y_true, shape=(-1, 64*64, 2))
+    y_pred = tf.reshape(tensor=y_pred, shape=(-1, 64*64, 2))
+    pos_weight = tf.constant([[1.0, 100.0]])# 150 won't change val_Mean_IOU while 500 makes IoU hard to exceed 0.60
     loss = tf.nn.weighted_cross_entropy_with_logits(
         y_true,
         y_pred,
@@ -155,8 +155,8 @@ def Mean_IOU(y_true, y_pred):
 
     # reshape such that w and h dim are multiplied together
     #revise
-    y_true_reshaped = tf.reshape(tensor=y_true, shape=(-1, 128*128, 2))
-    y_pred_reshaped = tf.reshape(tensor=y_pred, shape=(-1, 128*128, 2))
+    y_true_reshaped = tf.reshape(tensor=y_true, shape=(-1, 64*64, 2))
+    y_pred_reshaped = tf.reshape(tensor=y_pred, shape=(-1, 64*64, 2))
     # correctly classified
     clf_pred = K.one_hot( K.argmax(y_pred_reshaped), num_classes = s[-1])
     print(y_true_reshaped.dtype, y_pred_reshaped.dtype, clf_pred.dtype)

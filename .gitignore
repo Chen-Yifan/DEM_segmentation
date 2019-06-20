@@ -2,3 +2,5 @@
 *.h5
 *.out
 /output
+.ipynb_checkpoints/
+__pycache__/

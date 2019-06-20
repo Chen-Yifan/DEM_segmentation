@@ -101,8 +101,8 @@ def main(args):
 
     csv_logger = CSVLogger('./log.out', append=True, separator=';')
 
-    earlystopping = EarlyStopping(monitor = 'val_loss', verbose = 1,
-                                 min_delta = 0.01, patience = 3, mode = 'min')
+#     earlystopping = EarlyStopping(monitor = 'val_loss', verbose = 1,
+#                                  min_delta = 0.01, patience = 3, mode = 'min')
 
     callbacks_list = [checkpoint, csv_logger] #, earlystopping]
 

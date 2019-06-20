@@ -14,20 +14,21 @@ import matplotlib.pyplot as plt
 import time
 from functools import *
 from k_fold import *
+from keras.models import model_from_json
 
 
 #hyperparameters
 BATCH_SIZE = 32
-NO_OF_EPOCHS = 100
-Model_name = '800w_segnetAdal_cv5_128_100ep'
-result_name = '800w_segnetAdal_cv5_128_100ep'
-k = 1
+NO_OF_EPOCHS = 64
+Model_name = '100w_segnetAdal_cv5_64_64ep_gen'
+result_name = '100w_segnetAdal_cv5_64_64ep_gen'
+k = 3
     
 #Train the model with K-fold Cross Val
     
 #TRAIN
-train_frame_path = '/home/yifanc3/dataset/data/selected_128/all_frames'
-train_mask_path = '/home/yifanc3/dataset/data/selected_128/all_masks'
+train_frame_path = '/home/yifanc3/dataset/data/selected_64/all_frames'
+train_mask_path = '/home/yifanc3/dataset/data/selected_64/all_masks'
 
 Checkpoint_path = '/home/yifanc3/checkpoints/%s/' % Model_name
 if not os.path.isdir(Checkpoint_path):
@@ -47,8 +48,8 @@ model_history = []
 
 for i in range(k):
     print('====The %s Fold===='%i)
-    NO_OF_TRAINING_IMAGES = len(train_list[i])
-    NO_OF_TEST_IMAGES = len(test_list[i])
+#     NO_OF_TRAINING_IMAGES = len(train_list[i])
+#     NO_OF_TEST_IMAGES = len(test_list[i])
     
     train_x = img[train_list[i]]
     train_y = mask[train_list[i]]
@@ -56,28 +57,36 @@ for i in range(k):
     test_y = mask[test_list[i]]
     
     # data augmentation
-    
+    train_gen, val_gen, NO_OF_TRAINING_IMAGES, NO_OF_VAL_IMAGES = train_gen_aug(train_x, train_y, 32, ratio = 0.18)
     #model 
-    m = model.segnet(input_shape = (128,128,5))
+    m = model.segnet(input_shape = (64,64,5))
 
     opt = Adam(lr=1E-5, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
     opt2 = Adadelta(lr=1, rho=0.95, epsilon=1e-08, decay=0.0)
     m.compile( optimizer = opt2, loss = pixel_wise_loss, metrics = [per_pixel_acc, Mean_IOU, precision, recall, f1score])
 
     #callback
-    name_weights = "cv_model" + str(i) + "_weights.h5"
-    name_weights = os.path.join(Model_path,name_weights)
-    callbacks = get_callbacks(name_weights = name_weights, patience_lr=5)
-#     history = m.fit_generator(train_gen, epochs=NO_OF_EPOCHS,
-#                               steps_per_epoch = (NO_OF_TRAINING_IMAGES//BATCH_SIZE),
-#                               validation_data=val_gen,
-#                               validation_steps=(NO_OF_VAL_IMAGES//BATCH_SIZE),
-#                               shuffle = True,
-#                               callbacks=callbacks)
-    history = m.fit(train_x, train_y, epochs=NO_OF_EPOCHS, batch_size=BATCH_SIZE, callbacks=callbacks,
-                         verbose=1, validation_split=0.1)
+    weights_path = '/home/yifanc3/models/%s/weights.{epoch:02d}-{val_loss:.2f}.hdf5' % Model_name
+    
+    callbacks = get_callbacks(name_weights = weights_path, patience_lr=5)
+    history = m.fit_generator(train_gen, epochs=NO_OF_EPOCHS,
+                              steps_per_epoch = (NO_OF_TRAINING_IMAGES//BATCH_SIZE),
+                              validation_data=val_gen,
+                              validation_steps=(NO_OF_VAL_IMAGES//BATCH_SIZE),
+                              shuffle = True,
+                              callbacks=callbacks)
+#     history = m.fit(train_x, train_y, epochs=NO_OF_EPOCHS, batch_size=BATCH_SIZE, callbacks=callbacks,
+#                          verbose=1, validation_split=0.18)
     
     model_history.append(history)
+    
+    # serialize model to JSON
+    model_json = m.to_json()
+    with open(os.path.join(Model_path,"model%s.json" %i), "w") as json_file:
+        json_file.write(model_json)
+    # serialize weights to HDF5
+    print("Saved model to disk")
+    m.save(os.path.join(Model_path,'model%s.h5' %i))
     
     #TEST
     print('======Start Testing======')
@@ -112,10 +121,10 @@ plt.plot(model_history[1].history['Mean_IOU'], label='Train Accuracy Fold 2', co
 plt.plot(model_history[1].history['val_Mean_IOU'], label='Val Accuracy Fold 2', color='red', linestyle = "dashdot")
 plt.plot(model_history[2].history['Mean_IOU'], label='Train Accuracy Fold 3', color='green', )
 plt.plot(model_history[2].history['val_Mean_IOU'], label='Val Accuracy Fold 3', color='green', linestyle = "dashdot")
-plt.plot(model_history[3].history['Mean_IOU'], label='Train Accuracy Fold 4', color='c', )
-plt.plot(model_history[3].history['val_Mean_IOU'], label='Val Accuracy Fold 4', color='c', linestyle = "dashdot")
-plt.plot(model_history[4].history['Mean_IOU'], label='Train Accuracy Fold 5', color='y', )
-plt.plot(model_history[4].history['val_Mean_IOU'], label='Val Accuracy Fold 5', color='y', linestyle = "dashdot")
+# plt.plot(model_history[3].history['Mean_IOU'], label='Train Accuracy Fold 4', color='c', )
+# plt.plot(model_history[3].history['val_Mean_IOU'], label='Val Accuracy Fold 4', color='c', linestyle = "dashdot")
+# plt.plot(model_history[4].history['Mean_IOU'], label='Train Accuracy Fold 5', color='y', )
+# plt.plot(model_history[4].history['val_Mean_IOU'], label='Val Accuracy Fold 5', color='y', linestyle = "dashdot")
 plt.legend()
 plt.savefig(os.path.join(Model_path,'TrainValMeanIOU.png'))
 plt.clf()
@@ -130,10 +139,10 @@ plt.plot(model_history[1].history['per_pixel_acc'], label='Train Accuracy Fold 2
 plt.plot(model_history[1].history['val_per_pixel_acc'], label='Val Accuracy Fold 2', color='red', linestyle = "dashdot")
 plt.plot(model_history[2].history['per_pixel_acc'], label='Train Accuracy Fold 3', color='green', )
 plt.plot(model_history[2].history['val_per_pixel_acc'], label='Val Accuracy Fold 3', color='green', linestyle = "dashdot")
-plt.plot(model_history[3].history['per_pixel_acc'], label='Train Accuracy Fold 4', color='c', )
-plt.plot(model_history[3].history['val_per_pixel_acc'], label='Val Accuracy Fold 4', color='c', linestyle = "dashdot")
-plt.plot(model_history[4].history['per_pixel_acc'], label='Train Accuracy Fold 5', color='y', )
-plt.plot(model_history[4].history['val_per_pixel_acc'], label='Val Accuracy Fold 5', color='y', linestyle = "dashdot")
+# plt.plot(model_history[3].history['per_pixel_acc'], label='Train Accuracy Fold 4', color='c', )
+# plt.plot(model_history[3].history['val_per_pixel_acc'], label='Val Accuracy Fold 4', color='c', linestyle = "dashdot")
+# plt.plot(model_history[4].history['per_pixel_acc'], label='Train Accuracy Fold 5', color='y', )
+# plt.plot(model_history[4].history['val_per_pixel_acc'], label='Val Accuracy Fold 5', color='y', linestyle = "dashdot")
 plt.legend()
 plt.savefig(os.path.join(Model_path,'TrainValper_pixel_acc.png'))
 plt.clf()
@@ -147,10 +156,10 @@ plt.plot(model_history[1].history['precision'], label='Train Accuracy Fold 2', c
 plt.plot(model_history[1].history['val_precision'], label='Val Accuracy Fold 2', color='red', linestyle = "dashdot")
 plt.plot(model_history[2].history['precision'], label='Train Accuracy Fold 3', color='green', )
 plt.plot(model_history[2].history['val_precision'], label='Val Accuracy Fold 3', color='green', linestyle = "dashdot")
-plt.plot(model_history[3].history['precision'], label='Train Accuracy Fold 4', color='c', )
-plt.plot(model_history[3].history['val_precision'], label='Val Accuracy Fold 4', color='c', linestyle = "dashdot")
-plt.plot(model_history[4].history['precision'], label='Train Accuracy Fold 5', color='y', )
-plt.plot(model_history[4].history['val_precision'], label='Val Accuracy Fold 5', color='y', linestyle = "dashdot")
+# plt.plot(model_history[3].history['precision'], label='Train Accuracy Fold 4', color='c', )
+# plt.plot(model_history[3].history['val_precision'], label='Val Accuracy Fold 4', color='c', linestyle = "dashdot")
+# plt.plot(model_history[4].history['precision'], label='Train Accuracy Fold 5', color='y', )
+# plt.plot(model_history[4].history['val_precision'], label='Val Accuracy Fold 5', color='y', linestyle = "dashdot")
 plt.legend()
 plt.savefig(os.path.join(Model_path,'TrainValPrecision.png'))
 plt.clf()
@@ -164,16 +173,32 @@ plt.plot(model_history[1].history['recall'], label='Train Accuracy Fold 2', colo
 plt.plot(model_history[1].history['val_recall'], label='Val Accuracy Fold 2', color='red', linestyle = "dashdot")
 plt.plot(model_history[2].history['recall'], label='Train Accuracy Fold 3', color='green', )
 plt.plot(model_history[2].history['val_recall'], label='Val Accuracy Fold 3', color='green', linestyle = "dashdot")
-plt.plot(model_history[3].history['recall'], label='Train Accuracy Fold 4', color='c', )
-plt.plot(model_history[3].history['val_recall'], label='Val Accuracy Fold 4', color='c', linestyle = "dashdot")
-plt.plot(model_history[4].history['recall'], label='Train Accuracy Fold 5', color='y', )
-plt.plot(model_history[4].history['val_recall'], label='Val Accuracy Fold 5', color='y', linestyle = "dashdot")
+# plt.plot(model_history[3].history['recall'], label='Train Accuracy Fold 4', color='c', )
+# plt.plot(model_history[3].history['val_recall'], label='Val Accuracy Fold 4', color='c', linestyle = "dashdot")
+# plt.plot(model_history[4].history['recall'], label='Train Accuracy Fold 5', color='y', )
+# plt.plot(model_history[4].history['val_recall'], label='Val Accuracy Fold 5', color='y', linestyle = "dashdot")
 plt.legend()
 plt.savefig(os.path.join(Model_path,'TrainValRecall.png'))
 plt.clf()
 plt.cla()
 plt.close()
 
+plt.title('Train F1 vs Val F1')
+plt.plot(model_history[0].history['f1score'], label='Train f1score Fold 1', color='black')
+plt.plot(model_history[0].history['val_f1score'], label='Val f1score Fold 1', color='black', linestyle = "dashdot")
+plt.plot(model_history[1].history['f1score'], label='Train f1score Fold 2', color='red', )
+plt.plot(model_history[1].history['val_f1score'], label='Val f1score Fold 2', color='red', linestyle = "dashdot")
+plt.plot(model_history[2].history['f1score'], label='Train f1score Fold 3', color='green', )
+plt.plot(model_history[2].history['val_f1score'], label='Val f1score Fold 3', color='green', linestyle = "dashdot")
+# plt.plot(model_history[3].history['f1score'], label='Train f1score Fold 4', color='c', )
+# plt.plot(model_history[3].history['val_f1score'], label='Val f1score Fold 4', color='c', linestyle = "dashdot")
+# plt.plot(model_history[4].history['f1score'], label='Train f1score Fold 5', color='y', )
+# plt.plot(model_history[4].history['val_f1score'], label='Val f1score Fold 5', color='y', linestyle = "dashdot")
+plt.legend()
+plt.savefig(os.path.join(Model_path,'TrainValF1score.png'))
+plt.clf()
+plt.cla()
+plt.close()
 plt.title('Train Loss vs Val Loss')
 plt.plot(model_history[0].history['loss'], label='Train loss Fold 1', color='black')
 plt.plot(model_history[0].history['val_loss'], label='Val loss Fold 1', color='black', linestyle = "dashdot")
@@ -181,15 +206,17 @@ plt.plot(model_history[1].history['loss'], label='Train loss Fold 2', color='red
 plt.plot(model_history[1].history['val_loss'], label='Val loss Fold 2', color='red', linestyle = "dashdot")
 plt.plot(model_history[2].history['loss'], label='Train loss Fold 3', color='green', )
 plt.plot(model_history[2].history['val_loss'], label='Val loss Fold 3', color='green', linestyle = "dashdot")
-plt.plot(model_history[3].history['loss'], label='Train loss Fold 4', color='c', )
-plt.plot(model_history[3].history['val_loss'], label='Val loss Fold 4', color='c', linestyle = "dashdot")
-plt.plot(model_history[4].history['loss'], label='Train loss Fold 5', color='y', )
-plt.plot(model_history[4].history['val_loss'], label='Val loss Fold 5', color='y', linestyle = "dashdot")
+# plt.plot(model_history[3].history['loss'], label='Train loss Fold 4', color='c', )
+# plt.plot(model_history[3].history['val_loss'], label='Val loss Fold 4', color='c', linestyle = "dashdot")
+# plt.plot(model_history[4].history['loss'], label='Train loss Fold 5', color='y', )
+# plt.plot(model_history[4].history['val_loss'], label='Val loss Fold 5', color='y', linestyle = "dashdot")
 plt.legend()
 plt.savefig(os.path.join(Model_path,'TrainValLoss.png'))
 plt.clf()
 plt.cla()
 plt.close()
+
+
 
 
 
