@@ -8,17 +8,19 @@ import cv2
 from keras.utils import to_categorical
 from itertools import product
 
-def saveResult(save_path, test_mask_path, results, flag_multi_class = False, num_class = 2):
+
+def saveResult(save_path, test_mask_path, results, flag_multi_class = False, num_class = 2, shape=128):
     n = os.listdir(test_mask_path)
-    shape = np.shape(results)
-    print(shape)
-    results = results.reshape(len(n),256,256,2)
+    result_shape = np.shape(results)
+    print(result_shape)
+    results = results.reshape(len(n),shape,shape,2)
     #results = results.astype('uint8')
-    for i in range(shape[0]):
+    for i in range(result_shape[0]):
         img = np.argmax(results[i],axis = -1)
         img = np.squeeze(img)
         #cv2.imwrite(os.path.join(save_path,"%s_predict.png"%n[i][0:-4]),results[i])
         np.save(os.path.join(save_path,"%s_predict.npy"%n[i][0:-4]),img)
+        
         
 def saveMask_256(save_path, test_mask_path, test_mask):
     n = os.listdir(test_mask_path)
@@ -36,13 +38,13 @@ def saveFrame_256(save_path, test_frame_path, test_frame):
         
 
 # plan B
-def pixel_wise_loss(y_true, y_pred):
+def pixel_wise_loss(y_true, y_pred, shape=128):
 #     y_pred = K.argmax(y_pred)
 #     y_true = K.argmax(y_true)
 
-    y_true = tf.reshape(tensor=y_true, shape=(-1, 64*64, 2))
-    y_pred = tf.reshape(tensor=y_pred, shape=(-1, 64*64, 2))
-    pos_weight = tf.constant([[1.0, 100.0]])# 150 won't change val_Mean_IOU while 500 makes IoU hard to exceed 0.60
+    y_true = tf.reshape(tensor=y_true, shape=(-1, shape*shape, 2))
+    y_pred = tf.reshape(tensor=y_pred, shape=(-1, shape*shape, 2))
+    pos_weight = tf.constant([[1.0, 500.0]])# 150 won't change val_Mean_IOU while 500 makes IoU hard to exceed 0.60
     loss = tf.nn.weighted_cross_entropy_with_logits(
         y_true,
         y_pred,
@@ -52,69 +54,69 @@ def pixel_wise_loss(y_true, y_pred):
    # loss = tf.nn.softmax_cross_entropy_with_logits(labels=y_true,logits=y_pred)
     return K.mean(loss,axis=-1)
 
-def soft_dice_loss(y_true, y_pred, smooth=1): 
-    ''' 
-    Soft dice loss calculation for arbitrary batch size, number of classes, and number of spatial dimensions.
-    Assumes the `channels_last` format.
+# def soft_dice_loss(y_true, y_pred, smooth=1): 
+#     ''' 
+#     Soft dice loss calculation for arbitrary batch size, number of classes, and number of spatial dimensions.
+#     Assumes the `channels_last` format.
   
-    # Arguments
-        y_true: b x X x Y( x Z...) x c One hot encoding of ground truth
-        y_pred: b x X x Y( x Z...) x c Network output, must sum to 1 over c channel (such as after softmax) 
-        epsilon: Used for numerical stability to avoid divide by zero errors
+#     # Arguments
+#         y_true: b x X x Y( x Z...) x c One hot encoding of ground truth
+#         y_pred: b x X x Y( x Z...) x c Network output, must sum to 1 over c channel (such as after softmax) 
+#         epsilon: Used for numerical stability to avoid divide by zero errors
     
-    # References
-        V-Net: Fully Convolutional Neural Networks for Volumetric Medical Image Segmentation 
-        https://arxiv.org/abs/1606.04797
-        More details on Dice loss formulation 
-        https://mediatum.ub.tum.de/doc/1395260/1395260.pdf (page 72)
+#     # References
+#         V-Net: Fully Convolutional Neural Networks for Volumetric Medical Image Segmentation 
+#         https://arxiv.org/abs/1606.04797
+#         More details on Dice loss formulation 
+#         https://mediatum.ub.tum.de/doc/1395260/1395260.pdf (page 72)
         
-        Adapted from https://github.com/Lasagne/Recipes/issues/99#issuecomment-347775022
-    '''
-    y_true = tf.reshape(tensor=y_true, shape=(-1, 256* 256, 2))
-#     y_true = np.array(y_true)
-    y_pred = tf.reshape(tensor=y_pred, shape=(-1, 256* 256, 2))
-#     y_pred = np.array(y_pred)
-#     # skip the batch and class axis for calculating Dice score
-#     axes = tuple(range(1, len(y_pred.shape)-1))  # len = 4, tuple(range(1,3)) = (1,2)
-#     print(np.shape(y_pred*y_true))
-#     numerator = 2. * np.sum(y_pred * y_true, axes)
-#     denominator = np.sum(np.square(y_pred) + np.square(y_true), axes)
-#     print(np.shape(denominator))
-#     return 1 - np.mean(numerator / (denominator + epsilon)) # average over classes and batch
+#         Adapted from https://github.com/Lasagne/Recipes/issues/99#issuecomment-347775022
+#     '''
+#     y_true = tf.reshape(tensor=y_true, shape=(-1, 256* 256, 2))
+# #     y_true = np.array(y_true)
+#     y_pred = tf.reshape(tensor=y_pred, shape=(-1, 256* 256, 2))
+# #     y_pred = np.array(y_pred)
+# #     # skip the batch and class axis for calculating Dice score
+# #     axes = tuple(range(1, len(y_pred.shape)-1))  # len = 4, tuple(range(1,3)) = (1,2)
+# #     print(np.shape(y_pred*y_true))
+# #     numerator = 2. * np.sum(y_pred * y_true, axes)
+# #     denominator = np.sum(np.square(y_pred) + np.square(y_true), axes)
+# #     print(np.shape(denominator))
+# #     return 1 - np.mean(numerator / (denominator + epsilon)) # average over classes and batch
 
-    """
-    Dice = (2*|X & Y|)/ (|X|+ |Y|)
-         =  2*sum(|A*B|)/(sum(A^2)+sum(B^2))
-    ref: https://arxiv.org/pdf/1606.04797v1.pdf
-    """
-    intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
-    return (2. * intersection + smooth) / (K.sum(K.square(y_true),-1) + K.sum(K.square(y_pred),-1) + smooth)
+#     """
+#     Dice = (2*|X & Y|)/ (|X|+ |Y|)
+#          =  2*sum(|A*B|)/(sum(A^2)+sum(B^2))
+#     ref: https://arxiv.org/pdf/1606.04797v1.pdf
+#     """
+#     intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
+#     return (2. * intersection + smooth) / (K.sum(K.square(y_true),-1) + K.sum(K.square(y_pred),-1) + smooth)
 
 
 #debugging
-def w_categorical_crossentropy(y_true, y_pred, weights=(np.array([[1,300],[1,300]]))):
-    nb_cl = len(weights)
-    y_true = tf.reshape(tensor=y_true, shape=(-1, 256* 256, 2))
-    final_mask = K.zeros_like(y_pred[:, 0])
-    y_pred_max = K.max(y_pred, axis=1)
-    y_pred_max = K.reshape(y_pred_max, (K.shape(y_pred)[0], 1))
-    print(K.shape(y_pred_max))
-    y_pred_max_mat = K.equal(y_pred, y_pred_max)
-    print(y_pred_max_mat.shape)
-    for c_p, c_t in product(range(nb_cl), range(nb_cl)):
-        print(c_p, c_t)
-        final_mask += (weights[c_t, c_p] * y_pred_max_mat[:, c_p] * y_true[:, c_t])
-    return K.categorical_crossentropy(y_pred, y_true) * final_mask
+# def w_categorical_crossentropy(y_true, y_pred, weights=(np.array([[1,300],[1,300]]))):
+#     nb_cl = len(weights)
+#     y_true = tf.reshape(tensor=y_true, shape=(-1, 256* 256, 2))
+#     final_mask = K.zeros_like(y_pred[:, 0])
+#     y_pred_max = K.max(y_pred, axis=1)
+#     y_pred_max = K.reshape(y_pred_max, (K.shape(y_pred)[0], 1))
+#     print(K.shape(y_pred_max))
+#     y_pred_max_mat = K.equal(y_pred, y_pred_max)
+#     print(y_pred_max_mat.shape)
+#     for c_p, c_t in product(range(nb_cl), range(nb_cl)):
+#         print(c_p, c_t)
+#         final_mask += (weights[c_t, c_p] * y_pred_max_mat[:, c_p] * y_true[:, c_t])
+#     return K.categorical_crossentropy(y_pred, y_true) * final_mask
 
 
-def softmax_with_entropy(y_true, y_pred):
-    #y_pred = K.reshape(y_pred, (-1, K.int_shape(y_pred)[-1]))
-    #y_pred = K.argmax(y_pred, axis=-1)
-   #y_true = K.reshape(y_true, (-1, K.int_shape(y_true)[-1]))
-    #y_true = K.argmax(y_true, axis=-1)
-    print(K.int_shape(y_pred),K.int_shape(y_true))
-    loss = tf.nn.softmax_cross_entropy_with_logits(labels=y_true, logits=y_pred)
-    return K.mean(loss, axis = -1)
+# def softmax_with_entropy(y_true, y_pred):
+#     #y_pred = K.reshape(y_pred, (-1, K.int_shape(y_pred)[-1]))
+#     #y_pred = K.argmax(y_pred, axis=-1)
+#    #y_true = K.reshape(y_true, (-1, K.int_shape(y_true)[-1]))
+#     #y_true = K.argmax(y_true, axis=-1)
+#     print(K.int_shape(y_pred),K.int_shape(y_true))
+#     loss = tf.nn.softmax_cross_entropy_with_logits(labels=y_true, logits=y_pred)
+#     return K.mean(loss, axis = -1)
     
 # def softmax_sparse_crossentropy_ignoring_last_label(y_true, y_pred):
 #     y_pred = K.reshape(y_pred, (-1, K.int_shape(y_pred)[-1]))
@@ -129,34 +131,34 @@ def softmax_with_entropy(y_true, y_pred):
 
 #     return cross_entropy_mean
 
-def binary_crossentropy_with_logits(ground_truth, predictions):
-    ground_truth = tf.reshape(tensor=ground_truth, shape=(-1, 256*256, 2))
-#     predictions = tf.reshape(tensor=predictions, shape=(-1, 256*256, 2))
-    print(predictions.shape, ground_truth.shape)
-    return K.mean(K.binary_crossentropy(ground_truth,
-                                        predictions,
-                                        from_logits=True),
-                  axis=-1)
-def softmax_cross_entropy_with_logits(y_true, flat_logits):
-    flat_labels = tf.reshape(tensor=y_true, shape=(-1, 256*256, 2))
-#     flat_logits = tf.reshape(tensor=flat_logits, shape=(-1, 2))
-#     flat_labels = K.argmax(flat_labels, axis=-1)
-#     flat_logits = K.argmax(flat_logits, axis=-1)
-#     flat_labels = tf.dtypes.cast(flat_labels,'float')
-#     flat_logits = tf.dtypes.cast(flat_logits,'float') # no gradient
-    print(flat_labels.shape, flat_logits.shape)
-    cross_entropies = tf.nn.softmax_cross_entropy_with_logits_v2(logits=flat_logits, labels=flat_labels)
-    return tf.reduce_sum(cross_entropies)
+# def binary_crossentropy_with_logits(ground_truth, predictions):
+#     ground_truth = tf.reshape(tensor=ground_truth, shape=(-1, 256*256, 2))
+# #     predictions = tf.reshape(tensor=predictions, shape=(-1, 256*256, 2))
+#     print(predictions.shape, ground_truth.shape)
+#     return K.mean(K.binary_crossentropy(ground_truth,
+#                                         predictions,
+#                                         from_logits=True),
+#                   axis=-1)
+# def softmax_cross_entropy_with_logits(y_true, flat_logits):
+#     flat_labels = tf.reshape(tensor=y_true, shape=(-1, 256*256, 2))
+# #     flat_logits = tf.reshape(tensor=flat_logits, shape=(-1, 2))
+# #     flat_labels = K.argmax(flat_labels, axis=-1)
+# #     flat_logits = K.argmax(flat_logits, axis=-1)
+# #     flat_labels = tf.dtypes.cast(flat_labels,'float')
+# #     flat_logits = tf.dtypes.cast(flat_logits,'float') # no gradient
+#     print(flat_labels.shape, flat_logits.shape)
+#     cross_entropies = tf.nn.softmax_cross_entropy_with_logits_v2(logits=flat_logits, labels=flat_labels)
+#     return tf.reduce_sum(cross_entropies)
     
 
 
-def Mean_IOU(y_true, y_pred):
+def Mean_IOU(y_true, y_pred, shape=128):
     s = K.shape(y_true)
 
     # reshape such that w and h dim are multiplied together
     #revise
-    y_true_reshaped = tf.reshape(tensor=y_true, shape=(-1, 64*64, 2))
-    y_pred_reshaped = tf.reshape(tensor=y_pred, shape=(-1, 64*64, 2))
+    y_true_reshaped = tf.reshape(tensor=y_true, shape=(-1, shape*shape, 2))
+    y_pred_reshaped = tf.reshape(tensor=y_pred, shape=(-1, shape*shape, 2))
     # correctly classified
     clf_pred = K.one_hot( K.argmax(y_pred_reshaped), num_classes = s[-1])
     print(y_true_reshaped.dtype, y_pred_reshaped.dtype, clf_pred.dtype)

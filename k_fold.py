@@ -12,14 +12,15 @@ import matplotlib.pyplot as plt
 import time
 from functools import *
 import random
+import re
 
 
 def get_callbacks(name_weights, patience_lr):
-    mcp_save = ModelCheckpoint(name_weights, save_best_only=False, monitor='val_loss', mode='min')
+    mcp_save = ModelCheckpoint(name_weights, save_best_only=False, monitor='Mean_IOU', mode='max')
     reduce_lr_loss = ReduceLROnPlateau(monitor='loss', factor=0.5, patience=patience_lr, verbose=1, epsilon=1e-4, mode='min')
     return [mcp_save, reduce_lr_loss]
 
-def save_result(train_frame_path, save_path, test_idx, results, test_x, test_y):
+def save_result(train_frame_path, save_path, test_idx, results, test_x, test_y, shape = 128):
     n = os.listdir(train_frame_path)
     a = test_idx[0]
     b = test_idx[-1]
@@ -36,11 +37,11 @@ def save_result(train_frame_path, save_path, test_idx, results, test_x, test_y):
     if not os.path.isdir(save_mask_path):
         os.makedirs(save_mask_path)
         
-    shape = np.shape(results)
-    print(shape)
-    results = results.reshape(length,64,64,2)
+    result_shape = np.shape(results)
+    print(result_shape)
+    results = results.reshape(length,shape,shape,2)
     #results = results.astype('uint8')
-    for i in range(shape[0]):
+    for i in range(result_shape[0]):
         name = n[a+i]
         img = np.argmax(results[i],axis = -1)
         img = np.squeeze(img)
@@ -50,9 +51,10 @@ def save_result(train_frame_path, save_path, test_idx, results, test_x, test_y):
         np.save(os.path.join(save_mask_path,"%s.npy"%name[0:-4]),test_y[i])
 
     
-def load_data(img_folder, mask_folder):
+def load_data(img_folder, mask_folder, shape=128):
     n = os.listdir(img_folder)
-    random.shuffle(n)
+    n.sort(key=lambda var:[int(x) if x.isdigit() else x 
+                                for x in re.findall(r'[^0-9]|[0-9]+', var)])
     
 #     img = np.zeros((len(n), 256, 256, 5)).astype(np.float32)
 #     mask = np.zeros((len(n), 256, 256, 2), dtype=np.float32)
@@ -74,14 +76,12 @@ def load_data(img_folder, mask_folder):
 #         mask[i,:,:,0] = np.squeeze(1-train_mask) # 0 to 1
 #         mask[i,:,:,1] = np.squeeze(train_mask)
 
-
-#64 64
-    img = np.zeros((len(n), 64, 64, 5)).astype(np.float32)
-    mask = np.zeros((len(n), 64, 64, 2), dtype=np.float32)
+    img = np.zeros((len(n), shape, shape, 5)).astype(np.float32)
+    mask = np.zeros((len(n), shape, shape, 2), dtype=np.float32)
     
     for i in range(len(n)): #initially from 0 to 16, c = 0. 
         train_img_0 = np.load(img_folder+'/'+n[i]) #normalization:the range is about -100 to 360
-        if(train_img_0.shape!=(64,64,5)):
+        if(train_img_0.shape!=(shape,shape,5)):
             continue
         img[i] = train_img_0 #add to array - img[0], img[1], and so on.
         
@@ -93,20 +93,19 @@ def load_data(img_folder, mask_folder):
 
 def k_fold(n, k=3):
     # ratio = 1/10s
-    idx = np.arange(n)
+    idx = list(np.arange(n))
     train_list = []
-    val_list = []
+    test_list = []
     print('k_fold')
     for i in range(k):
         a = int(i*n*3/20)
         b = int((i+1)*n*3/20)
-        print('fold', i,' val ', 'start:', a,'end:',b)
-        
-        val_list.append(idx[a:b])
-        train_idx_array = np.append(idx[:a], idx[b:])
-        train_list.append(train_idx_array)
-    print(len(val_list))
-    return train_list, val_list
+        print('fold', i,' test ', 'start:', a,'end:',b)
+        test_index = idx[a:b]
+        train_index = idx[:a] + idx[b:]
+        test_list.append(np.array(test_index))
+        train_list.append(np.array(train_index))
+    return train_list, test_list
 
 # data augmentation
 def train_gen_aug(img_list, mask_list, batch_size=32, ratio = 0.18):

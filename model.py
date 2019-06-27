@@ -144,8 +144,8 @@ def segnet(
 
     return model
 
-def unet(input_size = (256,256,5), pretrained_weights = None,num_classes = 2):
-    inputs = Input(input_size)
+def unet(input_shape = (256,256,5), pretrained_weights = None,num_classes = 2):
+    inputs = Input(input_shape)
     conv1 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(inputs)
     conv1 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv1)
     pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
@@ -254,8 +254,8 @@ def unet_nodrop(input_size = (256,256,5), pretrained_weights = None,num_classes 
 
     return model
 
-def get_unet(n_classes=2, input_size = (128,128,5), pretrained_weights = None):
-    inputs = Input(input_size)
+def get_unet(n_classes=2, input_shape = (128,128,5), pretrained_weights = None):
+    inputs = Input(input_shape)
     conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(inputs)
     conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv1)
     pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
