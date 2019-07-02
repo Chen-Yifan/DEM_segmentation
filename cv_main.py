@@ -18,17 +18,18 @@ from keras.models import model_from_json
 
 
 #hyperparameters
-date = '6.27'
+date = 'tryout'
 BATCH_SIZE = 32
-NO_OF_EPOCHS = 100
+NO_OF_EPOCHS = 60
 shape = 128
-aug = True # to decide if shuffle
-Model_name = '128overlap_500w_segnetAdal_100ep_aug'
+aug = False # to decide if shuffle
+Model_name = '128overlap_300w_segnetAdal_60ep_6c_shuffle'
+band = 5
 k = 2
     
 #Train the model with K-fold Cross Val
 #TRAIN
-train_frame_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_frames'
+train_frame_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_frames6'
 train_mask_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_masks'
 
 
@@ -42,7 +43,7 @@ if not os.path.isdir(Checkpoint_path):
 
 
 # k-fold cross-validation
-img, mask = load_data(train_frame_path, train_mask_path, shape)
+img, mask = load_data(train_frame_path, train_mask_path, shape, band)
 train_list, test_list = k_fold(len(img), k = k)
 print(len(train_list), len(test_list))
 
@@ -59,10 +60,10 @@ for i in range(k):
     test_y = mask[test_list[i]]
     
     #model 
-    m = model.get_unet(input_shape = (128,128,5))
+    m = model.segnet(input_shape = (128,128,band))
 
     opt = Adam(lr=1E-5, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
-    opt2 = Adadelta(lr=1, rho=0.95, epsilon=1e-08, decay=0.0)
+    opt2 = Adadelta(lr=1, rho=0.95, epsilon=1e-08, decay=0.01)
     m.compile( optimizer = opt2, loss = pixel_wise_loss, metrics = [per_pixel_acc, Mean_IOU, precision, recall, f1score])
 
     #callback
@@ -80,12 +81,11 @@ for i in range(k):
                                   steps_per_epoch = (NO_OF_TRAINING_IMAGES//BATCH_SIZE),
                                   validation_data=val_gen,
                                   validation_steps=(NO_OF_VAL_IMAGES//BATCH_SIZE),
-                                  shuffle = True,
                                   callbacks=callbacks)
     # no_aug 
     else:
         history = m.fit(train_x, train_y, epochs=NO_OF_EPOCHS, batch_size=BATCH_SIZE, callbacks=callbacks,
-                         verbose=1, validation_split=0.18)
+                         verbose=1, validation_split=0.18, shuffle=True)
     
     model_history.append(history)
     
@@ -116,7 +116,7 @@ for i in range(k):
 
     if not os.path.isdir(result_path):
         os.makedirs(result_path)
-
+    print(result_path)
 
     save_result(train_frame_path, result_path, test_list[i], results, test_x, test_y, shape)
     # saveFrame_256(save_frame_path, test_frame_path, X)

@@ -18,11 +18,12 @@ import matplotlib.pyplot as plt
 import keras.losses
 import keras.metrics
 
-Model_name = '128overlap_500w_unetAdal_55ep'
-weights_name = 'weights.54-1.85.hdf5'
+Model_name = '128overlap_300w_segnetAdal_60ep_6c'
+weights_name = 'weights.36-2.08-0.56.hdf5'
 fold = 1
+date = '6.27'
 
-path = '/home/yifanc3/results/6.26/%s/%s/'%(Model_name,fold)
+path = '/home/yifanc3/results/%s/%s/%s/'%(date,Model_name,fold)
 test_mask_path = path + 'mask'
 test_frame_path = path + 'frame'
 
@@ -30,12 +31,12 @@ shape = 128
 
 def load_test(img_folder, mask_folder, shape=128):
     n = os.listdir(img_folder)
-    img = np.zeros((len(n), shape, shape, 5)).astype(np.float32)
+    img = np.zeros((len(n), shape, shape, 6)).astype(np.float32)
     mask = np.zeros((len(n), shape, shape, 2), dtype=np.float32)
     
     for i in range(len(n)): #initially from 0 to 16, c = 0. 
         train_img_0 = np.load(img_folder+'/'+n[i]) #normalization:the range is about -100 to 360
-        if(train_img_0.shape!=(shape,shape,5)):
+        if(train_img_0.shape!=(shape,shape,6)):
             continue
         img[i] = train_img_0 #add to array - img[0], img[1], and so on.
         
@@ -45,6 +46,9 @@ def load_test(img_folder, mask_folder, shape=128):
     return img, mask    
 
 def saveResult(save_path, test_mask_path, results, flag_multi_class = False, num_class = 2, shape=128):
+    if not os.path.isdir(save_path):
+        os.makedirs(save_path)
+    print(save_path)
     n = os.listdir(test_mask_path)
     result_shape = np.shape(results)
     print(result_shape)
@@ -65,10 +69,10 @@ keras.metrics.per_pixel_acc = per_pixel_acc
 from keras.utils import CustomObjectScope
 
 
-Model_dir = '/home/yifanc3/models/6.26/%s/ckpt_weights/%s'%(Model_name, weights_name)
+Model_dir = '/home/yifanc3/models/%s/%s/ckpt_weights/%s/%s'%(date, Model_name, fold, weights_name)
 # load model?
 
-m = model.get_unet(input_shape = (128,128,5))
+m = model.segnet(input_shape = (128,128,6))
 m.load_weights(Model_dir)
 
 opt = Adam(lr=1E-5, beta_1=0.9, beta_2=0.999, epsilon=1e-08)

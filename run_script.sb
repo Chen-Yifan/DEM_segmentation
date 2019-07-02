@@ -1,8 +1,8 @@
 #!/bin/bash
 
 #SBATCH --job-name='yifanDL'
-#SBATCH --output='128overlap_500w_unetAdal_55ep_aug.%j.%N.out'
-#SBATCH --error='128overlap_500w_unetAdal_55ep_aug.%j.%N.err'
+#SBATCH --output='128overlap_300w_segnetAdal_60ep_6c.%j.%N.out'
+#SBATCH --error='128overlap_300w_segnetAdal_60ep_6c.%j.%N.err'
 #SBATCH --partition=solo
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
