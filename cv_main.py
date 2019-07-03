@@ -20,16 +20,16 @@ from keras.models import model_from_json
 #hyperparameters
 date = 'tryout'
 BATCH_SIZE = 32
-NO_OF_EPOCHS = 60
+NO_OF_EPOCHS = 120
 shape = 128
 aug = False # to decide if shuffle
-Model_name = '128overlap_300w_segnetAdal_60ep_6c_shuffle'
-band = 5
+Model_name = '128overlap10m_300w_unetAdal_60ep_c5'
 k = 2
+band = 5
     
 #Train the model with K-fold Cross Val
 #TRAIN
-train_frame_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_frames6'
+train_frame_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_frames'
 train_mask_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_masks'
 
 
@@ -60,10 +60,10 @@ for i in range(k):
     test_y = mask[test_list[i]]
     
     #model 
-    m = model.segnet(input_shape = (128,128,band))
+    m = model.get_unet(input_shape = (128,128,band))
 
     opt = Adam(lr=1E-5, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
-    opt2 = Adadelta(lr=1, rho=0.95, epsilon=1e-08, decay=0.01)
+    opt2 = Adadelta(lr=1, rho=0.95, epsilon=1e-08, decay=0.0)
     m.compile( optimizer = opt2, loss = pixel_wise_loss, metrics = [per_pixel_acc, Mean_IOU, precision, recall, f1score])
 
     #callback
@@ -81,11 +81,12 @@ for i in range(k):
                                   steps_per_epoch = (NO_OF_TRAINING_IMAGES//BATCH_SIZE),
                                   validation_data=val_gen,
                                   validation_steps=(NO_OF_VAL_IMAGES//BATCH_SIZE),
+                                  shuffle = True,
                                   callbacks=callbacks)
     # no_aug 
     else:
         history = m.fit(train_x, train_y, epochs=NO_OF_EPOCHS, batch_size=BATCH_SIZE, callbacks=callbacks,
-                         verbose=1, validation_split=0.18, shuffle=True)
+                         verbose=1, validation_split=0.18, shuffle = True)
     
     model_history.append(history)
     
@@ -116,7 +117,7 @@ for i in range(k):
 
     if not os.path.isdir(result_path):
         os.makedirs(result_path)
-    print(result_path)
+
 
     save_result(train_frame_path, result_path, test_list[i], results, test_x, test_y, shape)
     # saveFrame_256(save_frame_path, test_frame_path, X)
@@ -224,9 +225,3 @@ plt.savefig(os.path.join(Model_path,'TrainValLoss.png'))
 plt.clf()
 plt.cla()
 plt.close()
-
-
-
-
-
-

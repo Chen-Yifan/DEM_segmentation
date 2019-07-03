@@ -55,7 +55,7 @@ def load_data(img_folder, mask_folder, shape=128, band=5):
     n = os.listdir(img_folder)
     n.sort(key=lambda var:[int(x) if x.isdigit() else x 
                                 for x in re.findall(r'[^0-9]|[0-9]+', var)])
-    random.shuffle(n)
+#     random.shuffle(n)
     
     if(band == 6):
         img = np.zeros((len(n), shape, shape, 6)).astype(np.float32)
@@ -83,13 +83,29 @@ def load_data(img_folder, mask_folder, shape=128, band=5):
             train_img_0 = np.load(img_folder+'/'+n[i]) #normalization:the range is about -100 to 360
             if(train_img_0.shape!=(shape,shape,6)):
                 continue
-            train_img = train_img_0[:,:,0:5]
+            train_img = train_img_0[:,:,0:-1]
             img[i] = train_img  #add to array - img[0], img[1], and so on.
+#             img[i,:,:,5] -= 640
             #train_mask
             train_mask = np.load(mask_folder+'/'+n[i]) # 1.0 or 2.0 
             mask[i,:,:,0] = np.squeeze(1-train_mask) # 0 to 1
             mask[i,:,:,1] = np.squeeze(train_mask)
-            
+    elif band == 1:
+        img = np.zeros((len(n), shape, shape, 1)).astype(np.float32)
+        mask = np.zeros((len(n), shape, shape, 2), dtype=np.float32)
+
+        for i in range(len(n)): #initially from 0 to 16, c = 0. 
+            train_img_0 = np.load(img_folder+'/'+n[i]) #normalization:the range is about -100 to 360
+            if(train_img_0.shape!=(shape,shape,6)):
+                continue
+            band6 = train_img_0[:,:,-1] - 640
+            band6 = np.expand_dims(band6,axis=-1)
+            img[i] = band6 #add to array - img[0], img[1], and so on.
+
+            #train_mask
+            train_mask = np.load(mask_folder+'/'+n[i]) # 1.0 or 2.0 
+            mask[i,:,:,0] = np.squeeze(1-train_mask) # 0 to 1
+            mask[i,:,:,1] = np.squeeze(train_mask)            
     
     return img, mask
 

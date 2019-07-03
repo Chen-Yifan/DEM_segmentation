@@ -18,10 +18,12 @@ import matplotlib.pyplot as plt
 import keras.losses
 import keras.metrics
 
-Model_name = '128overlap_300w_segnetAdal_60ep_6c'
-weights_name = 'weights.36-2.08-0.56.hdf5'
+Model_name = '128overlap10m_300w_unetAdal_60ep_c5'
+weights_name = 'weights.38-3.42-0.55.hdf5'
 fold = 1
-date = '6.27'
+date = '7.2'
+network = 'unet'
+band = 5
 
 path = '/home/yifanc3/results/%s/%s/%s/'%(date,Model_name,fold)
 test_mask_path = path + 'mask'
@@ -29,14 +31,14 @@ test_frame_path = path + 'frame'
 
 shape = 128
 
-def load_test(img_folder, mask_folder, shape=128):
+def load_test(img_folder, mask_folder, shape=128, band=5):
     n = os.listdir(img_folder)
-    img = np.zeros((len(n), shape, shape, 6)).astype(np.float32)
+    img = np.zeros((len(n), shape, shape, band)).astype(np.float32)
     mask = np.zeros((len(n), shape, shape, 2), dtype=np.float32)
     
     for i in range(len(n)): #initially from 0 to 16, c = 0. 
         train_img_0 = np.load(img_folder+'/'+n[i]) #normalization:the range is about -100 to 360
-        if(train_img_0.shape!=(shape,shape,6)):
+        if(train_img_0.shape!=(shape,shape,band)):
             continue
         img[i] = train_img_0 #add to array - img[0], img[1], and so on.
         
@@ -72,7 +74,10 @@ from keras.utils import CustomObjectScope
 Model_dir = '/home/yifanc3/models/%s/%s/ckpt_weights/%s/%s'%(date, Model_name, fold, weights_name)
 # load model?
 
-m = model.segnet(input_shape = (128,128,6))
+if(network == 'unet'):
+    m = model.get_unet(input_shape = (128,128,band))
+else:
+    m = model.segnet(input_shape = (128,128,band))
 m.load_weights(Model_dir)
 
 opt = Adam(lr=1E-5, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
