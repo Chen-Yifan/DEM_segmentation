@@ -4,7 +4,7 @@ import numpy as np
   
 # Function to rename multiple files 
 def main(): 
-    directories = ['masks_10m_128']
+    directories = ['masks_10m_256overlap']
     PATH = "/home/yifanc3/dataset/data/"
     i = 0
     for d in directories:
@@ -20,12 +20,12 @@ def main():
             
 def mv_frames():
     PATH = "/home/yifanc3/dataset/data/"
-    NEW_FRAME = PATH + 'masks_10m_128'
-    SAVE_FRAME = PATH + 'selected_128_overlap/all_masks_10m'
+    NEW_FRAME = PATH + 'masks_5m_256overlap'
+    SAVE_FRAME = PATH + 'selected_256_overlap/all_masks_5m'
     if not os.path.isdir(SAVE_FRAME):
         os.makedirs(SAVE_FRAME)
         
-    FRAME_PATH = PATH + 'selected_128_overlap/all_frames6'
+    FRAME_PATH = PATH + 'selected_256_overlap/all_masks_10m'
     all_frames = os.listdir(FRAME_PATH)
     for frame in all_frames:
         src = os.path.join(NEW_FRAME, frame[:-3]+'tif')

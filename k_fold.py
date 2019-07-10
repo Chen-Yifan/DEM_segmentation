@@ -13,12 +13,16 @@ import time
 from functools import *
 import random
 import re
+from keras.callbacks import TensorBoard
 
 
-def get_callbacks(name_weights, patience_lr):
+def get_callbacks(name_weights, path, patience_lr):
     mcp_save = ModelCheckpoint(name_weights, save_best_only=False, monitor='Mean_IOU', mode='max')
     reduce_lr_loss = ReduceLROnPlateau(monitor='loss', factor=0.5, patience=patience_lr, verbose=1, epsilon=1e-4, mode='min')
-    return [mcp_save, reduce_lr_loss]
+    logdir = os.path.join(path,'log')
+    tensorboard = TensorBoard(log_dir=logdir, histogram_freq=0,
+                            write_graph=True, write_images=True)
+    return [mcp_save, reduce_lr_loss,tensorboard]
 
 def save_result(train_frame_path, save_path, test_idx, results, test_x, test_y, shape = 128):
     n = os.listdir(train_frame_path)
@@ -51,7 +55,7 @@ def save_result(train_frame_path, save_path, test_idx, results, test_x, test_y, 
         np.save(os.path.join(save_mask_path,"%s.npy"%name[0:-4]),test_y[i])
 
     
-def load_data(img_folder, mask_folder, shape=128, band=5):
+def load_data(img_folder, mask_folder, shape=128, band=5, norm=True):
     n = os.listdir(img_folder)
     n.sort(key=lambda var:[int(x) if x.isdigit() else x 
                                 for x in re.findall(r'[^0-9]|[0-9]+', var)])
@@ -65,9 +69,33 @@ def load_data(img_folder, mask_folder, shape=128, band=5):
             train_img_0 = np.load(img_folder+'/'+n[i]) #normalization:the range is about -100 to 360
             if(train_img_0.shape!=(shape,shape,6)):
                 continue
-            band6 = train_img_0[:,:,-1] - 640
-            img[i,:,:,1:] = train_img_0[:,:,0:5] #add to array - img[0], img[1], and so on.
-            img[i,:,:,0] = train_img_0[:,:,5]
+#             train_img_0 = np.where(train_img_0==-9999, 0.0, train_img_0)
+            #mclean_roi_slope
+            if(norm):
+                train_img_0[:,:,0] = train_img_0[:,:,0] / 88
+
+                #mclean_roi_aspect
+                train_img_0[:,:,1] = (train_img_0[:,:,1]) / 360
+
+                #mclean_roi_rough
+                train_img_0[:,:,2] = train_img_0[:,:,2] / 313
+                train_img_0[:,:,2] = np.where(train_img_0[:,:,2]<0, -1, train_img_0[:,:,2])
+                #mclean_roi_tpi
+                train_img_0[:,:,3] = (train_img_0[:,:,3]+9999) / (9999+275)
+
+                #mclean_roi_tri
+                train_img_0[:,:,4] = train_img_0[:,:,4] / 305
+                train_img_0[:,:,4] = np.where(train_img_0[:,:,4]<0, -1, train_img_0[:,:,4])
+                #mclean_roi
+                train_img_0[:,:,-1] = train_img_0[:,:,-1] / 1174
+                train_img_0[:,:,-1] = np.where(train_img_0[:,:,-1]<0, -1, train_img_0[:,:,-1])
+            
+            else:
+                train_img_0[:,:,-1] = np.where(train_img_0[:,:,-1]<0, -1, train_img_0[:,:,-1])
+                train_img_0[:,:,-1] = train_img_0[:,:,-1] - 640
+                
+            img[i] = train_img_0
+         
 
             #train_mask
             train_mask = np.load(mask_folder+'/'+n[i]) # 1.0 or 2.0 
@@ -83,7 +111,7 @@ def load_data(img_folder, mask_folder, shape=128, band=5):
             train_img_0 = np.load(img_folder+'/'+n[i]) #normalization:the range is about -100 to 360
             if(train_img_0.shape!=(shape,shape,6)):
                 continue
-            train_img = train_img_0[:,:,0:-1]
+            train_img = train_img_0[:,:,0:5]
             img[i] = train_img  #add to array - img[0], img[1], and so on.
 #             img[i,:,:,5] -= 640
             #train_mask
@@ -110,12 +138,14 @@ def load_data(img_folder, mask_folder, shape=128, band=5):
     return img, mask
 
 def k_fold(n, k=3):
+  #shuffle the training one ?
     # ratio = 1/10s
     idx = list(np.arange(n))
     train_list = []
     test_list = []
     print('k_fold')
     for i in range(k):
+#         i = k - i - 1
         a = int(i*n*3/20)
         b = int((i+1)*n*3/20)
         print('fold', i,' test ', 'start:', a,'end:',b)
@@ -154,11 +184,11 @@ def train_gen_aug(img_list, mask_list, batch_size=32, ratio = 0.18):
 #                          rotation_range = 10,
                          featurewise_center=True,
                         )
-    image_datagen = ImageDataGenerator(**data_gen_args)
+    img_datagen = ImageDataGenerator(**data_gen_args)
     mask_datagen = ImageDataGenerator(**data_gen_args)
 
     seed = 2018
-    img_gen = image_datagen.flow(train_img, seed = seed, batch_size=batch_size, shuffle=True)#shuffling
+    img_gen = img_datagen.flow(train_img, seed = seed, batch_size=batch_size, shuffle=True)#shuffling
     mask_gen = mask_datagen.flow(train_mask, seed = seed, batch_size=batch_size, shuffle=True)
     train_gen = zip(img_gen, mask_gen)
 
@@ -171,3 +201,27 @@ def train_gen_aug(img_list, mask_list, batch_size=32, ratio = 0.18):
     val_gen = zip(img_gen, mask_gen)    
         
     return train_gen, val_gen, a, b
+
+def train_gen_noaug(img_list, mask_list, batch_size=32, ratio = 0.18):
+    n = len(img_list)
+    a = int(n*(1-0.18))
+    b = n - a
+    train_img = img_list[0:a]
+    train_mask = mask_list[0:a]
+    val_img = img_list[a:]
+    val_mask = mask_list[a:]
+
+    img_datagen = ImageDataGenerator()
+    mask_datagen = ImageDataGenerator()
+    
+    seed = 2018
+    img_gen = img_datagen.flow(train_img, seed = seed, batch_size=batch_size, shuffle=True)#shuffling
+    mask_gen = mask_datagen.flow(train_mask, seed = seed, batch_size=batch_size, shuffle=True)
+    train_gen = zip(img_gen, mask_gen)
+            
+    img_gen = img_datagen.flow(val_img, batch_size=batch_size, shuffle=True)
+    mask_gen = mask_datagen.flow(val_mask, batch_size=batch_size, shuffle=True)
+    val_gen = zip(img_gen, mask_gen)    
+        
+    return train_gen, val_gen, a, b
+    

@@ -18,19 +18,23 @@ from keras.models import model_from_json
 
 
 #hyperparameters
-date = 'tryout'
-BATCH_SIZE = 32
-NO_OF_EPOCHS = 120
-shape = 128
+date = '7.9'
+BATCH_SIZE = 16
+NO_OF_EPOCHS = 65
+shape = 256
 aug = False # to decide if shuffle
-Model_name = '128overlap10m_300w_unetAdal_60ep_c5'
+Model_name = '256overlap_300w_segnetAdal_65ep_10m6b_noshuffle_renorm'
+network = 'segnet'
 k = 2
-band = 5
+band = 6
+norm = True
+
+print('batch_size:', BATCH_SIZE, '\ndate:', date, '\nshape:', shape, '\naug:',aug, '\nModel_name', Model_name, '\nk:',k, '; band:', band, '\nnorm:', norm)
     
 #Train the model with K-fold Cross Val
 #TRAIN
-train_frame_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_frames'
-train_mask_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_masks'
+train_frame_path = '/home/yifanc3/dataset/data/selected_256_overlap/all_frames6/'
+train_mask_path = '/home/yifanc3/dataset/data/selected_256_overlap/all_masks_10m/'
 
 
 Model_path = '/home/yifanc3/models/%s/%s/' % (date,Model_name)
@@ -43,7 +47,7 @@ if not os.path.isdir(Checkpoint_path):
 
 
 # k-fold cross-validation
-img, mask = load_data(train_frame_path, train_mask_path, shape, band)
+img, mask = load_data(train_frame_path, train_mask_path, shape, band, norm)
 train_list, test_list = k_fold(len(img), k = k)
 print(len(train_list), len(test_list))
 
@@ -51,8 +55,9 @@ model_history = []
 
 for i in range(k):
     print('====The %s Fold===='%i)
-#     NO_OF_TRAINING_IMAGES = len(train_list[i])
-#     NO_OF_TEST_IMAGES = len(test_list[i])
+    #shuffle the index
+#     random.shuffle(train_list[i])
+#     random.shuffle(test_list[i])
     
     train_x = img[train_list[i]]
     train_y = mask[train_list[i]]
@@ -60,7 +65,11 @@ for i in range(k):
     test_y = mask[test_list[i]]
     
     #model 
-    m = model.get_unet(input_shape = (128,128,band))
+    if(network == 'unet'):
+        m = model.get_unet(input_shape = (shape,shape,band))
+    else:
+        m = model.segnet(input_shape = (shape,shape,band))
+        
 
     opt = Adam(lr=1E-5, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
     opt2 = Adadelta(lr=1, rho=0.95, epsilon=1e-08, decay=0.0)
@@ -72,19 +81,19 @@ for i in range(k):
         os.makedirs(ckpt_path)
     weights_path = ckpt_path + 'weights.{epoch:02d}-{val_loss:.2f}-{val_Mean_IOU:.2f}.hdf5'
     
-    callbacks = get_callbacks(name_weights = weights_path, patience_lr=5)
+    callbacks = get_callbacks(weights_path, Model_path, 5)
     
     if(aug):
     # data augmentation
         train_gen, val_gen, NO_OF_TRAINING_IMAGES, NO_OF_VAL_IMAGES = train_gen_aug(train_x, train_y, 32, ratio = 0.18)
         history = m.fit_generator(train_gen, epochs=NO_OF_EPOCHS,
-                                  steps_per_epoch = (NO_OF_TRAINING_IMAGES//BATCH_SIZE),
-                                  validation_data=val_gen,
-                                  validation_steps=(NO_OF_VAL_IMAGES//BATCH_SIZE),
-                                  shuffle = True,
-                                  callbacks=callbacks)
-    # no_aug 
+                              steps_per_epoch = (NO_OF_TRAINING_IMAGES//BATCH_SIZE),
+                              validation_data=val_gen,
+                              validation_steps=(NO_OF_VAL_IMAGES//BATCH_SIZE),
+                              shuffle = True,
+                              callbacks=callbacks)
     else:
+#         train_gen, val_gen, NO_OF_TRAINING_IMAGES, NO_OF_VAL_IMAGES = train_gen_noaug(train_x, train_y, 32, ratio = 0.18)
         history = m.fit(train_x, train_y, epochs=NO_OF_EPOCHS, batch_size=BATCH_SIZE, callbacks=callbacks,
                          verbose=1, validation_split=0.18, shuffle = True)
     
@@ -118,7 +127,8 @@ for i in range(k):
     if not os.path.isdir(result_path):
         os.makedirs(result_path)
 
-
+    print('result:', result_path)
+    
     save_result(train_frame_path, result_path, test_list[i], results, test_x, test_y, shape)
     # saveFrame_256(save_frame_path, test_frame_path, X)
     print("======="*12, end="\n\n\n")
