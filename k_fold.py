@@ -126,9 +126,8 @@ def load_data(img_folder, mask_folder, shape=128, band=5, norm=True):
             train_img_0 = np.load(img_folder+'/'+n[i]) #normalization:the range is about -100 to 360
             if(train_img_0.shape!=(shape,shape,6)):
                 continue
-            band6 = train_img_0[:,:,-1] - 640
-            band6 = np.expand_dims(band6,axis=-1)
-            img[i] = band6 #add to array - img[0], img[1], and so on.
+            
+            img[i] = np.expand_dims((train_img_0[:,:,1]) / 360, axis = -1) #add to array - img[0], img[1], and so on.
 
             #train_mask
             train_mask = np.load(mask_folder+'/'+n[i]) # 1.0 or 2.0 

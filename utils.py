@@ -38,7 +38,7 @@ def saveFrame_256(save_path, test_frame_path, test_frame):
         
 
 # plan B
-def pixel_wise_loss(y_true, y_pred, shape=256):
+def pixel_wise_loss(y_true, y_pred, shape=128):
 #     y_pred = K.argmax(y_pred)
 #     y_true = K.argmax(y_true)
 
@@ -152,7 +152,7 @@ def pixel_wise_loss(y_true, y_pred, shape=256):
     
 
 
-def Mean_IOU(y_true, y_pred, shape=256):
+def Mean_IOU(y_true, y_pred, shape=128):
     s = K.shape(y_true)
 
     # reshape such that w and h dim are multiplied together

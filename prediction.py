@@ -18,10 +18,10 @@ import matplotlib.pyplot as plt
 import keras.losses
 import keras.metrics
 
-Model_name = '128overlap_300w_unetAdal_60ep_5m6b_noshuffle_renorm'
-weights_name = 'weights.59-2.22-0.59.hdf5'
+Model_name = '128overlap_300w_unetAdal_65ep_5m6b_noshuffle_renorm_aug'
+weights_name = 'weights.64-2.56-0.47.hdf5'
 fold = 1
-date = '7.5'
+date = '7.11'
 network = 'unet'
 band = 6
 

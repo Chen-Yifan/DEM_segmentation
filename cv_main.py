@@ -18,13 +18,13 @@ from keras.models import model_from_json
 
 
 #hyperparameters
-date = '7.9'
-BATCH_SIZE = 16
-NO_OF_EPOCHS = 65
-shape = 256
-aug = False # to decide if shuffle
-Model_name = '256overlap_300w_segnetAdal_65ep_10m6b_noshuffle_renorm'
-network = 'segnet'
+date = '7.11'
+BATCH_SIZE = 32
+NO_OF_EPOCHS = 120
+shape = 128
+aug = True # to decide if shuffle
+Model_name = '128overlap_300w_unetAdal_120ep_10m6b_noshuffle_renorm_aug'
+network = 'unet'
 k = 2
 band = 6
 norm = True
@@ -33,8 +33,8 @@ print('batch_size:', BATCH_SIZE, '\ndate:', date, '\nshape:', shape, '\naug:',au
     
 #Train the model with K-fold Cross Val
 #TRAIN
-train_frame_path = '/home/yifanc3/dataset/data/selected_256_overlap/all_frames6/'
-train_mask_path = '/home/yifanc3/dataset/data/selected_256_overlap/all_masks_10m/'
+train_frame_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_frames_5m6b/'
+train_mask_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_masks_10m6b/'
 
 
 Model_path = '/home/yifanc3/models/%s/%s/' % (date,Model_name)
@@ -72,7 +72,7 @@ for i in range(k):
         
 
     opt = Adam(lr=1E-5, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
-    opt2 = Adadelta(lr=1, rho=0.95, epsilon=1e-08, decay=0.0)
+    opt2 = Adadelta(lr=1, rho=0.95, epsilon=1e-08, decay=0.1)
     m.compile( optimizer = opt2, loss = pixel_wise_loss, metrics = [per_pixel_acc, Mean_IOU, precision, recall, f1score])
 
     #callback
