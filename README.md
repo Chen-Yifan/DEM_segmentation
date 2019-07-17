@@ -19,11 +19,11 @@ cd DEM_segmentation
 ## Generate dataset
 ###  Original TIFF files: 
 
-  **DEM:**
+  DEM:
   
     mclearn_roi.tif
 
-  **Derivatives:**
+  Derivatives:
   
     mclean_roi_slope.tif 
     mclean_roi_aspect.tif 
@@ -32,15 +32,15 @@ cd DEM_segmentation
     mclean_roi_tri.tif
   
 
-  **Merge To Generate:**
+  Merge To Generate:
   
     mclean_roi_merge.tif 
 
-  **Annotated Mask:**
+  Annotated Mask:
   
     annotated_mask.tif where 1 indicates annotated, 0 not
 
-  **Binary Mask:**
+  Binary Mask:
   
     cl1.tif -- 5 m buffer around the features  with 1 means having feature there
     10m_buffer_3443.tif -- 10 m buffer around the features 
