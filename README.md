@@ -1,5 +1,21 @@
 # DEM_segmentation
 
+## Setup
+
+### Prerequisites
+- Tensorflow
+- keras
+- gdal 
+  + Anaconda: `conda install -c conda-forge gdal`
+  + pip : `pip install GDAL`
+
+- Clone this repo:
+```bash
+git clone git@github.com:fffibonacci/DEM_segmentation.git
+cd DEM_segmentation
+```
+
+
 ## Generate dataset
 ###  Original TIFF files: 
 
