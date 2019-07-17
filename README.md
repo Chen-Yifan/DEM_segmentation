@@ -75,4 +75,4 @@ By running this notebook, we select the same number of files with features (imag
 ## Train and Test (cross validation)
 Train_frame_path and train_mask_path contains npy tile files.
 
-```python cv_train.py```
+```python cv_main.py```
