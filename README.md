@@ -44,7 +44,7 @@ After rename all the tiled image files, run notebook from [/DEM_segmentation/pre
 By running this notebook, we select the same number of files with features (image containing more than 100 labelled pixels) and without features.
 
 
-## To train and test (cross validation)
+## Train and Test (cross validation)
 Train_frame_path and train_mask_path contains npy tile files.
 
 ```python cv_train.py```
