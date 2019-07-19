@@ -121,7 +121,6 @@ for i in range(k):
     # print("%s: %.2f%%" % (m.metrics_names[6], score[6]*100))
 
     results = m.predict(test_x)
-    new_r = np.argmax(results,axis=-1)
 
     #save image
     result_path = "/home/yifanc3/results/%s/%s/%s"%(date,Model_name,i)

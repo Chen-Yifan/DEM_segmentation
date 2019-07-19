@@ -119,7 +119,7 @@ for i in range(k):
     print('======Start Testing======')
 
     score = m.evaluate(test_x, {'binary': test_y, 'distance': test_y2}, verbose=0)
-    for i in range(10):
+    for i in range(8):
         print("%s: %.2f%%" % (m.metrics_names[i+1], score[i+1]*100))
     
 
