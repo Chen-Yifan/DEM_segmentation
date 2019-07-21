@@ -5,7 +5,7 @@
 #SBATCH --error='128over_MT2_segnet_100e_aug.%j.%N.err'
 #SBATCH --partition=solo
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1c
+#SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:v100:1
 #SBATCH --export=ALL
 #SBATCH --mem-per-cpu=1500
