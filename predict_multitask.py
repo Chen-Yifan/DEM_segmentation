@@ -1,5 +1,7 @@
 from k_fold import *
 from utils import *
+from metrics import *
+from losses import *
 from keras.callbacks import ModelCheckpoint
 from keras.callbacks import CSVLogger
 from keras.callbacks import EarlyStopping
@@ -18,27 +20,29 @@ import matplotlib.pyplot as plt
 import keras.losses
 import keras.metrics
 
-Model_name = '128overlap_dist_50epoch'
-weights_name = 'weights.37-2.27-0.57.hdf5'
+Model_name = '128overlap_MT_segnet_45epoch'
+weights_name = 'weights.36-2.35-0.57.hdf5'
 fold = 1
 date = '7.18'
-network = 'segnet'
+# network = 'segnet'
 band = 6
+shape = 128
 
 path = '/home/yifanc3/results/%s/%s/%s/'%(date,Model_name,fold)
 test_mask_path = path + 'mask'
 test_frame_path = path + 'frame'
 
-shape = 128
+
 
 def load_test(img_folder, mask_folder, shape=128, band=6):
     img_list = os.listdir(img_folder)
     mask_list = os.listdir(mask_folder)
-    imgs = np.zeros((len(img_list), shape, shape, band)).astype(np.float32)
-    masks = np.zeros((len(img_list), shape, shape, 2), dtype=np.float32)
-    masks_dist = np.zeros((len(img_list), shape, shape, 2), dtype=np.float32)
+    imgs = np.empty((len(img_list), shape, shape, band), dtype=np.float32)
+    masks = np.empty((len(img_list), shape, shape, 2), dtype=np.float32)
+    masks_dist = np.empty((len(img_list), shape, shape, 5), dtype=np.float32)
     
-    for i in range(len(n)): #initially from 0 to 16, c = 0. 
+    print(len(img_list)) # 754
+    for i in range(len(img_list)): #initially from 0 to 16, c = 0. 
         train_img_0 = np.load(img_folder+'/'+img_list[i]) #normalization:the range is about -100 to 360
         imgs[i] = train_img_0 #add to array - img[0], img[1], and so on.
         
@@ -61,6 +65,7 @@ def saveResult(save_path, test_frame_path, results,shape=128):
     binary_shape = results[1].shape
     
     for i in range(length):
+        name = n[i]
         img_distance = np.argmax(results[0][i],axis = -1)
         img_binary = np.argmax(results[1][i],axis = -1)
         np.save(os.path.join(save_path,"%s_distance.npy"%name[0:-4]),img_distance)
@@ -70,27 +75,45 @@ def saveResult(save_path, test_frame_path, results,shape=128):
 
 keras.losses.pixel_wise_loss = pixel_wise_loss
 keras.metrics.Mean_IOU = Mean_IOU
+keras.metrics.Mean_IOU = Mean_IOU_dist
 keras.metrics.recall = recall
 keras.metrics.precision = precision
 keras.metrics.f1score = f1score
 keras.metrics.per_pixel_acc = per_pixel_acc
 from keras.utils import CustomObjectScope
+from keras.models import model_from_json
+from layers import *
 
 
-Model_dir = '/home/yifanc3/models/%s/%s/ckpt_weights/%s/%s'%(date, Model_name, fold, weights_name)
+ckpt_dir = '/home/yifanc3/models/%s/%s/ckpt_weights/%s/%s'%(date, Model_name, fold, weights_name)
 # load model?
 
-#model 
-if(network == 'unet'):
-    m = model.get_unet_multitask(input_shape = (shape,shape,band))
-else:
-    m = model.segnet(multi_task = True, input_shape = (shape,shape,band))
+#MODEL
+# if(network == 'unet'):
+#     m = model.get_unet_multitask(input_shape = (shape,shape,band))
+# else:
+#     m = model.segnet(multi_task = True, input_shape = (shape,shape,band))
 
-m.load_weights(Model_dir)
+# load json and create model
+json_path = '/home/yifanc3/models/%s/%s/model%s.json' %(date, Model_name, fold)
+json_file = open(json_path, 'r')
+loaded_model_json = json_file.read()
+json_file.close()
+m = model_from_json(loaded_model_json, custom_objects = 
+                    {'MaxPoolingWithArgmax2D': MaxPoolingWithArgmax2D, 'MaxUnpooling2D':MaxUnpooling2D})
+
+# ckpt_dir = '/home/yifanc3/models/%s/%s/model%s.h5' %(date, Model_name, fold)
+m.load_weights(ckpt_dir)
+
+print('====== LOAD WEIGTHS SUCCESSFULLY ======')
 
 opt = Adam(lr=1E-5, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
 opt2 = Adadelta(lr=1, rho=0.95, epsilon=1e-08, decay=0.0)    
-m.compile( optimizer = opt2, loss = pixel_wise_loss, metrics = [per_pixel_acc, Mean_IOU, precision, recall, f1score])
+#change to multimask loss!!
+m.compile( optimizer = opt2, loss = {'binary':pixel_wise_loss, 'distance':'categorical_crossentropy'}, 
+              loss_weights = {'binary':0.5, 'distance':0.5}, metrics = {'binary':[per_pixel_acc, Mean_IOU, 
+                                                                                  precision, recall, f1score], 
+                                                                        'distance':Mean_IOU_dist})
 
 test_x, test_y, test_y2 = load_test(test_frame_path, test_mask_path, shape, band)
 

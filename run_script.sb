@@ -1,11 +1,11 @@
 #!/bin/bash
 
 #SBATCH --job-name='yifanDL'
-#SBATCH --output='tryout.%j.%N.out'
-#SBATCH --error='tryout.%j.%N.err'
+#SBATCH --output='128over_MT2_segnet_100e_aug.%j.%N.out'
+#SBATCH --error='128over_MT2_segnet_100e_aug.%j.%N.err'
 #SBATCH --partition=solo
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
+#SBATCH --ntasks-per-node=1c
 #SBATCH --gres=gpu:v100:1
 #SBATCH --export=ALL
 #SBATCH --mem-per-cpu=1500

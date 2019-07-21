@@ -44,7 +44,6 @@ def save_result(train_frame_path, save_path, test_idx, results, test_x, test_y, 
     if(multi_task):
         distance_shape = results[0].shape
         binary_shape = results[1].shape
-        d
         for i in range(length):
             name = n[a+i]
             img_distance = np.argmax(results[0][i],axis = -1)
@@ -232,71 +231,68 @@ def k_fold(n, k=3):
 
 # data augmentation
 def train_gen_aug(img_list, mask_list, batch_size=32, ratio = 0.18):
+    
     n = len(img_list)
     a = int(n*(1-0.18))
     b = n - a
+    
+    data_gen_args = dict(
+                    horizontal_flip = True,
+#                      vertical_flip = True,
+                     width_shift_range = 0.1,
+                     height_shift_range = 0.1,
+                     zoom_range = 0.2, #resize
+                     rotation_range = 10,
+#                      featurewise_center=True,
+    )
+    
+    
     train_img = img_list[0:a]
     train_mask = mask_list[0:a]
     val_img = img_list[a:]
     val_mask = mask_list[a:]
-    
-    
-#     datagen = ImageDataGenerator(
-#     featurewise_center=True,
-# #     featurewise_std_normalization=True,
-#     rotation_range=20,
-#     width_shift_range=0.2,
-#     height_shift_range=0.2,
-#     horizontal_flip=True)
-
 # train gen
-    data_gen_args = dict(
-                        horizontal_flip = True,
-#                          vertical_flip = True,
-                         width_shift_range = 0.1,
-                         height_shift_range = 0.1,
-                         zoom_range = 0.2, #resize
-                         rotation_range = 10,
-#                          featurewise_center=True,
-                        )
     img_datagen = ImageDataGenerator(**data_gen_args)
-    mask_datagen = ImageDataGenerator(**data_gen_args)
 
     seed = 2018
     img_gen = img_datagen.flow(train_img, seed = seed, batch_size=batch_size, shuffle=True)#shuffling
-    mask_gen = mask_datagen.flow(train_mask, seed = seed, batch_size=batch_size, shuffle=True)
+    mask_gen = img_datagen.flow(train_mask, seed = seed, batch_size=batch_size, shuffle=True)
     train_gen = zip(img_gen, mask_gen)
 
 # val_gen
     img_datagen = ImageDataGenerator()
-    mask_datagen = ImageDataGenerator()
-            
+
     img_gen = img_datagen.flow(val_img, batch_size=batch_size, shuffle=True)
-    mask_gen = mask_datagen.flow(val_mask, batch_size=batch_size, shuffle=True)
+    mask_gen = img_datagen.flow(val_mask, batch_size=batch_size, shuffle=True)
     val_gen = zip(img_gen, mask_gen)    
-        
+    
     return train_gen, val_gen, a, b
 
-def train_gen_noaug(img_list, mask_list, batch_size=32, ratio = 0.18):
-    n = len(img_list)
-    a = int(n*(1-0.18))
-    b = n - a
-    train_img = img_list[0:a]
-    train_mask = mask_list[0:a]
-    val_img = img_list[a:]
-    val_mask = mask_list[a:]
+def MTgenerator(img_list, mask_list, mask_dist_list, split, batch_size=32):
+    if(split == 'train'):
+        data_gen_args = dict(
+                    horizontal_flip = True,
+                     width_shift_range = 0.1,
+                     height_shift_range = 0.1,
+                     zoom_range = 0.2, #resize
+                     rotation_range = 10,
+                )
+        img_datagen = ImageDataGenerator(**data_gen_args)
+        
+    else:
+        img_datagen = ImageDataGenerator()
 
-    img_datagen = ImageDataGenerator()
-    mask_datagen = ImageDataGenerator()
-    
     seed = 2018
-    img_gen = img_datagen.flow(train_img, seed = seed, batch_size=batch_size, shuffle=True)#shuffling
-    mask_gen = mask_datagen.flow(train_mask, seed = seed, batch_size=batch_size, shuffle=True)
-    train_gen = zip(img_gen, mask_gen)
-            
-    img_gen = img_datagen.flow(val_img, batch_size=batch_size, shuffle=True)
-    mask_gen = mask_datagen.flow(val_mask, batch_size=batch_size, shuffle=True)
-    val_gen = zip(img_gen, mask_gen)    
-        
-    return train_gen, val_gen, a, b
+    img_gen = img_datagen.flow(img_list, seed = seed, batch_size=batch_size, shuffle=True)#shuffling
+    mask_gen = img_datagen.flow(mask_list, seed = seed, batch_size=batch_size, shuffle=True)
+    mask_dist_gen = img_datagen.flow(mask_dist_list, seed = seed, batch_size=batch_size, shuffle=True)
+       
     
+    #yield generated data
+    while True:
+        X = img_gen.next()
+        Y1 = mask_gen.next()
+        Y2 = mask_dist_gen.next()
+        yield X, [Y2, Y1]
+
+        

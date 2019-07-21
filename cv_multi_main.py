@@ -19,18 +19,18 @@ from keras.models import model_from_json
 
 
 #hyperparameters
-date = 'tryout'
+date = '7.18'
 BATCH_SIZE = 32
-NO_OF_EPOCHS = 45
+NO_OF_EPOCHS = 100
 shape = 128
-aug = False # to decide if shuffle
-Model_name = '128overlap_dist_1epoch'
+aug = True # to decide if shuffle
+Model_name = '128over_MT2_segnet_100e_aug'
 network = 'segnet'
 k = 2
 band = 6
 norm = True
 
-print('batch_size:', BATCH_SIZE, '\ndate:', date, '\nshape:', shape, '\naug:',aug, '\nModel_name', Model_name, '\nk:',k, '; band:', band, '\nnorm:', norm)
+print('batch_size:', BATCH_SIZE, '\ndate:', date, '\nshape:', shape, '\naug:',aug, '\nNetwork:', network,'\nModel_name:', Model_name, '\nk:',k, '; band:', band, '\nnorm:', norm)
     
 #Train the model with K-fold Cross Val
 #TRAIN
@@ -90,9 +90,15 @@ for i in range(k):
     
     if(aug):
     # data augmentation
-        train_gen, val_gen, NO_OF_TRAINING_IMAGES, NO_OF_VAL_IMAGES = train_gen_aug(train_x, {'binary': train_y, 
-                                                                                              'distance': train_y2}, 
-                                                                                    32, ratio = 0.18)
+        ratio = 0.18
+        n = len(train_x)
+        a = int(n*(1-ratio))
+        b = n - a
+        NO_OF_TRAINING_IMAGES = a
+        NO_OF_VAL_IMAGES = b
+        train_gen = MTgenerator(train_x[0:a], train_y[0:a], train_y2[0:a], 'train', BATCH_SIZE)
+        val_gen = MTgenerator(train_x[a:], train_y[a:], train_y2[a:], 'val', BATCH_SIZE)
+        
         history = m.fit_generator(train_gen, epochs=NO_OF_EPOCHS,
                               steps_per_epoch = (NO_OF_TRAINING_IMAGES//BATCH_SIZE),
                               validation_data=val_gen,
@@ -119,9 +125,9 @@ for i in range(k):
     print('======Start Testing======')
 
     score = m.evaluate(test_x, {'binary': test_y, 'distance': test_y2}, verbose=0)
-    for i in range(8):
-        print("%s: %.2f%%" % (m.metrics_names[i+1], score[i+1]*100))
-    
+    for j in range(8):
+        print("%s: %.2f%%" % (m.metrics_names[j+1], score[j+1]*100))
+   
 
  #prediction
     results = m.predict(test_x)

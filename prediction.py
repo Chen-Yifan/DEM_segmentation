@@ -1,5 +1,6 @@
-from k_fold import *
 from utils import *
+from metrics import *
+from losses import *
 from keras.callbacks import ModelCheckpoint
 from keras.callbacks import CSVLogger
 from keras.callbacks import EarlyStopping
@@ -14,12 +15,13 @@ from keras.layers.core import Dropout, Activation
 from keras.models import Model,load_model
 from keras.optimizers import Adadelta, Adam
 import matplotlib.pyplot as plt
+from layers import *
 
 import keras.losses
 import keras.metrics
 
 Model_name = '128overlap_300w_unetAdal_65ep_5m6b_noshuffle_renorm_aug'
-weights_name = 'weights.64-2.56-0.47.hdf5'
+weights_name = 'weights.01-2.03-0.01.hdf5'
 fold = 1
 date = '7.11'
 network = 'unet'
@@ -69,16 +71,22 @@ keras.metrics.precision = precision
 keras.metrics.f1score = f1score
 keras.metrics.per_pixel_acc = per_pixel_acc
 from keras.utils import CustomObjectScope
-
+from keras.models import model_from_json
 
 Model_dir = '/home/yifanc3/models/%s/%s/ckpt_weights/%s/%s'%(date, Model_name, fold, weights_name)
 # load model?
 
 #model 
-if(network == 'unet'):
-    m = model.get_unet(input_shape = (shape,shape,band))
-else:
-    m = model.segnet(input_shape = (shape,shape,band))
+# if(network == 'unet'):
+#     m = model.get_unet(input_shape = (shape,shape,band))
+# else:
+#     m = model.segnet(input_shape = (shape,shape,band))
+
+json_path = '/home/yifanc3/models/%s/%s/model%s.json' %(date, Model_name, fold)
+json_file = open(json_path, 'r')
+loaded_model_json = json_file.read()
+json_file.close()
+m = model_from_json(loaded_model_json, custom_objects = {'MaxPoolingWithArgmax2D': MaxPoolingWithArgmax2D, 'MaxUnpooling2D':MaxUnpooling2D})
     
 m.load_weights(Model_dir)
 
