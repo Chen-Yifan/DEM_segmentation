@@ -77,8 +77,7 @@ def segnet(
     #classificaiton
     flatten = Flatten()(pool_5)
     fc = Dense(128, activation='relu')(flatten)
-    classification = Dense(num_classes, activation='softmax', name='classification')(fc)
-    
+    classification = Dense(n_labels, activation=output_mode, name='classification')(fc)
     print("Build enceder done..")
 
     # decoder
