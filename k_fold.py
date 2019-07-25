@@ -18,11 +18,11 @@ from keras.callbacks import TensorBoard
 
 def get_callbacks(name_weights, path, patience_lr):
     mcp_save = ModelCheckpoint(name_weights, save_best_only=False, monitor='Mean_IOU', mode='max')
-    reduce_lr_loss = ReduceLROnPlateau(monitor='loss', factor=0.5, patience=patience_lr, verbose=1, epsilon=1e-4, mode='min')
+#     reduce_lr_loss = ReduceLROnPlateau(monitor='loss', factor=0.5, patience=patience_lr, verbose=1, epsilon=1e-4, mode='min')
     logdir = os.path.join(path,'log')
     tensorboard = TensorBoard(log_dir=logdir, histogram_freq=0,
                             write_graph=True, write_images=True)
-    return [mcp_save, reduce_lr_loss,tensorboard]
+    return [mcp_save, tensorboard]
 
 def save_result(train_frame_path, save_path, test_idx, results, test_x, test_y, shape = 128, multi_task = False):
     n = os.listdir(train_frame_path)
@@ -88,7 +88,8 @@ def load_data_multi(img_folder, mask_folder, maskdist_folder, shape=128, band=6,
             if(train_img_0.shape!=(shape,shape,6)):
                 continue
 #             train_img_0 = np.where(train_img_0==-9999, 0.0, train_img_0)
-            #mclean_roi_slope
+            #interpolate all negative values
+            
             if(norm):
                 train_img_0[:,:,0] = train_img_0[:,:,0] / 88
 
@@ -97,16 +98,16 @@ def load_data_multi(img_folder, mask_folder, maskdist_folder, shape=128, band=6,
 
                 #mclean_roi_rough
                 train_img_0[:,:,2] = train_img_0[:,:,2] / 313
-                train_img_0[:,:,2] = np.where(train_img_0[:,:,2]<0, -1, train_img_0[:,:,2])
+#                 train_img_0[:,:,2] = np.where(train_img_0[:,:,2]<0, -1, train_img_0[:,:,2])
                 #mclean_roi_tpi
-                train_img_0[:,:,3] = (train_img_0[:,:,3]+9999) / (9999+275)
+                train_img_0[:,:,3] = (train_img_0[:,:,3]) / (275)
 
                 #mclean_roi_tri
                 train_img_0[:,:,4] = train_img_0[:,:,4] / 305
-                train_img_0[:,:,4] = np.where(train_img_0[:,:,4]<0, -1, train_img_0[:,:,4])
+#                 train_img_0[:,:,4] = np.where(train_img_0[:,:,4]<0, -1, train_img_0[:,:,4])
                 #mclean_roi
                 train_img_0[:,:,-1] = train_img_0[:,:,-1] / 1174
-                train_img_0[:,:,-1] = np.where(train_img_0[:,:,-1]<0, -1, train_img_0[:,:,-1])
+#                 train_img_0[:,:,-1] = np.where(train_img_0[:,:,-1]<0, -1, train_img_0[:,:,-1])
             
             else:
                 train_img_0[:,:,-1] = np.where(train_img_0[:,:,-1]<0, -1, train_img_0[:,:,-1])

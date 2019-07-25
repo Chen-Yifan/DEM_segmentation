@@ -4,7 +4,6 @@ import os
 import glob
 import skimage.io as io
 import tensorflow as tf
-import cv2
 from keras.utils import to_categorical
 from itertools import product
 

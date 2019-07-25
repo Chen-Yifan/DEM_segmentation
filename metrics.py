@@ -105,6 +105,7 @@ def per_pixel_acc(y_true, y_pred):
     #class 1
     y_pred = K.argmax(y_pred)
     y_true = K.argmax(y_true)
+   # TP = tf.compat.v2.math.count_nonzero(y_pred * y_true)
     TP = tf.math.count_nonzero(y_pred * y_true)
     TN = tf.math.count_nonzero((1-y_pred)*(1-y_true))
     FP = tf.math.count_nonzero(y_pred*(1-y_true))
