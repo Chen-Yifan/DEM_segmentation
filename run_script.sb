@@ -1,14 +1,14 @@
 #!/bin/bash
 
 #SBATCH --job-name='yifanDL'
-#SBATCH --output='output/7.25/128overlap_300w_segnetAdal_65ep_5m6b_renorm.%j.%N.out'
-#SBATCH --error='output/7.25/128overlap_300w_segnetAdal_65ep_5m6b_renorm.%j.%N.err'
-#SBATCH --partition=gpux1
+#SBATCH --output='tryout.%j.%N.out'
+#SBATCH --error='tryout.%j.%N.err'
+#SBATCH --partition=solo
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:v100:1
 #SBATCH --export=ALL
 #SBATCH --mem-per-cpu=1500
-#SBATCH -t 10:00:00
+#SBATCH -t 08:00:00
 module load powerai
-python cv_main.py
+python cv_multi_main.py

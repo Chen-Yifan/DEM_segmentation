@@ -9,6 +9,7 @@ import model
 from metrics import *
 from losses import *
 from k_fold import *
+from utils import *
 import numpy as np
 from keras.models import Model
 from keras.optimizers import Adadelta, Adam
@@ -19,22 +20,21 @@ from keras.models import model_from_json
 
 
 #hyperparameters
-date = '7.18'
+date = 'tryout'
 BATCH_SIZE = 32
-NO_OF_EPOCHS = 100
+NO_OF_EPOCHS = 45
 shape = 128
-aug = False
-Model_name = '128over_MT3_segnet_100e'
+aug = False # to decide if shuffle
+Model_name = '128overlap_dist_1epoch'
 network = 'segnet'
 k = 2
 band = 6
-norm = True
 
-print('batch_size:', BATCH_SIZE, '\ndate:', date, '\nshape:', shape, '\naug:',aug, '\nNetwork:', network,'\nModel_name:', Model_name, '\nk:',k, '; band:', band, '\nnorm:', norm)
+print('batch_size:', BATCH_SIZE, '\ndate:', date, '\nshape:', shape, '\naug:',aug, '\nModel_name', Model_name, '\nk:',k, '; band:', band, '\nnorm:', norm)
     
 #Train the model with K-fold Cross Val
 #TRAIN
-train_frame_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_frames_5m6b/'
+train_frame_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_frames_5m6b_norm/'
 train_mask_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_masks_10m6b/'
 train_maskdst_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_masks_10mdist/'
 
@@ -47,7 +47,7 @@ mkdir(Checkpoint_path)
 
 
 # k-fold cross-validation
-img, mask, dstmask, features = load_data_multi(train_frame_path, train_mask_path, train_maskdst_path, shape, band, norm)
+img, mask, dstmask = load_data_multi(train_frame_path, train_mask_path, train_maskdst_path, shape, band)
 train_list, test_list = k_fold(len(img), k = k)
 print(len(train_list), len(test_list))
 
@@ -67,10 +67,6 @@ for i in range(k):
     train_y2 = dstmask[train_list[i]]
     test_y2 = dstmask[test_list[i]]
     
-    train_y3 = features[train_list[i]]
-    test_y3 = features[test_list[i]]
-    
-    
     #MODEL BUILD  multi_task
     if(network == 'unet'):
         m = model.get_unet_multitask(input_shape = (shape,shape,band))
@@ -79,13 +75,10 @@ for i in range(k):
     
     opt = Adam(lr=1E-5, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
     opt2 = Adadelta(lr=1, rho=0.95, epsilon=1e-08, decay=0.0)
-    m.compile( 
-              optimizer = opt2, 
-              loss = {'binary':pixel_wise_loss, 'distance':'categorical_crossentropy', 'classification':'binary_crossentropy'}, 
-              loss_weights = {'binary':0.4, 'distance':0.3,'classification':0.3}, 
-              metrics = {'binary':[per_pixel_acc, Mean_IOU, precision, recall, f1score], 
-                          'distance': Mean_IOU_dist, 'classification':'acc'}
-             )
+    m.compile( optimizer = opt2, loss = {'binary':pixel_wise_loss, 'distance':'categorical_crossentropy'}, 
+              loss_weights = {'binary':0.5, 'distance':0.5}, metrics = {'binary':[per_pixel_acc, Mean_IOU, 
+                                                                                  precision, recall, f1score], 
+                                                                        'distance':Mean_IOU_dist})
 
     #callback
     ckpt_path = Checkpoint_path + '%s/'%i
@@ -97,15 +90,9 @@ for i in range(k):
     
     if(aug):
     # data augmentation
-        ratio = 0.18
-        n = len(train_x)
-        a = int(n*(1-ratio))
-        b = n - a
-        NO_OF_TRAINING_IMAGES = a
-        NO_OF_VAL_IMAGES = b
-        train_gen = MTgenerator(train_x[0:a], train_y[0:a], train_y2[0:a], train_y3[0:a], 'train', BATCH_SIZE)
-        val_gen = MTgenerator(train_x[a:], train_y[a:], train_y2[a:], train_y3[a:], 'val', BATCH_SIZE)
-        
+        train_gen, val_gen, NO_OF_TRAINING_IMAGES, NO_OF_VAL_IMAGES = train_gen_aug(train_x, {'binary': train_y, 
+                                                                                              'distance': train_y2}, 
+                                                                                    32, ratio = 0.18)
         history = m.fit_generator(train_gen, epochs=NO_OF_EPOCHS,
                               steps_per_epoch = (NO_OF_TRAINING_IMAGES//BATCH_SIZE),
                               validation_data=val_gen,
@@ -114,7 +101,7 @@ for i in range(k):
                               callbacks=callbacks)
     else:
 #         train_gen, val_gen, NO_OF_TRAINING_IMAGES, NO_OF_VAL_IMAGES = train_gen_noaug(train_x, train_y, 32, ratio = 0.18)
-        history = m.fit(train_x, {'binary': train_y, 'distance': train_y2, 'classification':train_y3}, epochs=NO_OF_EPOCHS, 
+        history = m.fit(train_x, {'binary': train_y, 'distance': train_y2}, epochs=NO_OF_EPOCHS, 
                         batch_size=BATCH_SIZE, callbacks=callbacks,
                          verbose=1, validation_split=0.18, shuffle = True)
     
@@ -131,10 +118,10 @@ for i in range(k):
   #TEST
     print('======Start Testing======')
 
-    score = m.evaluate(test_x, {'binary': test_y, 'distance': test_y2, 'classification':test_y3}, verbose=0)
-    for j in range(11):
-        print("%s: %.2f%%" % (m.metrics_names[j], score[j]*100))
-   
+    score = m.evaluate(test_x, {'binary': test_y, 'distance': test_y2}, verbose=0)
+    for j in range(8):
+        print("%s: %.2f%%" % (m.metrics_names[j+1], score[j+1]*100))
+    
 
  #prediction
     results = m.predict(test_x)
@@ -146,7 +133,7 @@ for i in range(k):
 
     print('result:', result_path)
     
-    test_y = [test_y, test_y2, test_y3]
+    test_y = [test_y, test_y2]
     save_result(train_frame_path, result_path, test_list[i], results, test_x, test_y, shape, multi_task=True)
     # saveFrame_256(save_frame_path, test_frame_path, X)
     print("======="*12, end="\n\n\n")
