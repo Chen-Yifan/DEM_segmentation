@@ -74,11 +74,12 @@ def segnet(
 
     pool_5, mask_5 = MaxPoolingWithArgmax2D(pool_size)(conv_13)
     
-    #classificaiton
-    flatten = Flatten()(pool_5)
-    fc = Dense(128, activation='relu')(flatten)
-    classification = Dense(n_labels, activation=output_mode, name='classification')(fc)
-    print("Build enceder done..")
+    if(multi_task):
+        #classificaiton
+        flatten = Flatten()(pool_5)
+        fc = Dense(128, activation='relu')(flatten)
+        classification = Dense(n_labels, activation=output_mode, name='classification')(fc)
+        print("Build enceder done..")
 
     # decoder
 
@@ -270,7 +271,7 @@ def unet_nodrop(input_size = (256,256,5), pretrained_weights = None,num_classes 
 
     return model
 
-def get_unet(n_classes=2, input_shape = (128,128,5), pretrained_weights = None):
+def get_unet(input_shape = (128,128,5), n_classes=2, pretrained_weights = None):
     inputs = Input(input_shape)
     conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(inputs)
     conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv1)
@@ -432,7 +433,7 @@ def FCN_Vgg16_32s(pretrained_weights = None, input_shape=(256,256,5), weight_dec
     return model
 
 
-def get_fcn_vgg16_32s(inputs, n_classes=2):
+def get_fcn_vgg16_32s_same(inputs, n_classes=2):
     x = BatchNormalization()(inputs)
     
     # Block 1
@@ -474,7 +475,8 @@ def get_fcn_vgg16_32s(inputs, n_classes=2):
     return x
 
 
-def get_fcn_vgg16_32s_300(inputs, n_classes=2):
+def get_fcn_vgg16_32s( input_shape = (128,128,6), n_classes=2):
+    inputs = Input(shape=input_shape)
     x = BatchNormalization()(inputs)
     
     # Block 1
@@ -507,10 +509,13 @@ def get_fcn_vgg16_32s_300(inputs, n_classes=2):
     
     x = Conv2D(512, (3, 3), activation='relu', padding="same")(x)
     
-    x = Conv2DTranspose(n_classes, kernel_size=(64, 64), strides=(36, 36), output_padding=(12,12), activation='softmax', padding='same')(x)
+    x = Conv2DTranspose(n_classes, kernel_size=(64, 64), strides=(32, 32), activation='softmax', padding='same')(x)
 #     x = Activation('softmax')(x)
     #x = np.argmax(x)
 #     x = Lambda(K.argmax, arguments={'axis':-1})(x)
 #     x = Lambda(lambda x: K.cast(x,"float"))(x)
-    x = Reshape((-1,2))(x)
-    return x
+#    x = Reshape((-1,2))(x)
+    model = Model(input = inputs, output = x)
+    
+    model.summary()
+    return model

@@ -70,7 +70,7 @@ def save_result(train_frame_path, save_path, test_idx, results, test_x, test_y, 
             np.save(os.path.join(save_frame_path,"%s.npy"%name[0:-4]),test_x[i])
             np.save(os.path.join(save_mask_path,"%s.npy"%name[0:-4]),test_y[i])
 
-        
+
 def load_data_multi(img_folder, mask_folder, maskdist_folder, shape=128, band=6, norm=True):
     n = os.listdir(img_folder)
     n.sort(key=lambda var:[int(x) if x.isdigit() else x 
