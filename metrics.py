@@ -120,4 +120,40 @@ def per_pixel_acc(y_true, y_pred):
     acc1 = (TP+TN)/(TP+TN+FP+FN)    
     return (acc0 + acc1)/2
     
+def FP(y_true, y_pred):
+    y_pred = K.argmax(y_pred)
+    y_true = K.argmax(y_true)
+    FP = tf.math.count_nonzero(y_pred*(1-y_true))
+    FN = tf.math.count_nonzero((1-y_pred)*y_true)
+    return FP/(FP+FN)
     
+def FN(y_true, y_pred):
+    y_pred = K.argmax(y_pred)
+    y_true = K.argmax(y_true)
+    FP = tf.math.count_nonzero(y_pred*(1-y_true))
+    FN = tf.math.count_nonzero((1-y_pred)*y_true)
+    return FN/(FP + FN)
+
+# def TP(y_true, y_pred):
+#     y_pred = K.argmax(y_pred)
+#     y_true = K.argmax(y_true)
+#     TP = tf.math.count_nonzero(y_pred * y_true)
+    
+#     return TP
+
+# def TN(y_true, y_pred):
+#     y_pred = K.argmax(y_pred)
+#     y_true = K.argmax(y_true)
+#     TN = tf.math.count_nonzero((1-y_pred)*(1-y_true))
+#     TP = tf.math.count_nonzero(y_pred * y_true)
+#     return TN / (TN + TP)
+
+def accuracy(y_true, y_pred):
+    y_pred = K.argmax(y_pred)
+    y_true = K.argmax(y_true)
+    TP = tf.math.count_nonzero(y_pred * y_true)
+    TN = tf.math.count_nonzero((1-y_pred)*(1-y_true))
+    FP = tf.math.count_nonzero(y_pred*(1-y_true))
+    FN = tf.math.count_nonzero((1-y_pred)*y_true)
+    acc = (TP+TN)/(TP+TN+FP+FN)
+    return acc

@@ -30,7 +30,7 @@ network = 'segnet'
 k = 2
 band = 6
 
-print('batch_size:', BATCH_SIZE, '\ndate:', date, '\nshape:', shape, '\naug:',aug, '\nModel_name', Model_name, '\nk:',k, '; band:', band, '\nnorm:', norm)
+print('batch_size:', BATCH_SIZE, '\ndate:', date, '\nshape:', shape, '\naug:',aug, '\nModel_name', Model_name, '\nk:',k, '; band:', band)
     
 #Train the model with K-fold Cross Val
 #TRAIN

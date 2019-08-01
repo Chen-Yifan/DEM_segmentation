@@ -20,23 +20,22 @@ from keras.models import model_from_json
 
 
 #hyperparameters
-date = '7.11'
+date = '7.25'
 BATCH_SIZE = 32
-NO_OF_EPOCHS = 120
+NO_OF_EPOCHS = 80
 shape = 128
-aug = True # to decide if shuffle
-Model_name = '128overlap_300w_unetAdal_120ep_10m6b_noshuffle_renorm_aug'
+aug = False # to decide if shuffle
+Model_name = '128overlap_300w_unetAdal_80ep_5m6bno3_prenorm_v2'
 network = 'unet'
 k = 2
-band = 6
-norm = True
+band = 5
 
-print('batch_size:', BATCH_SIZE, '\ndate:', date, '\nshape:', shape, '\naug:',aug, '\nModel_name', Model_name, '\nk:',k, '; band:', band, '\nnorm:', norm)
+print('batch_size:', BATCH_SIZE, '\ndate:', date, '\nshape:', shape, '\naug:',aug, '\nModel_name:', Model_name,'\nNetwork:',network, '\nk:',k, '; band:', band)
     
 #Train the model with K-fold Cross Val
 #TRAIN
-train_frame_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_frames_5m6b/'
-train_mask_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_masks_10m6b/'
+train_frame_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_frames_5m6b_norm/'
+train_mask_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_masks_5m6b/'
 
 
 Model_path = '/home/yifanc3/models/%s/%s/' % (date,Model_name)
@@ -49,7 +48,7 @@ if not os.path.isdir(Checkpoint_path):
 
 
 # k-fold cross-validation
-img, mask = load_data(train_frame_path, train_mask_path, shape, band, norm)
+img, mask = load_data(train_frame_path, train_mask_path, shape, band)
 train_list, test_list = k_fold(len(img), k = k)
 print(len(train_list), len(test_list))
 
@@ -74,7 +73,7 @@ for i in range(k):
         
 
     opt = Adam(lr=1E-5, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
-    opt2 = Adadelta(lr=1, rho=0.95, epsilon=1e-08, decay=0.1)
+    opt2 = Adadelta(lr=1, rho=0.95, epsilon=1e-08, decay=0.0)
     m.compile( optimizer = opt2, loss = pixel_wise_loss, metrics = [per_pixel_acc, Mean_IOU, precision, recall, f1score])
 
     #callback

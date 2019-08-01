@@ -17,12 +17,12 @@ from keras.callbacks import TensorBoard
 
 
 def get_callbacks(name_weights, path, patience_lr):
-    mcp_save = ModelCheckpoint(name_weights, save_best_only=False, monitor='Mean_IOU', mode='max')
-    reduce_lr_loss = ReduceLROnPlateau(monitor='loss', factor=0.5, patience=patience_lr, verbose=1, epsilon=1e-4, mode='min')
+    mcp_save = ModelCheckpoint(name_weights, save_best_only=False)
+#     reduce_lr_loss = ReduceLROnPlateau(monitor='loss', factor=0.5, patience=patience_lr, verbose=1, epsilon=1e-4, mode='min')
     logdir = os.path.join(path,'log')
     tensorboard = TensorBoard(log_dir=logdir, histogram_freq=0,
                             write_graph=True, write_images=True)
-    return [mcp_save, reduce_lr_loss,tensorboard]
+    return [mcp_save,tensorboard]
 
 def save_result(train_frame_path, save_path, test_idx, results, test_x, test_y, shape = 128, multi_task = False):
     n = os.listdir(train_frame_path)
@@ -83,6 +83,7 @@ def load_data_multi(img_folder, mask_folder, maskdist_folder, shape=128, band=6)
 #         features = np.zeros(len(n),dtype=np.uint8)
 
         for i in range(len(n)): #initially from 0 to 16, c = 0. 
+        
             #frame
             train_img = np.load(img_folder+'/'+n[i]) #normalization:the range is about -100 to 360
             if(train_img.shape!=(shape,shape,6)):
@@ -105,6 +106,33 @@ def load_data_multi(img_folder, mask_folder, maskdist_folder, shape=128, band=6)
             mask_dist[i] = train_mask_dist
         return img, mask, mask_dist
 
+def load_data_feature(img_folder, mask_folder, shape=128, band=6):
+    n = os.listdir(img_folder)
+    n.sort(key=lambda var:[int(x) if x.isdigit() else x 
+                                for x in re.findall(r'[^0-9]|[0-9]+', var)])
+    
+    if(band == 6):
+        img = np.zeros((len(n), shape, shape, 6)).astype(np.float32)
+        features = np.zeros((len(n),2),dtype=np.uint8)
+
+        for i in range(len(n)): #initially from 0 to 16, c = 0. 
+        
+            #frame
+            train_img = np.load(img_folder+'/'+n[i]) #normalization:the range is about -100 to 360
+            if(train_img.shape!=(shape,shape,6)):
+                continue
+            img[i] = train_img
+         
+            #mask
+            train_mask = np.load(mask_folder+'/'+n[i]) # 1.0 or 2.0 
+            
+            if len(np.unique(train_mask)) == 2:
+                features[i,1] = 1 # has feature
+            else:
+                features[i,0] = 0 # no feature
+
+        return img, features    
+    
     
 def load_data(img_folder, mask_folder, shape=128, band=5):
     n = os.listdir(img_folder)
@@ -120,6 +148,7 @@ def load_data(img_folder, mask_folder, shape=128, band=5):
             train_img_0 = np.load(img_folder+'/'+n[i]) #normalization:the range is about -100 to 360
             if(train_img_0.shape!=(shape,shape,6)):
                 continue
+#             img[i] = np.concatenate((train_img_0[:,:,0:3], train_img_0[:,:,4:]), axis=-1)
             img[i] = train_img_0
 
             #train_mask
@@ -128,16 +157,16 @@ def load_data(img_folder, mask_folder, shape=128, band=5):
             mask[i,:,:,1] = np.squeeze(train_mask)
             
     elif band==5:
-        print('band is 5')
         img = np.zeros((len(n), shape, shape, 5)).astype(np.float32)
         mask = np.zeros((len(n), shape, shape, 2), dtype=np.float32)
+        mask_dist = np.zeros((len(n), shape, shape, 5), dtype=np.float32)
 
         for i in range(len(n)): #initially from 0 to 16, c = 0. 
             train_img_0 = np.load(img_folder+'/'+n[i]) #normalization:the range is about -100 to 360
             if(train_img_0.shape!=(shape,shape,6)):
                 continue
-            train_img = train_img_0[:,:,0:5]
-            img[i] = train_img  #add to array - img[0], img[1], and so on.
+            img[i] = np.concatenate((train_img_0[:,:,0:3], train_img_0[:,:,4:]), axis=-1)
+#             img[i] = train_img_0
             #train_mask
             train_mask = np.load(mask_folder+'/'+n[i]) # 1.0 or 2.0 
             mask[i,:,:,0] = np.squeeze(1-train_mask) # 0 to 1
