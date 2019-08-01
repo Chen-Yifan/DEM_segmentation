@@ -1,4 +1,3 @@
-from generator import *
 from keras.callbacks import ModelCheckpoint
 from keras.callbacks import CSVLogger
 from keras.callbacks import EarlyStopping,ReduceLROnPlateau
@@ -25,11 +24,16 @@ BATCH_SIZE = 32
 NO_OF_EPOCHS = 45
 shape = 128
 aug = False # to decide if shuffle
+<<<<<<< HEAD
 Model_name = '128overlap_dist_1epoch'
+=======
+Model_name = '128over_MT3_segnet_100e'
+>>>>>>> 3859839c47331b56cf48f70b796ccb284a20acf3
 network = 'segnet'
 k = 2
 band = 6
 
+<<<<<<< HEAD
 print('batch_size:', BATCH_SIZE, '\ndate:', date, '\nshape:', shape, '\naug:',aug, '\nModel_name', Model_name, '\nk:',k, '; band:', band)
     
 #Train the model with K-fold Cross Val
@@ -37,6 +41,15 @@ print('batch_size:', BATCH_SIZE, '\ndate:', date, '\nshape:', shape, '\naug:',au
 train_frame_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_frames_5m6b_norm/'
 train_mask_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_masks_10m6b/'
 train_maskdst_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_masks_10mdist/'
+=======
+print('batch_size:', BATCH_SIZE, '\n date:', date, '\n shape:', shape, '\naug:',aug, '\nNetwork:', network,'\nModel_name:', Model_name, '\nk:',k, '; band:', band, '\nnorm:', norm)
+    
+#Train the model with K-fold Cross Val
+#TRAIN
+train_frame_path = '/home/yifanc3/dataset/data/selected_128_overlap_tonano/all_frames_5m6b/'
+train_mask_path = '/home/yifanc3/dataset/data/selected_128_overlap_tonano/all_masks_10m6b/'
+train_maskdst_path = '/home/yifanc3/dataset/data/selected_128_overlap_tonano/all_masks_10mdist/'
+>>>>>>> 3859839c47331b56cf48f70b796ccb284a20acf3
 
 
 Model_path = '/home/yifanc3/models/%s/%s/' % (date,Model_name)
@@ -75,10 +88,20 @@ for i in range(k):
     
     opt = Adam(lr=1E-5, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
     opt2 = Adadelta(lr=1, rho=0.95, epsilon=1e-08, decay=0.0)
+<<<<<<< HEAD
     m.compile( optimizer = opt2, loss = {'binary':pixel_wise_loss, 'distance':'categorical_crossentropy'}, 
               loss_weights = {'binary':0.5, 'distance':0.5}, metrics = {'binary':[per_pixel_acc, Mean_IOU, 
                                                                                   precision, recall, f1score], 
                                                                         'distance':Mean_IOU_dist})
+=======
+    m.compile( 
+              optimizer = opt2, 
+              loss = {'binary':pixel_wise_loss, 'distance':dice_coef_loss, 'classification':'binary_crossentropy'}, 
+              loss_weights = {'binary':0.3, 'distance':0.4,'classification':0.3}, 
+              metrics = {'binary':[per_pixel_acc, Mean_IOU, precision, recall, f1score], 
+                          'distance': Mean_IOU_dist, 'classification':'acc'}
+             )
+>>>>>>> 3859839c47331b56cf48f70b796ccb284a20acf3
 
     #callback
     ckpt_path = Checkpoint_path + '%s/'%i
@@ -136,4 +159,4 @@ for i in range(k):
     test_y = [test_y, test_y2]
     save_result(train_frame_path, result_path, test_list[i], results, test_x, test_y, shape, multi_task=True)
     # saveFrame_256(save_frame_path, test_frame_path, X)
-    print("======="*12, end="\n\n\n")
+    print("======="*12,"\n\n\n")

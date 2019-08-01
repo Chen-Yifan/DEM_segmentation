@@ -73,6 +73,11 @@ def segnet(
     conv_13 = Activation("relu")(conv_13)
 
     pool_5, mask_5 = MaxPoolingWithArgmax2D(pool_size)(conv_13)
+    
+    #classificaiton
+    flatten = Flatten()(pool_5)
+    fc = Dense(128, activation='relu')(flatten)
+    
     print("Build enceder done..")
 
     # decoder
@@ -137,6 +142,10 @@ def segnet(
         concat = concatenate([conv_25, conv_26], axis=3)
         binary_mask = Convolution2D(n_labels, (1, 1), padding="valid", activation = output_mode, name='binary')(concat)
 
+#         flatten2 =  Flatten()(conv_25)
+#         fc2 = Dense(128, activation='relu')(flatten2)
+#         fc = concatenate([fc1,fc2], axis=1)
+        classification = Dense(n_labels, activation=output_mode, name='classification')(fc)
         print("Build decoder done..")
         
         model = Model(inputs=inputs, outputs=[dist_map, binary_mask], name="SegNet")
