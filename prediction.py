@@ -1,5 +1,7 @@
 from k_fold import *
 from utils import *
+from metrics import *
+from losses import *
 from keras.callbacks import ModelCheckpoint
 from keras.callbacks import CSVLogger
 from keras.callbacks import EarlyStopping
@@ -18,12 +20,12 @@ import matplotlib.pyplot as plt
 import keras.losses
 import keras.metrics
 
-Model_name = '128overlap_300w_unetAdal_65ep_5m6b_noshuffle_renorm_aug'
-weights_name = 'weights.64-2.56-0.47.hdf5'
-fold = 1
-date = '7.11'
+Model_name = '128overlap_300w_unetAdal_80ep_5m6bno3_prenorm_v2'
+weights_name = 'weights.79-2.45-0.60.hdf5'
+fold = 0
+date = '7.25'
 network = 'unet'
-band = 6
+band = 5
 
 path = '/home/yifanc3/results/%s/%s/%s/'%(date,Model_name,fold)
 test_mask_path = path + 'mask'

@@ -1,35 +1,45 @@
 import os
-import model
 from utils import *
 import numpy as np
 import random
 import re
 from shutil import copyfile
+from itertools import chain
 
-def cal_mean(arr, i, j, w, h):
+def cal_mean(arr, i, j, result):
     num = 0
     tot = 0
-    for l in range(1,5):
-        for m in range(i-l, i+l):
-            if (m>=0 and m<w):
-                for n in range(j-l, j+l):
-                    if (n>=0 and n<h and arr[m,n]>=0):
-                        num+=1
-                        tot+=arr[m,n]
-                        if num>2:
-                            return tot/num
+    w,h = arr.shape
+    
+    for m in result:
+        m += i
+        if (m>=0 and m<w):
+            for n in result:
+                n += j
+                if (n>=0 and n<h and arr[m,n]>=0):
+                    num+=1
+                    tot+=arr[m,n]
+                    if num>2:
+                        return tot/num
 
 def inter_neg(arr):
     print('arr')
     nega = np.where(arr<0)
     print('start',nega[0].shape)
     
-    l = 4
-    w,h = arr.shape
-    for i in range(w):
-        for j in range(h):
-            if (arr[i,j]<0):
-                arr[i,j] = cal_mean(arr,i,j,w,h)
+    l = 5
+    list1 = np.arange(l)
+    list2 = -1*np.arange(1,l)
+    result = [None]*(len(list1)+len(list2))
+    result[::2] = list1
+    result[1::2] = list2
+    
+    for a in range(len(nega[0])):
+        i = nega[0][a]
+        j = nega[1][a]
+        if (arr[i,j]<0):
+            arr[i,j] = cal_mean(arr,i,j, result)
+            
     nega = np.where(arr<0)
     print('end',nega[0].shape)            
     return arr
@@ -71,13 +81,14 @@ def load_data_multi(img_folder, save_folder, shape=128):
         train_img[:,:,3] = train_img[:,:,3] / 275
  
         #mclean_roi_tri
-        
+        print('4')
         train_img[:,:,4] = inter_neg(train_img[:,:,4])
         train_img[:,:,4] = train_img[:,:,4] / 305
 #         train_img[:,:,4] = np.where(train_img[:,:,4]<0, -1, train_img[:,:,4])
         #mclean_roi
+        print('5')
+        train_img[:,:,-1] = (train_img[:,:,-1]-527.82) / (1173.37-527.82)
         train_img[:,:,-1] = inter_neg(train_img[:,:,-1])
-        train_img[:,:,-1] = (train_img[:,:,-1]-527.82) / 1174
 #         train_img[:,:,-1] = np.where(train_img[:,:,-1]<0, -1, train_img[:,:,-1])
         
             

@@ -1,9 +1,9 @@
 #!/bin/bash
 
 #SBATCH --job-name='yifanDL'
-#SBATCH --output='output/7.25/128overlap_300w_unetAdal_80ep_5m6bno3_prenorm_v2.%j.%N.out'
-#SBATCH --error='output/7.25/128overlap_300w_unetAdal_80ep_5m6bno3_prenorm_v2.%j.%N.err'
-#SBATCH --partition=solo
+#SBATCH --output='output/7.25/128overlap_300w_segnetAdal_80ep_5m6bno3_prenorm_v3.%j.%N.out'
+#SBATCH --error='output/7.25/128overlap_300w_segnetAdal_80ep_5m6bno3_prenorm_v3.%j.%N.err'
+#SBATCH --partition=gpux1
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:v100:1

@@ -25,8 +25,8 @@ BATCH_SIZE = 32
 NO_OF_EPOCHS = 80
 shape = 128
 aug = False # to decide if shuffle
-Model_name = '128overlap_300w_unetAdal_80ep_5m6bno3_prenorm_v2'
-network = 'unet'
+Model_name = '128overlap_300w_segnetAdal_80ep_5m6bno3_prenorm_v3'
+network = 'segnet'
 k = 2
 band = 5
 
