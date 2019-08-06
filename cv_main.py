@@ -25,10 +25,10 @@ BATCH_SIZE = 32
 NO_OF_EPOCHS = 80
 shape = 128
 aug = False # to decide if shuffle
-Model_name = '128overlap_300w_segnetAdal_80ep_5m6bno3_prenorm_v3'
-network = 'segnet'
+Model_name = '128overlap_300w_unetAdal_80ep_5m6bno3_prenorm_v3'
+network = 'unet'
 k = 2
-band = 5
+band = 6
 
 print('batch_size:', BATCH_SIZE, '\ndate:', date, '\nshape:', shape, '\naug:',aug, '\nModel_name:', Model_name,'\nNetwork:',network, '\nk:',k, '; band:', band)
     
@@ -74,7 +74,7 @@ for i in range(k):
 
     opt = Adam(lr=1E-5, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
     opt2 = Adadelta(lr=1, rho=0.95, epsilon=1e-08, decay=0.0)
-    m.compile( optimizer = opt2, loss = pixel_wise_loss, metrics = [per_pixel_acc, Mean_IOU, precision, recall, f1score])
+    m.compile( optimizer = opt2, loss = pixel_wise_loss, metrics = [per_pixel_acc, Mean_IOU, Mean_IOU_label, precision, recall, f1score])
 
     #callback
     ckpt_path = Checkpoint_path + '%s/'%i
@@ -117,7 +117,7 @@ for i in range(k):
     print("%s: %.2f%%" % (m.metrics_names[3], score[3]*100))
     print("%s: %.2f%%" % (m.metrics_names[4], score[4]*100))
     print("%s: %.2f%%" % (m.metrics_names[5], score[5]*100))
-    # print("%s: %.2f%%" % (m.metrics_names[6], score[6]*100))
+    print("%s: %.2f%%" % (m.metrics_names[6], score[6]*100))
 
     results = m.predict(test_x)
     new_r = np.argmax(results,axis=-1)

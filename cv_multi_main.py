@@ -1,3 +1,4 @@
+# MT3
 from generator import *
 from keras.callbacks import ModelCheckpoint
 from keras.callbacks import CSVLogger
@@ -19,9 +20,9 @@ from keras.models import model_from_json
 
 
 #hyperparameters
-date = '7.18'
+date = 'tryout'
 BATCH_SIZE = 32
-NO_OF_EPOCHS = 100
+NO_OF_EPOCHS = 2
 shape = 128
 aug = False
 Model_name = '128over_MT3_segnet_100e'
@@ -34,7 +35,7 @@ print('batch_size:', BATCH_SIZE, '\ndate:', date, '\nshape:', shape, '\naug:',au
     
 #Train the model with K-fold Cross Val
 #TRAIN
-train_frame_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_frames_5m6b/'
+train_frame_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_frames_5m6b_norm/'
 train_mask_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_masks_10m6b/'
 train_maskdst_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_masks_10mdist/'
 
@@ -47,7 +48,7 @@ mkdir(Checkpoint_path)
 
 
 # k-fold cross-validation
-img, mask, dstmask, features = load_data_multi(train_frame_path, train_mask_path, train_maskdst_path, shape, band, norm)
+img, mask, dstmask, features = load_data_multi(train_frame_path, train_mask_path, train_maskdst_path, shape, band)
 train_list, test_list = k_fold(len(img), k = k)
 print(len(train_list), len(test_list))
 
@@ -81,10 +82,11 @@ for i in range(k):
     opt2 = Adadelta(lr=1, rho=0.95, epsilon=1e-08, decay=0.0)
     m.compile( 
               optimizer = opt2, 
-              loss = {'binary':pixel_wise_loss, 'distance':'categorical_crossentropy', 'classification':'binary_crossentropy'}, 
+              loss = {'binary':pixel_wise_loss, 'distance':'categorical_crossentropy', 
+                      'classification':'categorical_crossentropy'}, 
               loss_weights = {'binary':0.4, 'distance':0.3,'classification':0.3}, 
-              metrics = {'binary':[per_pixel_acc, Mean_IOU, precision, recall, f1score], 
-                          'distance': Mean_IOU_dist, 'classification':'acc'}
+              metrics = {'binary':[per_pixel_acc, Mean_IOU, Mean_IOU_label, precision, recall, f1score], 
+                          'distance': Mean_IOU_dist, 'classification':[accuracy, FN, FP]}
              )
 
     #callback
@@ -94,7 +96,7 @@ for i in range(k):
     weights_path = ckpt_path + 'weights.{epoch:02d}-{val_loss:.2f}-{val_binary_Mean_IOU:.2f}.hdf5'
     
     callbacks = get_callbacks(weights_path, Model_path, 5)
-    
+
     if(aug):
     # data augmentation
         ratio = 0.18
@@ -103,9 +105,9 @@ for i in range(k):
         b = n - a
         NO_OF_TRAINING_IMAGES = a
         NO_OF_VAL_IMAGES = b
-        train_gen = MTgenerator(train_x[0:a], train_y[0:a], train_y2[0:a], train_y3[0:a], 'train', BATCH_SIZE)
-        val_gen = MTgenerator(train_x[a:], train_y[a:], train_y2[a:], train_y3[a:], 'val', BATCH_SIZE)
-        
+        train_gen = MTgenerator(train_x[0:a], train_y[0:a], train_y2[0:a],  'train', BATCH_SIZE)
+        val_gen = MTgenerator(train_x[a:], train_y[a:], train_y2[a:], 'val', BATCH_SIZE)
+
         history = m.fit_generator(train_gen, epochs=NO_OF_EPOCHS,
                               steps_per_epoch = (NO_OF_TRAINING_IMAGES//BATCH_SIZE),
                               validation_data=val_gen,
@@ -114,7 +116,7 @@ for i in range(k):
                               callbacks=callbacks)
     else:
 #         train_gen, val_gen, NO_OF_TRAINING_IMAGES, NO_OF_VAL_IMAGES = train_gen_noaug(train_x, train_y, 32, ratio = 0.18)
-        history = m.fit(train_x, {'binary': train_y, 'distance': train_y2, 'classification':train_y3}, epochs=NO_OF_EPOCHS, 
+        history = m.fit(train_x, {'binary': train_y, 'distance': train_y2, 'classification':train_y3}, epochs=NO_OF_EPOCHS,
                         batch_size=BATCH_SIZE, callbacks=callbacks,
                          verbose=1, validation_split=0.18, shuffle = True)
     
@@ -132,7 +134,7 @@ for i in range(k):
     print('======Start Testing======')
 
     score = m.evaluate(test_x, {'binary': test_y, 'distance': test_y2, 'classification':test_y3}, verbose=0)
-    for j in range(11):
+    for j in range(12):
         print("%s: %.2f%%" % (m.metrics_names[j], score[j]*100))
    
 

@@ -44,7 +44,6 @@ def save_result(train_frame_path, save_path, test_idx, results, test_x, test_y, 
     if(multi_task):
         distance_shape = results[0].shape
         binary_shape = results[1].shape
-        d
         for i in range(length):
             name = n[a+i]
             img_distance = np.argmax(results[0][i],axis = -1)
@@ -80,7 +79,7 @@ def load_data_multi(img_folder, mask_folder, maskdist_folder, shape=128, band=6)
         img = np.zeros((len(n), shape, shape, 6)).astype(np.float32)
         mask = np.zeros((len(n), shape, shape, 2), dtype=np.float32)
         mask_dist = np.zeros((len(n), shape, shape, 5), dtype=np.float32)
-#         features = np.zeros(len(n),dtype=np.uint8)
+        features = np.zeros((len(n),2),dtype=np.uint8)
 
         for i in range(len(n)): #initially from 0 to 16, c = 0. 
         
@@ -93,10 +92,10 @@ def load_data_multi(img_folder, mask_folder, maskdist_folder, shape=128, band=6)
             #mask
             train_mask = np.load(mask_folder+'/'+n[i]) # 1.0 or 2.0 
             
-#             if len(np.unique(train_mask)) == 2:
-#                 features[i] = 1 # has feature
-#             else:
-#                 features[i] = 0 # no feature
+            if len(np.unique(train_mask)) == 2:
+                features[i:1] = 1 # has feature
+            else:
+                features[i:0] = 1 # no feature
                 
             mask[i,:,:,0] = np.squeeze(1-train_mask) # 0 to 1
             mask[i,:,:,1] = np.squeeze(train_mask)
@@ -104,7 +103,7 @@ def load_data_multi(img_folder, mask_folder, maskdist_folder, shape=128, band=6)
             train_mask_dist = np.load(maskdist_folder+'/'+n[i])
             train_mask_dist = np.eye(5)[train_mask_dist]
             mask_dist[i] = train_mask_dist
-        return img, mask, mask_dist
+        return img, mask, mask_dist, features
 
 def load_data_feature(img_folder, mask_folder, shape=128, band=6):
     n = os.listdir(img_folder)
@@ -142,7 +141,6 @@ def load_data(img_folder, mask_folder, shape=128, band=5):
     if(band == 6):
         img = np.zeros((len(n), shape, shape, 6)).astype(np.float32)
         mask = np.zeros((len(n), shape, shape, 2), dtype=np.float32)
-        mask_dist = np.zeros((len(n), shape, shape, 5), dtype=np.float32)
 
         for i in range(len(n)): #initially from 0 to 16, c = 0. 
             train_img_0 = np.load(img_folder+'/'+n[i]) #normalization:the range is about -100 to 360
@@ -159,8 +157,7 @@ def load_data(img_folder, mask_folder, shape=128, band=5):
     elif band==5:
         img = np.zeros((len(n), shape, shape, 5)).astype(np.float32)
         mask = np.zeros((len(n), shape, shape, 2), dtype=np.float32)
-        mask_dist = np.zeros((len(n), shape, shape, 5), dtype=np.float32)
-
+        
         for i in range(len(n)): #initially from 0 to 16, c = 0. 
             train_img_0 = np.load(img_folder+'/'+n[i]) #normalization:the range is about -100 to 360
             if(train_img_0.shape!=(shape,shape,6)):
@@ -254,6 +251,32 @@ def train_gen_aug(img_list, mask_list, batch_size=32, ratio = 0.18):
     val_gen = zip(img_gen, mask_gen)    
         
     return train_gen, val_gen, a, b
+
+
+def MTgenerator(img_list, mask_list, mask_dist_list, split, batch_size=32):
+    if(split == 'train'):
+        data_gen_args = dict(
+                    horizontal_flip = True,
+                     width_shift_range = 0.1,
+                     height_shift_range = 0.1,
+                     zoom_range = 0.2, #resize
+                     rotation_range = 10,
+                )
+        img_datagen = ImageDataGenerator(**data_gen_args)
+
+    else:
+        img_datagen = ImageDataGenerator()
+
+    seed = 2018
+    img_gen = img_datagen.flow(img_list, seed = seed, batch_size=batch_size, shuffle=True)#shuffling
+    mask_gen = img_datagen.flow(mask_list, seed = seed, batch_size=batch_size, shuffle=True)
+    
+        #yield generated data
+    while True:
+        X = img_gen.next()
+        Y1 = mask_gen.next()
+        Y2 = mask_dist_gen.next()
+        yield X, [Y2, Y1]
 
 def train_gen_noaug(img_list, mask_list, batch_size=32, ratio = 0.18):
     n = len(img_list)

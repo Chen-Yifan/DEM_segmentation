@@ -87,7 +87,7 @@ def load_data_multi(img_folder, save_folder, shape=128):
 #         train_img[:,:,4] = np.where(train_img[:,:,4]<0, -1, train_img[:,:,4])
         #mclean_roi
         print('5')
-        train_img[:,:,-1] = (train_img[:,:,-1]-527.82) / (1173.37-527.82)
+        train_img[:,:,-1] = (train_img[:,:,-1]) / (1173.37-527.82)
         train_img[:,:,-1] = inter_neg(train_img[:,:,-1])
 #         train_img[:,:,-1] = np.where(train_img[:,:,-1]<0, -1, train_img[:,:,-1])
         
@@ -107,20 +107,20 @@ def main():
     load_data_multi(train_frame_path, save_frame_path, 128)
     
     
-def save_mask():
-    frame_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_frames_5m6b_norm/'
-    mask_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_masks_5m6b/'
-    save_mask_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_masks_5m6b_norm/'
-    mkdir(save_mask_path)
+# def save_mask():
+#     frame_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_frames_5m6b_norm/'
+#     mask_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_masks_5m6b/'
+#     save_mask_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_masks_5m6b_norm/'
+#     mkdir(save_mask_path)
     
-    n = os.listdir(frame_path)
-    n.sort(key=lambda var:[int(x) if x.isdigit() else x 
-                                for x in re.findall(r'[^0-9]|[0-9]+', var)])
-    for i in range(len(n)):
-        print(i)
-        src = os.path.join(mask_path, n[i])
-        dst = os.path.join(save_mask_path, n[i])
-        copyfile(src, dst)
+#     n = os.listdir(frame_path)
+#     n.sort(key=lambda var:[int(x) if x.isdigit() else x 
+#                                 for x in re.findall(r'[^0-9]|[0-9]+', var)])
+#     for i in range(len(n)):
+#         print(i)
+#         src = os.path.join(mask_path, n[i])
+#         dst = os.path.join(save_mask_path, n[i])
+#         copyfile(src, dst)
         
 # Driver Code 
 if __name__ == '__main__': 

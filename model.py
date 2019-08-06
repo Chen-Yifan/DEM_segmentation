@@ -76,7 +76,8 @@ def segnet(
     
     #classificaiton
     flatten = Flatten()(pool_5)
-    fc = Dense(128, activation='relu')(flatten)
+    fc = Dense(4096, activation='relu', name='fc1')(flatten)
+    fc = Dense(128, activation='relu', name='fc2')(fc)
     
     print("Build enceder done..")
 
@@ -148,7 +149,7 @@ def segnet(
         classification = Dense(n_labels, activation=output_mode, name='classification')(fc)
         print("Build decoder done..")
         
-        model = Model(inputs=inputs, outputs=[dist_map, binary_mask], name="SegNet")
+        model = Model(inputs=inputs, outputs=[dist_map, binary_mask,classification], name="SegNet")
         
     else:
         
