@@ -157,9 +157,9 @@ def segnet(
         conv_26 = BatchNormalization()(conv_26)
     #     conv_26 = Reshape(
     #             (input_shape[0]*input_shape[1], n_labels),
-        outputs = Activation(output_mode, name = 'binary')(conv_26)
+    #    outputs = Activation(output_mode, name = 'binary')(conv_26)
         print("Build decoder done..")
-        model = Model(inputs=inputs, outputs=[outputs], name="SegNet")
+        model = Model(inputs=inputs, outputs=[conv_26], name="SegNet")
         
     model.summary()
 
@@ -312,7 +312,7 @@ def get_unet(n_classes=2, input_shape = (128,128,5), pretrained_weights = None):
     conv9 = Conv2D(32, (3, 3), activation='relu', padding='same')(up9)
     conv9 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv9)
 
-    conv10 = Conv2D(n_classes, (1, 1),activation='softmax')(conv9) # no softmax
+    conv10 = Conv2D(n_classes, (1, 1),activation=None)(conv9) # no softmax
     
     model = Model(input = inputs, output = conv10)
     

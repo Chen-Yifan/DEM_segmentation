@@ -25,10 +25,10 @@ BATCH_SIZE = 32
 NO_OF_EPOCHS = 80
 shape = 128
 aug = False # to decide if shuffle
-Model_name = '128overlap_300w_segnetAdal_80ep_5m6b_prenorm_logit'
-network = 'segnet'
+Model_name = '128overlap_300w_unetAdal_80ep_5m6bno3_prenorm_logit'
+network = 'unet'
 k = 2
-band = 6
+band = 5
 
 print('batch_size:', BATCH_SIZE, '\ndate:', date, '\nshape:', shape, '\naug:',aug, '\nModel_name:', Model_name,'\nNetwork:',network, '\nk:',k, '; band:', band)
     

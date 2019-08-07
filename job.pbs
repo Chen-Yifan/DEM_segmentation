@@ -1,10 +1,10 @@
 #!/bin/bash 
 #PBS -k o 
-#PBS -l nodes=nano3:ppn=2:gpus=1
+#PBS -l nodes=nano4:ppn=2:gpus=1
 #PBS -l walltime=08:00:00
 #PBS -M yifanc3@illinois.edu
 #PBS -m abe 
-#PBS -N 128overlap_300w_segnetAdal_80ep_5m6b_prenorm_logit
+#PBS -N 128overlap_300w_unetAdal_80ep_5m6bno3_prenorm_logit
 source activate tf3.6-v2
 python segmentation/DEM_segmentation/cv_main.py
 
