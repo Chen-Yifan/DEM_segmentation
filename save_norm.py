@@ -1,5 +1,5 @@
 import os
-from utils import *
+from utils import mkdir
 import numpy as np
 import random
 import re
