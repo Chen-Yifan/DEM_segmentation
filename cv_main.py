@@ -20,7 +20,7 @@ from keras.models import model_from_json
 
 
 #hyperparameters
-date = '7.25'
+date = 'tryout'
 BATCH_SIZE = 32
 NO_OF_EPOCHS = 80
 shape = 128

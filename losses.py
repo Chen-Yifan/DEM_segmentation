@@ -14,7 +14,7 @@ def pixel_wise_loss(y_true, y_pred, shape=128):
 
     y_true = tf.reshape(tensor=y_true, shape=(-1, shape*shape, 2))
     y_pred = tf.reshape(tensor=y_pred, shape=(-1, shape*shape, 2))
-    pos_weight = tf.constant([[1.0, 300.0]])# 150 won't change val_Mean_IOU while 500 makes IoU hard to exceed 0.60
+    pos_weight = tf.constant(300)# 150 won't change val_Mean_IOU while 500 makes IoU hard to exceed 0.60
     loss = tf.nn.weighted_cross_entropy_with_logits(
         y_true,
         y_pred,
@@ -25,7 +25,29 @@ def pixel_wise_loss(y_true, y_pred, shape=128):
     return K.mean(loss,axis=-1)
 
 def multi_weighted_loss(y_true, y_pred, shape=128):
-    return 0
+    y_true = tf.reshape(tensor=y_true, shape=(-1, shape*shape, 5))
+    y_pred = tf.reshape(tensor=y_pred, shape=(-1, shape*shape, 5))
+    
+    weightsArray = [1,20,30,60,200]
+    class_weight = tf.constant(weightsArray)
+    # Take the cost like normal
+    error = tf.nn.softmax_cross_entropy_with_logits(y_pred, y_true)
+    print(error.shape)
+    # Scale the cost by the class weights
+    scaled_error = tf.mul(error, class_weight)
+
+    # Reduce
+    return tf.reduce_mean(scaled_error)
+
+
+def multi_weighted_loss(y_true, y_pred, shape=128):
+    y_true = tf.reshape(tensor=y_true, shape=(-1, shape*shape, 5))
+    y_pred = tf.reshape(tensor=y_pred, shape=(-1, shape*shape, 5))
+    return tf.compat.v1.losses.softmax_cross_entropy(
+        y_true,
+        y_pred,
+        weights=[1,20,50,100,200])
+
 
 # def soft_dice_loss(y_true, y_pred, smooth=1): 
 #     ''' 
