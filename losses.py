@@ -14,7 +14,7 @@ def pixel_wise_loss(y_true, y_pred, shape=128):
 
     y_true = tf.reshape(tensor=y_true, shape=(-1, shape*shape, 2))
     y_pred = tf.reshape(tensor=y_pred, shape=(-1, shape*shape, 2))
-    pos_weight = tf.constant(300)# 150 won't change val_Mean_IOU while 500 makes IoU hard to exceed 0.60
+    pos_weight = tf.constant([1.0,300.0])# 150 won't change val_Mean_IOU while 500 makes IoU hard to exceed 0.60
     loss = tf.nn.weighted_cross_entropy_with_logits(
         y_true,
         y_pred,

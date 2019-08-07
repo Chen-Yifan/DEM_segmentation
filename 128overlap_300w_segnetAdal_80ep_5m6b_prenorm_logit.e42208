@@ -1,4 +1,0 @@
-  File "segmentation/DEM_segmentation/cv_main.py", line 135
-    print("======="*12, end="\n\n\n")
-                           ^
-SyntaxError: invalid syntax
