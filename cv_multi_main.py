@@ -22,7 +22,7 @@ from keras.models import model_from_json
 #hyperparameters
 date = 'tryout'
 BATCH_SIZE = 32
-NO_OF_EPOCHS = 2
+NO_OF_EPOCHS = 10
 shape = 128
 aug = False
 Model_name = '128over_MT3_segnet_100e'
@@ -80,9 +80,14 @@ for i in range(k):
     
     opt = Adam(lr=1E-5, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
     opt2 = Adadelta(lr=1, rho=0.95, epsilon=1e-08, decay=0.0)
+    
+    b_weights = np.array([1.0,300.0])
+    b_loss = weighted_categorical_crossentropy(b_weights)
+    d_weights = np.array([1.0,5.0,25.0,50.0,150.0])
+    d_loss = weighted_categorical_crossentropy(d_weights)
     m.compile( 
               optimizer = opt2, 
-              loss = {'binary':pixel_wise_loss, 'distance':'categorical_crossentropy', 
+              loss = {'binary':b_loss, 'distance': d_loss, 
                       'classification':'categorical_crossentropy'}, 
               loss_weights = {'binary':0.4, 'distance':0.3,'classification':0.3}, 
               metrics = {'binary':[per_pixel_acc, Mean_IOU, Mean_IOU_label, precision, recall, f1score], 

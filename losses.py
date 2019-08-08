@@ -24,23 +24,50 @@ def pixel_wise_loss(y_true, y_pred, shape=128):
    # loss = tf.nn.softmax_cross_entropy_with_logits(labels=y_true,logits=y_pred)
     return K.mean(loss,axis=-1)
 
+def weighted_categorical_crossentropy(weights):
+    """
+    A weighted version of keras.objectives.categorical_crossentropy
+    
+    Variables:
+        weights: numpy array of shape (C,) where C is the number of classes
+    
+    Usage:
+        weights = np.array([0.5,2,10]) # Class one at 0.5, class 2 twice the normal weights, class 3 10x.
+        loss = weighted_categorical_crossentropy(weights)
+        model.compile(loss=loss,optimizer='adam')
+    """
+    
+    weights = K.variable(weights)
+        
+    def loss(y_true, y_pred):
+        # scale predictions so that the class probas of each sample sum to 1
+        y_pred /= K.sum(y_pred, axis=-1, keepdims=True)
+        # clip to prevent NaN's and Inf's
+        y_pred = K.clip(y_pred, K.epsilon(), 1 - K.epsilon())
+        # calc
+        loss = y_true * K.log(y_pred) * weights
+        loss = -K.sum(loss, -1)
+        return loss
+    
+    return loss
+
 def multi_weighted_loss(y_true, y_pred, shape=128):
     y_true = tf.reshape(tensor=y_true, shape=(-1, shape*shape, 5))
     y_pred = tf.reshape(tensor=y_pred, shape=(-1, shape*shape, 5))
     
-    weightsArray = [1,20,30,60,200]
-    class_weight = tf.constant(weightsArray)
+    weightsArray = [1,25,50,100,200]
+    class_weight = tf.constant(weightsArray,dtype='float32')
     # Take the cost like normal
-    error = tf.nn.softmax_cross_entropy_with_logits(y_pred, y_true)
+    error = tf.nn.softmax_cross_entropy_with_logits(labels=y_true, logits=y_pred,dim=1)
     print(error.shape)
     # Scale the cost by the class weights
-    scaled_error = tf.mul(error, class_weight)
+    scaled_error = tf.math.multiply(error, class_weight)
 
     # Reduce
     return tf.reduce_mean(scaled_error)
 
 
-def multi_weighted_loss(y_true, y_pred, shape=128):
+def multi_weighted_loss_v2(y_true, y_pred, shape=128):
     y_true = tf.reshape(tensor=y_true, shape=(-1, shape*shape, 5))
     y_pred = tf.reshape(tensor=y_pred, shape=(-1, shape*shape, 5))
     return tf.compat.v1.losses.softmax_cross_entropy(
@@ -48,6 +75,13 @@ def multi_weighted_loss(y_true, y_pred, shape=128):
         y_pred,
         weights=[1,20,50,100,200])
 
+def multi_weighted_loss_v3(y_true, y_pred, shape=128):
+    y_true = tf.reshape(tensor=y_true, shape=(-1, shape*shape, 5))
+    y_pred = tf.reshape(tensor=y_pred, shape=(-1, shape*shape, 5))
+    class_weights = [1,20,50,100,200]
+    class_weights = tf.multiply(y_true, class_weights)
+    loss_crossentropy = tf.losses.softmax_cross_entropy(class_weights, y_pred)
+    return tf.reduce_mean(loss_crossentropy)
 
 # def soft_dice_loss(y_true, y_pred, smooth=1): 
 #     ''' 

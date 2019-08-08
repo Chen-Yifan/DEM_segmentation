@@ -74,7 +74,9 @@ for i in range(k):
 
     opt = Adam(lr=1E-5, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
     opt2 = Adadelta(lr=1, rho=0.95, epsilon=1e-08, decay=0.0)
-    m.compile( optimizer = opt2, loss = pixel_wise_loss, metrics = [per_pixel_acc, Mean_IOU, Mean_IOU_label, precision, recall, f1score])
+    weights = np.array([1.0,300.0])
+    loss = weighted_categorical_crossentropy(weights)
+    m.compile( optimizer = opt2, loss = loss, metrics = [per_pixel_acc, Mean_IOU, Mean_IOU_label, precision, recall, f1score])
 
     #callback
     ckpt_path = Checkpoint_path + '%s/'%i

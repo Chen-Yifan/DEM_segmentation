@@ -16,7 +16,7 @@ def segnet(
         n_labels = 2,
         kernel=3,
         pool_size=(2, 2),
-        output_mode="softmax"):
+        output_mode='softmax'):
     # encoder
     inputs = Input(shape=input_shape)
 
@@ -136,17 +136,17 @@ def segnet(
     
      #Branch 1 : 5band distance
     if(multi_task):
-        multi_conv26 = Convolution2D(5, (1,1), padding='same')(conv_25)
-        dist_map = Softmax(axis = -1 , name = 'distance')(multi_conv26)
+        conv_25_2 = Convolution2D(5, (1,1), padding='same', name='distance1')(conv_25)
+        dist_map = Softmax(axis = -1 , name = 'distance')(conv_25_2)
         
-        conv_26 = Activation("relu")(multi_conv26)
+        conv_26 = Activation("relu")(conv_25_2)
         concat = concatenate([conv_25, conv_26], axis=3)
         binary_mask = Convolution2D(n_labels, (1, 1), padding="valid", activation = output_mode, name='binary')(concat)
 
 #         flatten2 =  Flatten()(conv_25)
 #         fc2 = Dense(128, activation='relu')(flatten2)
 #         fc = concatenate([fc1,fc2], axis=1)
-        classification = Dense(n_labels, activation=output_mode, name='classification')(fc)
+        classification = Dense(n_labels, activation=None, name='classification')(fc)
         print("Build decoder done..")
         
         model = Model(inputs=inputs, outputs=[dist_map, binary_mask,classification], name="SegNet")
@@ -263,11 +263,6 @@ def unet_nodrop(input_size = (256,256,5), pretrained_weights = None,num_classes 
     conv10 = Conv2D(num_classes, 1, activation = 'sigmoid')(conv9)
 
     model = Model(input = inputs, output = conv10)
-
-    #model.compile(optimizer = Adam(lr = 1e-4), loss = 'binary_crossentropy', metrics = ['accuracy',Mean_IOU])
-#     model.compile(optimizer=Adam(lr=1e-5), loss=dice_coef_loss,
-#                   metrics=[dice_coef, 'accuracy', precision, recall, f1score])
-    
     model.summary()
     
     if(pretrained_weights):
@@ -312,7 +307,7 @@ def get_unet(n_classes=2, input_shape = (128,128,5), pretrained_weights = None):
     conv9 = Conv2D(32, (3, 3), activation='relu', padding='same')(up9)
     conv9 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv9)
 
-    conv10 = Conv2D(n_classes, (1, 1),activation=None)(conv9) # no softmax
+    conv10 = Conv2D(n_classes, (1, 1),activation='softmax')(conv9) # no softmax
     
     model = Model(input = inputs, output = conv10)
     
@@ -324,7 +319,7 @@ def get_unet(n_classes=2, input_shape = (128,128,5), pretrained_weights = None):
 
     return model
 
-def get_unet_multitask(n_classes=2, input_shape = (128,128,6), pretrained_weights = None):
+def get_unet_multitask(n_classes=2, input_shape = (128,128,6), output_mode = 'softmax',pretrained_weights = None):
     inputs = Input(input_shape)
     conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(inputs)
     conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv1)
@@ -344,6 +339,11 @@ def get_unet_multitask(n_classes=2, input_shape = (128,128,6), pretrained_weight
 
     conv5 = Conv2D(512, (3, 3), activation='relu', padding='same')(pool4)
     conv5 = Conv2D(512, (3, 3), activation='relu', padding='same')(conv5)
+    
+    #classificaiton
+    flatten = Flatten()(conv5)
+    fc = Dense(4096, activation='relu', name='fc1')(flatten)
+    fc = Dense(128, activation='relu', name='fc2')(fc)
 
     up6 = concatenate([UpSampling2D(size=(2, 2))(conv5), conv4], axis=3)
     conv6 = Conv2D(256, (3, 3), activation='relu', padding='same')(up6)
@@ -362,15 +362,16 @@ def get_unet_multitask(n_classes=2, input_shape = (128,128,6), pretrained_weight
     conv9 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv9)
     
     # dist
-    conv10 = Conv2D(5, (1, 1), padding='same')(conv9)
+    conv10 = Conv2D(5, (1, 1), padding='same', name='distance')(conv9)
     dist_map = Softmax(axis=-1, name='distance')(conv10)
     
-    conv10 = ReLU(max_value=None, negative_slope=0.0, threshold=0.0)(conv10)
+    conv10 = ReLU(max_value=None, negative_slope=0.0, threshold=0.0)(dist_map)
 
     concat = concatenate([conv9, conv10], axis=3)
-    binary_mask = Conv2D(2, (1, 1), activation='softmax', padding='same',name='binary')(concat)
+    binary_mask = Conv2D(2, (1, 1), activation=output_mode, padding='same',name='binary')(concat)
+    classification = Dense(n_classes, activation=None, name='classification')(fc)
     
-    model = Model(input = inputs, output = [dist_map, binary_mask])
+    model = Model(input = inputs, output = [dist_map, binary_mask, classification])
     
     model.summary()
     
