@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name='yifanDL'
-#SBATCH --output='output/7.25/save_norm.%j.%N.out'
-#SBATCH --error='output/7.25/save_norm.%j.%N.err'
+#SBATCH --output='output/7.25/MT3.%j.%N.out'
+#SBATCH --error='output/7.25/MT3.%j.%N.err'
 #SBATCH --partition=gpux1
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1

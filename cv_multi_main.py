@@ -88,7 +88,7 @@ for i in range(k):
     m.compile( 
               optimizer = opt2, 
               loss = {'binary':b_loss, 'distance': d_loss, 
-                      'classification':'categorical_crossentropy'}, 
+                      'classification':'binary_crossentropy'}, 
               loss_weights = {'binary':0.4, 'distance':0.3,'classification':0.3}, 
               metrics = {'binary':[per_pixel_acc, Mean_IOU, Mean_IOU_label, precision, recall, f1score], 
                           'distance': Mean_IOU_dist, 'classification':[accuracy, FN, FP]}

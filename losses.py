@@ -24,7 +24,7 @@ def pixel_wise_loss(y_true, y_pred, shape=128):
    # loss = tf.nn.softmax_cross_entropy_with_logits(labels=y_true,logits=y_pred)
     return K.mean(loss,axis=-1)
 
-def weighted_categorical_crossentropy(weights):
+def weighted_categorical_crossentropy(weights): # after softmax
     """
     A weighted version of keras.objectives.categorical_crossentropy
     
