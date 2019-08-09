@@ -7,10 +7,11 @@ import numpy as np
 from shutil import copyfile
 
 DATA_PATH = '/home/yifanc3/dataset/data/'
-FRAME_PATH = DATA_PATH+'frames_64/'
-MASK_PATH = DATA_PATH+'masks_64/'
-ANNO_PATH = DATA_PATH+'annotations_64/'
-SAVE_PATH = '/home/yifanc3/dataset/data/selected/'
+FRAME_PATH = DATA_PATH+'frames_256_overlap6/'
+MASK_PATH = DATA_PATH+'masks_10m_256overlap/'
+MASK2_PATH = DATA_PATH+'masks_5m_256overlap/'
+ANNO_PATH = DATA_PATH+'annotations_256_overlap/'
+SAVE_PATH = '/home/yifanc3/dataset/data/selected_256_overlap/'
 
 
 #annotated_mask
@@ -19,11 +20,12 @@ SAVE_PATH = '/home/yifanc3/dataset/data/selected/'
                          
 # Create folders to hold features and nonfeatures
 
-folders = ['frame_0', 'mask_0', 'frame_1', 'mask_1']
+folders = ['frame_0', 'mask_5m_0', 'frame_1', 'mask_5m_1', 'mask_10m_1', 'mask_10m_0']
 
 # os.makedirs(SAVE_PATH)
-# for folder in folders:
-#     os.makedirs(SAVE_PATH + folder)
+
+for folder in folders:
+    os.makedirs(SAVE_PATH + folder)
 
   
 # Get all frames and masks, sort them, shuffle them to generate data sets.
@@ -31,33 +33,67 @@ folders = ['frame_0', 'mask_0', 'frame_1', 'mask_1']
 all_frames = os.listdir(FRAME_PATH)
 all_masks = os.listdir(MASK_PATH)
 
-Ratios = []
+
+num_feature_file = 1705
+num_anno = 7365
+num_feature_nonzero = 1804
+#read all the masks to see if 1/0 >= 10/(64*64)
+# the ratio need to be calculated by histgram (plot histogram of how large ratio is the label/nolabel )
+
+random_list = np.concatenate((np.ones(num_feature_file),np.zeros(num_anno-num_feature_nonzero-num_feature_file))) #print(a,b,'\t',darray) 
+np.random.shuffle(random_list)
+
 num_files = 0
 num_anno = 0
-num_feature_file = 0
-#select files with feature
+num_no_anno = 0 
+# add to num_files
+num_feature_nonzero = 0 
+num_feature_zero = 0 #count index for random_list
+# add to num_anno
+num_feature_file = 0 
+num_nofeature_file = 0 # these two number should be the same
+
+#select files with feature and without feature
 for mask in all_masks:
     num_files += 1
     # load annotations
     filename = os.path.join(ANNO_PATH, mask)
     tif = TIFF.open(filename)
-    img = tif.read_image().astype(int) # 0 means annotated
-    if 0 not in np.unique(img):
+    anno_img = tif.read_image().astype(int) # 0 means annotated
+    if 0 not in np.unique(anno_img):
+        num_no_anno += 1
         continue
-    print(mask)
+    # annoated 
+    print('annoted:',mask)
     num_anno += 1
     #load mask image
     filename = os.path.join(MASK_PATH, mask)
     tif = TIFF.open(filename)
     mask_arr = tif.read_image().astype(int)
-    mask_arr = np.where(mask_arr==2.0, 0.0, mask_arr)
-    mask_arr = 1 - mask_arr # so 1 is the mask
+#     mask_arr = np.where(mask_arr==2.0, 0.0, mask_arr)
+#     mask_arr = 1 - mask_arr # so 1 is the mask
     # calculate ratio
     no_1 = np.count_nonzero(mask_arr)
-    ratio = no_1/(64*64)
+    print(no_1)
+            
     if(no_1 != 0):
-        Ratios.append(ratio)
-    if(no_1 >= 10):
+        num_feature_nonzero += 1
+    else: # no feature but annotated 
+        if random_list[num_feature_zero] != 1:
+            num_feature_zero += 1 
+            continue
+        filename = os.path.join(FRAME_PATH, mask)
+        tif = TIFF.open(filename)
+        frame_arr = tif.read_image()
+        # save to file masks_1 and load frames
+        print('nonfeature file')
+        np.save(os.path.join(SAVE_PATH+'frame_0/',mask[0:-4]+'.npy'), frame_arr)
+        np.save(os.path.join(SAVE_PATH+'mask_10m_0/',mask[0:-4]+'.npy'),mask_arr)
+        
+        num_feature_zero += 1 
+        num_nofeature_file += 1
+    if(no_1 >= 100):
+        print('feature file')
         num_feature_file += 1
         # load frames
         filename = os.path.join(FRAME_PATH, mask)
@@ -65,44 +101,7 @@ for mask in all_masks:
         frame_arr = tif.read_image()
         # save to file masks_1 and load frames
         np.save(os.path.join(SAVE_PATH+'frame_1/',mask[0:-4]+'.npy'), frame_arr)
-        np.save(os.path.join(SAVE_PATH+'mask_1/',mask[0:-4]+'.npy'),mask_arr)
-        
-        
-
-#read all the masks to see if 1/0 >= 10/(64*64)
-# the ratio need to be calculated by histgram (plot histogram of how large ratio is the label/nolabel )
-                         
-Ratios = []
-num_files = 0
-num_anno = 0
-num_feature_file = 0
-num_nonfeature_file = 0
-#select files with feature
-random_list = np.random.randint(2, size=81703)
-
-# for non features
-for mask in all_masks:
-    num_files += 1
-    # load annotations
-    filename = os.path.join(ANNO_PATH, mask)
-    tif = TIFF.open(filename)
-    img = tif.read_image().astype(int) # 0 means annotated
-    if 0 not in np.unique(img):
-        if(random_list[num_files] == 1 && num_nonfeature_file < 1195):
-            # save this frame and mask
-            num_nonfeature_file += 1 # count
-            
-            filename = os.path.join(MASK_PATH, mask)
-            tif = TIFF.open(filename)
-            mask_arr = tif.read_image().astype(int)
-            mask_arr = np.where(mask_arr==2.0, 0.0, mask_arr)
-            mask_arr = 1 - mask_arr # so 1 is the mask
-            
-            filename = os.path.join(FRAME_PATH, mask)
-            tif = TIFF.open(filename)
-            frame_arr = tif.read_image()
-            # save to file masks_1 and load frames
-            np.save(os.path.join(SAVE_PATH+'frame_0/',mask[0:-4]+'.npy'), frame_arr)
-            np.save(os.path.join(SAVE_PATH+'mask_0/',mask[0:-4]+'.npy'),mask_arr)              
-        continue
+        np.save(os.path.join(SAVE_PATH+'mask_10m_1/',mask[0:-4]+'.npy'),mask_arr)
+    
+print(num_files,num_anno, num_no_anno, num_feature_nonzero, num_feature_zero, num_feature_file, num_nofeature_file)
         
