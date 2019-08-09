@@ -20,13 +20,13 @@ from keras.models import model_from_json
 
 
 #hyperparameters
-date = 'tryout'
+date = '8.8'
 BATCH_SIZE = 32
-NO_OF_EPOCHS = 10
+NO_OF_EPOCHS = 30
 shape = 128
 aug = False
-Model_name = '128over_MT3_segnet_100e'
-network = 'segnet'
+Model_name = '128over_MT3_unet_weightedloss_10mbinary_30e'
+network = 'unet'
 k = 2
 band = 6
 norm = True
@@ -39,6 +39,7 @@ train_frame_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_frames_5
 train_mask_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_masks_10m6b/'
 train_maskdst_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_masks_10mdist/'
 
+print(train_frame_path, train_mask_path, train_maskdst_path)
 
 Model_path = '/home/yifanc3/models/%s/%s/' % (date,Model_name)
 mkdir(Model_path)
@@ -88,7 +89,7 @@ for i in range(k):
     m.compile( 
               optimizer = opt2, 
               loss = {'binary':b_loss, 'distance': d_loss, 
-                      'classification':'binary_crossentropy'}, 
+                      'classification':'categorical_crossentropy'}, 
               loss_weights = {'binary':0.4, 'distance':0.3,'classification':0.3}, 
               metrics = {'binary':[per_pixel_acc, Mean_IOU, Mean_IOU_label, precision, recall, f1score], 
                           'distance': Mean_IOU_dist, 'classification':[accuracy, FN, FP]}
@@ -139,7 +140,7 @@ for i in range(k):
     print('======Start Testing======')
 
     score = m.evaluate(test_x, {'binary': test_y, 'distance': test_y2, 'classification':test_y3}, verbose=0)
-    for j in range(12):
+    for j in range(14):
         print("%s: %.2f%%" % (m.metrics_names[j], score[j]*100))
    
 

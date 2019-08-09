@@ -44,16 +44,23 @@ def save_result(train_frame_path, save_path, test_idx, results, test_x, test_y, 
     if(multi_task):
         distance_shape = results[0].shape
         binary_shape = results[1].shape
+        
+        clssify_pred = np.argmax(results[2],axis = -1)
+        clssify_gt = np.argmax(test_y[2],axis = -1)
+        np.save(os.path.join(save_path,'classification_gt.npy'), clssify_gt)
+        np.save(os.path.join(save_path,'classification_pred.npy'), clssify_pred)
         for i in range(length):
             name = n[a+i]
             img_distance = np.argmax(results[0][i],axis = -1)
             img_binary = np.argmax(results[1][i],axis = -1)
+
             np.save(os.path.join(save_result_path,"%s_distance.npy"%name[0:-4]),img_distance)
             np.save(os.path.join(save_result_path,"%s_binary.npy"%name[0:-4]),img_binary)
 
             np.save(os.path.join(save_frame_path,"%s.npy"%name[0:-4]),test_x[i])
             np.save(os.path.join(save_mask_path,"%s_binary.npy"%name[0:-4]),test_y[0][i])
             np.save(os.path.join(save_mask_path,"%s_distance.npy"%name[0:-4]),test_y[1][i])
+            
     else:
         result_shape = np.shape(results)
         print(result_shape)

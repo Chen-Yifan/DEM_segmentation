@@ -4,7 +4,7 @@
 #PBS -l walltime=08:00:00
 #PBS -M yifanc3@illinois.edu
 #PBS -m abe 
-#PBS -N 128overlap_300w_unetAdal_80ep_5m6bno3_prenorm_logit
+#PBS -N 128over_MT3_unet_weightedloss_10mbinary_30e
 source activate tf3.6-v2
-python segmentation/DEM_segmentation/cv_main.py
+python segmentation/DEM_segmentation/cv_multi_main.py
 

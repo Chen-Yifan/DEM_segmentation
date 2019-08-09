@@ -22,10 +22,10 @@ from keras.models import model_from_json
 #hyperparameters
 date = 'tryout'
 BATCH_SIZE = 32
-NO_OF_EPOCHS = 80
+NO_OF_EPOCHS = 25
 shape = 128
 aug = False # to decide if shuffle
-Model_name = '128overlap_300w_unetAdal_80ep_5m6bno3_prenorm_logit'
+Model_name = '128overlap_300w_unetAdal_25ep_5m6bno3_prenorm_logit'
 network = 'unet'
 k = 2
 band = 5
@@ -76,7 +76,7 @@ for i in range(k):
     opt2 = Adadelta(lr=1, rho=0.95, epsilon=1e-08, decay=0.0)
     weights = np.array([1.0,300.0])
     loss = weighted_categorical_crossentropy(weights)
-    m.compile( optimizer = opt2, loss = loss, metrics = [per_pixel_acc, Mean_IOU, Mean_IOU_label, precision, recall, f1score])
+    m.compile( optimizer = opt2, loss = pixel_wise_loss, metrics = [per_pixel_acc, Mean_IOU, Mean_IOU_label, precision, recall, f1score])
 
     #callback
     ckpt_path = Checkpoint_path + '%s/'%i
