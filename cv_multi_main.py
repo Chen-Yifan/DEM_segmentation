@@ -12,7 +12,7 @@ from losses import *
 from k_fold import *
 import numpy as np
 from keras.models import Model
-from keras.optimizers import Adadelta, Adam
+from keras.optimizers import Adadelta, Adam, SGD
 import matplotlib.pyplot as plt
 import time
 from functools import *
@@ -20,13 +20,13 @@ from keras.models import model_from_json
 
 
 #hyperparameters
-date = '8.8'
+date = '8.13'
 BATCH_SIZE = 32
-NO_OF_EPOCHS = 30
+NO_OF_EPOCHS = 80
 shape = 128
 aug = False
-Model_name = '128over_MT3_unet_weightedloss_10mbinary_30e'
-network = 'unet'
+Model_name = '128over_MT3_segnet_weightedloss_10mbinary_80e'
+network = 'segnet'
 k = 2
 band = 6
 norm = True
@@ -81,6 +81,7 @@ for i in range(k):
     
     opt = Adam(lr=1E-5, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
     opt2 = Adadelta(lr=1, rho=0.95, epsilon=1e-08, decay=0.0)
+    opt3 = SGD(lr=0.01, decay=1e-6, momentum=0.99, nesterov=True)
     
     b_weights = np.array([1.0,300.0])
     b_loss = weighted_categorical_crossentropy(b_weights)
