@@ -25,7 +25,7 @@ BATCH_SIZE = 32
 NO_OF_EPOCHS = 65
 shape = 128
 aug = False # to decide if shuffle
-Model_name = 'classification'
+Model_name = 'classification_bce'
 network = 'VGG'
 k = 2
 band = 6
@@ -66,12 +66,12 @@ for i in range(k):
     test_y = features[test_list[i]]
     
     #model 
-    m = model.VGG_16(input_shape = (shape,shape,band))
+    m = model.VGG_16(input_shape = (shape,shape,band),activation='sigmoid')
 
     opt = Adam(lr=1E-5, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
     opt2 = Adadelta(lr=1, rho=0.95, epsilon=1e-08, decay=0.0)
     sgd = SGD(lr=0.1, decay=1e-6, momentum=0.9, nesterov=True)
-    m.compile( optimizer=sgd, loss='categorical_crossentropy', metrics = [accuracy, FP, FN])
+    m.compile( optimizer=opt2, loss='binary_crossentropy', metrics = [accuracy, FP, FN])
 
     #callback
     ckpt_path = Checkpoint_path + '%s/'%i

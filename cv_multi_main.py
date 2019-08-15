@@ -20,12 +20,12 @@ from keras.models import model_from_json
 
 
 #hyperparameters
-date = 'tryout'
+date = '8.14'
 BATCH_SIZE = 32
-NO_OF_EPOCHS = 30
+NO_OF_EPOCHS = 25
 shape = 128
 aug = False
-Model_name = '128over_MT3_unet_weightedloss_9cdist_30e'
+Model_name = '128over_MT3_unet_weightedloss_cce_9cdist_25e'
 network = 'unet'
 k = 2
 band = 6

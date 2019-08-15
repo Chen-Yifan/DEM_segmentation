@@ -20,8 +20,8 @@ import matplotlib.pyplot as plt
 import keras.losses
 import keras.metrics
 
-Model_name = '128overlap_300w_unetAdal_80ep_5m6bno3_prenorm_v2'
-weights_name = 'weights.79-2.45-0.60.hdf5'
+Model_name = '128overlap_300w_unetAdal_80ep_5m6bno3_prenorm'
+weights_name = 'weights.23-1.87-0.54.hdf5'
 fold = 0
 date = '7.25'
 network = 'unet'

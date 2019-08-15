@@ -21,10 +21,10 @@ from keras.models import model_from_json
 import keras.losses
 import keras.metrics
 
-Model_name = '128over_MT3_unet_weightedloss_10mbinary_50e_v2'
+Model_name = '128over_MT3_unet_weightedloss_bce_9cdist_25e'
 weights_name = 'weights.25-16.54-0.56.hdf5'
-fold = 1
-date = '8.13'
+fold = 0
+date = '8.14'
 network = 'unet'
 band = 6
 
