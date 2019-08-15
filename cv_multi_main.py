@@ -20,13 +20,13 @@ from keras.models import model_from_json
 
 
 #hyperparameters
-date = '8.13'
+date = '8.14'
 BATCH_SIZE = 32
-NO_OF_EPOCHS = 80
+NO_OF_EPOCHS = 30
 shape = 128
 aug = False
-Model_name = '128over_MT3_segnet_weightedloss_10mbinary_80e'
-network = 'segnet'
+Model_name = '128over_MT3_unet_weightedloss_9cdist_30e'
+network = 'unet'
 k = 2
 band = 6
 norm = True
@@ -37,7 +37,7 @@ print('batch_size:', BATCH_SIZE, '\ndate:', date, '\nshape:', shape, '\naug:',au
 #TRAIN
 train_frame_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_frames_5m6b_norm/'
 train_mask_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_masks_10m6b/'
-train_maskdst_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_masks_10mdist/'
+train_maskdst_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_masks_c9dist/'
 
 print(train_frame_path, train_mask_path, train_maskdst_path)
 
@@ -75,9 +75,9 @@ for i in range(k):
     
     #MODEL BUILD  multi_task
     if(network == 'unet'):
-        m = model.get_unet_multitask(input_shape = (shape,shape,band))
+        m = model.get_unet_multitask(input_shape = (shape,shape,band), dist_cl=9)
     else:
-        m = model.segnet(multi_task = True, input_shape = (shape,shape,band))
+        m = model.segnet(multi_task = True, input_shape = (shape,shape,band),dist_cl=9)
     
     opt = Adam(lr=1E-5, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
     opt2 = Adadelta(lr=1, rho=0.95, epsilon=1e-08, decay=0.0)
@@ -85,7 +85,7 @@ for i in range(k):
     
     b_weights = np.array([1.0,300.0])
     b_loss = weighted_categorical_crossentropy(b_weights)
-    d_weights = np.array([1.0,5.0,25.0,50.0,150.0])
+    d_weights = np.array([1.0, 2.0, 4.0, 8.0, 16.0, 32, 64, 128, 256])
     d_loss = weighted_categorical_crossentropy(d_weights)
     m.compile( 
               optimizer = opt2, 

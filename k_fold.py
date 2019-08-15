@@ -85,7 +85,7 @@ def load_data_multi(img_folder, mask_folder, maskdist_folder, shape=128, band=6)
     if(band == 6):
         img = np.zeros((len(n), shape, shape, 6)).astype(np.float32)
         mask = np.zeros((len(n), shape, shape, 2), dtype=np.float32)
-        mask_dist = np.zeros((len(n), shape, shape, 5), dtype=np.float32)
+        mask_dist = np.zeros((len(n), shape, shape, 9), dtype=np.float32)
         features = np.zeros((len(n),2),dtype=np.uint8)
 
         for i in range(len(n)): #initially from 0 to 16, c = 0. 
@@ -93,7 +93,7 @@ def load_data_multi(img_folder, mask_folder, maskdist_folder, shape=128, band=6)
             #frame
             train_img = np.load(img_folder+'/'+n[i]) #normalization:the range is about -100 to 360
             if(train_img.shape!=(shape,shape,6)):
-                continue
+                continuecd 
             img[i] = train_img
          
             #mask
@@ -106,9 +106,8 @@ def load_data_multi(img_folder, mask_folder, maskdist_folder, shape=128, band=6)
                 
             mask[i,:,:,0] = np.squeeze(1-train_mask) # 0 to 1
             mask[i,:,:,1] = np.squeeze(train_mask)
-            
             train_mask_dist = np.load(maskdist_folder+'/'+n[i])
-            train_mask_dist = np.eye(5)[train_mask_dist]
+            train_mask_dist = np.eye(9)[train_mask_dist]
             mask_dist[i] = train_mask_dist
         return img, mask, mask_dist, features
 

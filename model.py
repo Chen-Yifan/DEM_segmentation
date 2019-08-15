@@ -13,6 +13,7 @@ K.set_image_data_format('channels_last')  # TF dimension ordering in this code
 def segnet(
         multi_task = False,
         input_shape = (128,128,5),
+        dist_cl = 5,
         n_labels = 2,
         kernel=3,
         pool_size=(2, 2),
@@ -136,7 +137,7 @@ def segnet(
     
      #Branch 1 : 5band distance
     if(multi_task):
-        conv_25_2 = Convolution2D(5, (1,1), padding='same', name='distance1')(conv_25)
+        conv_25_2 = Convolution2D(dist_cl, (1,1), padding='same', name='distance1')(conv_25)
         dist_map = Softmax(axis = -1 , name = 'distance')(conv_25_2)
         
         conv_26 = Activation("relu")(conv_25_2)
@@ -319,7 +320,7 @@ def get_unet(n_classes=2, input_shape = (128,128,5), output_mode='softmax', pret
 
     return model
 
-def get_unet_multitask(n_classes=2, input_shape = (128,128,6), output_mode = 'softmax',pretrained_weights = None):
+def get_unet_multitask(n_classes=2, dist_cl=5, input_shape = (128,128,6), output_mode = 'softmax',pretrained_weights = None):
     inputs = Input(input_shape)
     conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(inputs)
     conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv1)
@@ -362,7 +363,7 @@ def get_unet_multitask(n_classes=2, input_shape = (128,128,6), output_mode = 'so
     conv9 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv9)
     
     # dist
-    conv10 = Conv2D(5, (1, 1), padding='same', name='distance2')(conv9)
+    conv10 = Conv2D(dist_cl, (1, 1), padding='same', name='distance2')(conv9)
     dist_map = Softmax(axis=-1, name='distance')(conv10)
     
     conv10 = ReLU(max_value=None, negative_slope=0.0, threshold=0.0)(dist_map)

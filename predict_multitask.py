@@ -26,7 +26,7 @@ weights_name = 'weights.25-16.54-0.56.hdf5'
 fold = 1
 date = '8.13'
 network = 'unet'
-band = 5
+band = 6
 
 path = '/home/yifanc3/results/%s/%s/%s/'%(date,Model_name,fold)
 test_mask_path = path + 'mask'

@@ -4,7 +4,7 @@
 #PBS -l walltime=08:00:00
 #PBS -M yifanc3@illinois.edu
 #PBS -m abe 
-#PBS -N 128over_MT3_segnet_weightedloss_10mbinary_80e
+#PBS -N 128over_MT3_unet_weightedloss_9cdist_30e
 source activate tf3.6-v2
 python segmentation/DEM_segmentation/cv_multi_main.py
 

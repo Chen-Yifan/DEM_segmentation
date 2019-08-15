@@ -69,8 +69,8 @@ def Mean_IOU_dist(y_true, y_pred, shape=128):
 
     # reshape such that w and h dim are multiplied together
     #revise
-    y_true_reshaped = tf.reshape(tensor=y_true, shape=(-1, shape*shape, 5))
-    y_pred_reshaped = tf.reshape(tensor=y_pred, shape=(-1, shape*shape, 5))
+    y_true_reshaped = tf.reshape(tensor=y_true, shape=(-1, shape*shape, 9))
+    y_pred_reshaped = tf.reshape(tensor=y_pred, shape=(-1, shape*shape, 9))
     # correctly classified
     clf_pred = K.one_hot( K.argmax(y_pred_reshaped), num_classes = s[-1])
     print(y_true_reshaped.dtype, y_pred_reshaped.dtype, clf_pred.dtype)
