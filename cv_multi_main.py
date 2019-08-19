@@ -24,13 +24,13 @@ date = '8.14'
 BATCH_SIZE = 32
 NO_OF_EPOCHS = 30
 shape = 128
-aug = True
-Model_name = '128over_MT3batch_unet_weightedloss_cceAdal_5m5c_30e_aug'
+aug = False
+Model_name = '128over_MT3_unet_weightedloss_cceAdal_5m5c_25e'
 network = 'unet'
 k = 2
 band = 6
 norm = True
-dist_band=5
+dist_band=10
 
 print('batch_size:', BATCH_SIZE, '\ndate:', date, '\nshape:', shape, '\naug:',aug, '\nNetwork:', network,'\nModel_name:', Model_name, '\nk:',k, '; band:', band, '\nnorm:', norm)
     
@@ -86,8 +86,8 @@ for i in range(k):
     
     b_weights = np.array([1.0,300.0])
     b_loss = weighted_categorical_crossentropy(b_weights)
-   # d_weights = np.array([1.0, 2.0, 3.0, 4.0, 8.0, 16.0, 32, 64, 128, 256])
-    d_weights = np.array([1.0,5.0,25.0,50.0,150.0])
+    d_weights = np.array([1.0, 2.0, 3.0, 4.0, 8.0, 16.0, 32, 64, 128, 256])
+#     d_weights = np.array([1.0,5.0,25.0,50.0,150.0])
     d_loss = weighted_categorical_crossentropy(d_weights)
     Mean_IOU = Mean_IoU_cl(cl=2)
     Mean_IOU_dist = Mean_IoU_cl(cl=dist_band)

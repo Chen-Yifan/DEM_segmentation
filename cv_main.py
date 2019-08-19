@@ -20,12 +20,12 @@ from keras.models import model_from_json
 
 
 #hyperparameters
-date = 'tryout'
+date = '8.19'
 BATCH_SIZE = 32
 NO_OF_EPOCHS = 25
 shape = 128
 aug = False # to decide if shuffle
-Model_name = '128overlap_300w_unetAdal_25ep_5m6bno3_prenorm_logit'
+Model_name = '128overlap_300w_unetAdal_25ep_5m6b_prenorm'
 network = 'unet'
 k = 2
 band = 5
@@ -74,9 +74,13 @@ for i in range(k):
 
     opt = Adam(lr=1E-5, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
     opt2 = Adadelta(lr=1, rho=0.95, epsilon=1e-08, decay=0.0)
+    
     weights = np.array([1.0,300.0])
     loss = weighted_categorical_crossentropy(weights)
-    m.compile( optimizer = opt2, loss = pixel_wise_loss, metrics = [per_pixel_acc, Mean_IOU, Mean_IOU_label, precision, recall, f1score])
+
+    Mean_IOU = Mean_IoU_cl(cl=2)
+    
+    m.compile( optimizer = opt2, loss = loss, metrics = [per_pixel_acc, Mean_IOU, Mean_IOU_label, precision, recall, f1score])
 
     #callback
     ckpt_path = Checkpoint_path + '%s/'%i
@@ -84,7 +88,7 @@ for i in range(k):
         os.makedirs(ckpt_path)
     weights_path = ckpt_path + 'weights.{epoch:02d}-{val_loss:.2f}-{val_Mean_IOU:.2f}.hdf5'
     
-    callbacks = get_callbacks(weights_path, Model_path, 5)
+    callbacks = get_callbacks(i, weights_path, Model_path, 5)
     
     if(aug):
     # data augmentation
