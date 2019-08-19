@@ -150,7 +150,7 @@ def segnet(
         classification = Dense(n_labels, activation='sigmoid', name='classification')(fc)
         print("Build decoder done..")
         
-        model = Model(inputs=inputs, outputs=[dist_map, binary_mask,classification], name="SegNet")
+        model = Model(inputs=inputs, outputs=[binary_mask, dist_map, classification], name="SegNet")
         
     else:
         
@@ -372,7 +372,7 @@ def get_unet_multitask(n_classes=2, dist_cl=5, input_shape = (128,128,6), output
     binary_mask = Conv2D(2, (1, 1), activation=output_mode, padding='same',name='binary')(concat)
     classification = Dense(n_classes, activation='softmax', name='classification')(fc)
     
-    model = Model(input = inputs, output = [dist_map, binary_mask, classification])
+    model = Model(input = inputs, output = [binary_mask, dist_map, classification])
     
     model.summary()
     

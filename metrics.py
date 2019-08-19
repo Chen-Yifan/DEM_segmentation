@@ -7,33 +7,39 @@ import tensorflow as tf
 import cv2
 from itertools import product
 
-def Mean_IOU(y_true, y_pred, shape=128):
-    s = K.shape(y_true)
 
-    # reshape such that w and h dim are multiplied together
-    #revise
-    y_true_reshaped = tf.reshape(tensor=y_true, shape=(-1, shape*shape, 2))
-    y_pred_reshaped = tf.reshape(tensor=y_pred, shape=(-1, shape*shape, 2))
-    # correctly classified
-    clf_pred = K.one_hot( K.argmax(y_pred_reshaped), num_classes = s[-1])
-    print(y_true_reshaped.dtype, y_pred_reshaped.dtype, clf_pred.dtype)
-    print(np.shape(clf_pred), np.shape(y_true_reshaped), np.shape(y_pred_reshaped))
-    equal_entries = K.cast(K.equal(clf_pred,y_true_reshaped), dtype='float32') * y_true_reshaped
+def Mean_IoU_cl(cl=2, shape=128):
+    
+    def Mean_IOU(y_true, y_pred):
+        s = K.shape(y_true)
 
-    # IoU for labeled class
-#     y_true_reshaped = tf.reshape(tensor=y_true, shape=(-1, 128*128, 2))
-#     y_pred_reshaped = tf.reshape(tensor=y_pred, shape=(-1, 128*128, 2))
-#     y_true_reshaped = K.cast(K.argmax(y_true_reshaped),dtype='float32')
-#     clf_pred = K.cast(K.argmax(y_pred_reshaped),dtype='float32')
-#     equal_entries = K.cast(K.equal(clf_pred,y_true_reshaped), dtype='float32') * y_true_reshaped
+        # reshape such that w and h dim are multiplied together
+        #revise
+        y_true_reshaped = tf.reshape(tensor=y_true, shape=(-1, shape*shape, cl))
+        y_pred_reshaped = tf.reshape(tensor=y_pred, shape=(-1, shape*shape, cl))
+        # correctly classified
+        clf_pred = K.one_hot( K.argmax(y_pred_reshaped), num_classes = s[-1])
+        print(y_true_reshaped.dtype, y_pred_reshaped.dtype, clf_pred.dtype)
+        print(np.shape(clf_pred), np.shape(y_true_reshaped), np.shape(y_pred_reshaped))
+        equal_entries = K.cast(K.equal(clf_pred,y_true_reshaped), dtype='float32') * y_true_reshaped
 
-    intersection = K.sum(equal_entries, axis=1)
-    union_per_class = K.sum(y_true_reshaped,axis=1) + K.sum(clf_pred,axis=1)
-    iou = intersection / (union_per_class - intersection)
-    iou_mask = tf.is_finite(iou)
-    iou_masked = tf.boolean_mask(iou,iou_mask)
+        # IoU for labeled class
+    #     y_true_reshaped = tf.reshape(tensor=y_true, shape=(-1, 128*128, 2))
+    #     y_pred_reshaped = tf.reshape(tensor=y_pred, shape=(-1, 128*128, 2))
+    #     y_true_reshaped = K.cast(K.argmax(y_true_reshaped),dtype='float32')
+    #     clf_pred = K.cast(K.argmax(y_pred_reshaped),dtype='float32')
+    #     equal_entries = K.cast(K.equal(clf_pred,y_true_reshaped), dtype='float32') * y_true_reshaped
 
-    return K.mean( iou_masked )
+        intersection = K.sum(equal_entries, axis=1)
+        union_per_class = K.sum(y_true_reshaped,axis=1) + K.sum(clf_pred,axis=1)
+        iou = intersection / (union_per_class - intersection)
+        iou_mask = tf.is_finite(iou)
+        iou_masked = tf.boolean_mask(iou,iou_mask)
+
+        return K.mean( iou_masked )
+    
+    return Mean_IOU
+
 
 def Mean_IOU_label(y_true, y_pred, shape=128):
     s = K.shape(y_true)
@@ -54,35 +60,6 @@ def Mean_IOU_label(y_true, y_pred, shape=128):
     y_true_reshaped = K.cast(K.argmax(y_true_reshaped),dtype='float32')
     clf_pred = K.cast(K.argmax(y_pred_reshaped),dtype='float32')
     equal_entries = K.cast(K.equal(clf_pred,y_true_reshaped), dtype='float32') * y_true_reshaped
-
-    intersection = K.sum(equal_entries, axis=1)
-    union_per_class = K.sum(y_true_reshaped,axis=1) + K.sum(clf_pred,axis=1)
-    iou = intersection / (union_per_class - intersection)
-    iou_mask = tf.is_finite(iou)
-    iou_masked = tf.boolean_mask(iou,iou_mask)
-
-    return K.mean( iou_masked )
-
-          
-def Mean_IOU_dist(y_true, y_pred, shape=128):
-    s = K.shape(y_true)
-
-    # reshape such that w and h dim are multiplied together
-    #revise
-    y_true_reshaped = tf.reshape(tensor=y_true, shape=(-1, shape*shape, 9))
-    y_pred_reshaped = tf.reshape(tensor=y_pred, shape=(-1, shape*shape, 9))
-    # correctly classified
-    clf_pred = K.one_hot( K.argmax(y_pred_reshaped), num_classes = s[-1])
-    print(y_true_reshaped.dtype, y_pred_reshaped.dtype, clf_pred.dtype)
-    print(np.shape(clf_pred), np.shape(y_true_reshaped), np.shape(y_pred_reshaped))
-    equal_entries = K.cast(K.equal(clf_pred,y_true_reshaped), dtype='float32') * y_true_reshaped
-
-    # IoU for labeled class
-#     y_true_reshaped = tf.reshape(tensor=y_true, shape=(-1, 128*128, 2))
-#     y_pred_reshaped = tf.reshape(tensor=y_pred, shape=(-1, 128*128, 2))
-#     y_true_reshaped = K.cast(K.argmax(y_true_reshaped),dtype='float32')
-#     clf_pred = K.cast(K.argmax(y_pred_reshaped),dtype='float32')
-#     equal_entries = K.cast(K.equal(clf_pred,y_true_reshaped), dtype='float32') * y_true_reshaped
 
     intersection = K.sum(equal_entries, axis=1)
     union_per_class = K.sum(y_true_reshaped,axis=1) + K.sum(clf_pred,axis=1)
