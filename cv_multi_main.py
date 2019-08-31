@@ -1,36 +1,34 @@
 # MT3
-from generator import *
-from keras.callbacks import ModelCheckpoint
-from keras.callbacks import CSVLogger
-from keras.callbacks import EarlyStopping,ReduceLROnPlateau
 import os
+import numpy as np
+from keras.callbacks import ModelCheckpoint,CSVLogger, EarlyStopping,ReduceLROnPlateau
+from keras.models import model_from_json
+from keras.models import Model
+from keras.optimizers import Adadelta, Adam, SGD
+
 import tensorflow as tf
 import keras.backend as K
 import model
 from metrics import *
 from losses import *
 from k_fold import *
-import numpy as np
-from keras.models import Model
-from keras.optimizers import Adadelta, Adam, SGD
-import matplotlib.pyplot as plt
-import time
-from functools import *
-from keras.models import model_from_json
+
+# import time
+# from functools import *
 
 
 #hyperparameters
-date = '8.14'
+date = '8.20'
 BATCH_SIZE = 32
-NO_OF_EPOCHS = 30
+NO_OF_EPOCHS = 25
 shape = 128
 aug = False
-Model_name = '128over_MT3_unet_weightedloss_cceAdal_5m5c_25e'
+Model_name = '128over_MT3_unet_weightedloss_cceAdal_5m5c_25e_200w5b'
 network = 'unet'
 k = 2
-band = 6
+band = 5
 norm = True
-dist_band=10
+dist_band=5
 
 print('batch_size:', BATCH_SIZE, '\ndate:', date, '\nshape:', shape, '\naug:',aug, '\nNetwork:', network,'\nModel_name:', Model_name, '\nk:',k, '; band:', band, '\nnorm:', norm)
     
@@ -86,8 +84,8 @@ for i in range(k):
     
     b_weights = np.array([1.0,300.0])
     b_loss = weighted_categorical_crossentropy(b_weights)
-    d_weights = np.array([1.0, 2.0, 3.0, 4.0, 8.0, 16.0, 32, 64, 128, 256])
-#     d_weights = np.array([1.0,5.0,25.0,50.0,150.0])
+#     d_weights = np.array([1.0, 2.0, 3.0, 4.0, 8.0, 16.0, 32, 64, 128, 256])
+    d_weights = np.array([1.0,5.0,25.0,50.0,150.0])
     d_loss = weighted_categorical_crossentropy(d_weights)
     Mean_IOU = Mean_IoU_cl(cl=2)
     Mean_IOU_dist = Mean_IoU_cl(cl=dist_band)

@@ -4,8 +4,7 @@ from keras.preprocessing.image import ImageDataGenerator
 import os
 import tensorflow as tf
 import keras.backend as K
-import model
-from utils import *
+from util.util import *
 import numpy as np
 from keras.models import Model
 import matplotlib.pyplot as plt
@@ -81,35 +80,39 @@ def load_data_multi(img_folder, mask_folder, maskdist_folder, shape=128, band=6,
     n = os.listdir(img_folder)
     n.sort(key=lambda var:[int(x) if x.isdigit() else x 
                                 for x in re.findall(r'[^0-9]|[0-9]+', var)])
+    mask = np.zeros((len(n), shape, shape, 2), dtype=np.float32)
+    mask_dist = np.zeros((len(n), shape, shape, dist_band), dtype=np.float32)
+    features = np.zeros((len(n),2),dtype=np.uint8)
+    img = np.zeros((len(n), shape, shape, band)).astype(np.float32)
     
-    if(band == 6):
-        img = np.zeros((len(n), shape, shape, 6)).astype(np.float32)
-        mask = np.zeros((len(n), shape, shape, 2), dtype=np.float32)
-        mask_dist = np.zeros((len(n), shape, shape, dist_band), dtype=np.float32)
-        features = np.zeros((len(n),2),dtype=np.uint8)
-
-        for i in range(len(n)): #initially from 0 to 16, c = 0. 
+    for i in range(len(n)): #initially from 0 to 16, c = 0. 
+        #frame
+        train_img = np.load(img_folder+'/'+n[i]) #normalization:the range is about -100 to 360
+        if(train_img.shape!=(shape,shape,6)):
+            continue
         
-            #frame
-            train_img = np.load(img_folder+'/'+n[i]) #normalization:the range is about -100 to 360
-            if(train_img.shape!=(shape,shape,6)):
-                continuecd 
+        # all six bands 
+        if(band == 6):
             img[i] = train_img
-         
-            #mask
-            train_mask = np.load(mask_folder+'/'+n[i]) # 1.0 or 2.0 
+        # exclude the 3rd band (interpolated)
+        elif(band == 5):
+            img[i] = np.concatenate((train_img[:,:,0:3], train_img[:,:,4:]), axis=-1)
             
-            if len(np.unique(train_mask)) == 2:
-                features[i:1] = 1 # has feature
-            else:
-                features[i:0] = 1 # no feature
-                
-            mask[i,:,:,0] = np.squeeze(1-train_mask) # 0 to 1
-            mask[i,:,:,1] = np.squeeze(train_mask)
-            train_mask_dist = np.load(maskdist_folder+'/'+n[i])
-            train_mask_dist = np.eye(dist_band)[train_mask_dist]
-            mask_dist[i] = train_mask_dist
-        return img, mask, mask_dist, features
+        #mask
+        train_mask = np.load(mask_folder+'/'+n[i]) # 1.0 or 2.0 
+        
+        if len(np.unique(train_mask)) == 2:
+            features[i:1] = 1 # has feature
+        else:
+            features[i:0] = 1 # no feature
+            
+        mask[i,:,:,0] = np.squeeze(1-train_mask) # 0 to 1
+        mask[i,:,:,1] = np.squeeze(train_mask)
+        train_mask_dist = np.load(maskdist_folder+'/'+n[i])
+        train_mask_dist = np.eye(dist_band)[train_mask_dist]
+        mask_dist[i] = train_mask_dist
+    return img, mask, mask_dist, features
+    
 
 def load_data_feature(img_folder, mask_folder, shape=128, band=6):
     n = os.listdir(img_folder)
@@ -140,13 +143,17 @@ def load_data_feature(img_folder, mask_folder, shape=128, band=6):
     
     
 def load_data(img_folder, mask_folder, shape=128, band=5):
+    '''
+        load frame and mask into numpy array
+    '''
     n = os.listdir(img_folder)
     n.sort(key=lambda var:[int(x) if x.isdigit() else x 
                                 for x in re.findall(r'[^0-9]|[0-9]+', var)])
     
+    img = np.zeros((len(n), shape, shape, 6)).astype(np.float32)
+    mask = np.zeros((len(n), shape, shape, 2), dtype=np.float32)
     if(band == 6):
-        img = np.zeros((len(n), shape, shape, 6)).astype(np.float32)
-        mask = np.zeros((len(n), shape, shape, 2), dtype=np.float32)
+        
 
         for i in range(len(n)): #initially from 0 to 16, c = 0. 
             train_img_0 = np.load(img_folder+'/'+n[i]) #normalization:the range is about -100 to 360
@@ -243,6 +250,9 @@ def train_gen_aug(img_list, mask_list, batch_size=32, ratio = 0.18):
     img_datagen = ImageDataGenerator(**data_gen_args)
     mask_datagen = ImageDataGenerator(**data_gen_args)
 
+    img_datagen.fit(train_img)
+    mask_datagen.fit(train_mask)
+    
     seed = 2018
     img_gen = img_datagen.flow(train_img, seed = seed, batch_size=batch_size, shuffle=True)#shuffling
     mask_gen = mask_datagen.flow(train_mask, seed = seed, batch_size=batch_size, shuffle=True)
@@ -252,6 +262,9 @@ def train_gen_aug(img_list, mask_list, batch_size=32, ratio = 0.18):
     img_datagen = ImageDataGenerator()
     mask_datagen = ImageDataGenerator()
             
+    img_datagen.fit(train_img)
+    mask_datagen.fit(train_mask)
+    
     img_gen = img_datagen.flow(val_img, batch_size=batch_size, shuffle=True)
     mask_gen = mask_datagen.flow(val_mask, batch_size=batch_size, shuffle=True)
     val_gen = zip(img_gen, mask_gen)    
