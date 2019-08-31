@@ -22,13 +22,13 @@ shape = opt.input_shape
 inc = opt.input_channel
 aug = opt.augmentation # to decide if shuffle
 Model_path = opt.Model_path
-Result_path = opt.Result_path
+result_path = opt.Result_path
 model = opt.model
 k = opt.k
 frame_path = opt.frame_path
 mask_path = opt.mask_path
-
-
+date = opt.date
+Model_name = opt.name
 
 mkdir(Model_path)
 Checkpoint_path = Model_path + 'ckpt_weights/'
@@ -56,9 +56,9 @@ for i in range(k):
     #model 
     input_shape = (shape,shape,inc)
     if(model == 'unet'):
-        m = model.unet(input_shape)
+        m = models.unet(input_shape=input_shape)
     else:
-        m = model.segnet(input_shape)
+        m = models.segnet(input_shape=input_shape)
         
 
     opt = Adam(lr=1E-5, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
@@ -118,14 +118,10 @@ for i in range(k):
     new_r = np.argmax(results,axis=-1)
 
     #save image
-    result_path = "/home/yifanc3/results/%s/%s/%s"%(date,Model_name,i)
-
-    if not os.path.isdir(result_path):
-        os.makedirs(result_path)
-
+    mkdir(result_path)
     print('result:', result_path)
     
-    save_result(train_frame_path, result_path, test_list[i], results, test_x, test_y, shape)
+    save_result(frame_path, result_path, test_list[i], results, test_x, test_y, shape)
     # saveFrame_256(save_frame_path, test_frame_path, X)
     print("======="*12, end="\n\n\n")
 
