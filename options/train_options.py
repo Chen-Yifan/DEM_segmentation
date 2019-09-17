@@ -17,8 +17,8 @@ class TrainOptions(BaseOptions):
         
                             
         self.isTrain = True
-        return parser
-    
+        return parser    
+
     def parse(self):
         opt = super().parse()
         opt.frame_path = os.path.join(opt.dataroot, opt.frame_name)

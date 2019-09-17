@@ -30,7 +30,6 @@ class BaseOptions():
         self.initialized = True
         return parser
     
-    
     def gather_options(self):
         """Initialize our parser with basic options(only once).
         Add additional model-specific and dataset-specific options.

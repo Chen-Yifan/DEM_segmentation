@@ -1,5 +1,5 @@
 #!/bin/bash
-python cv_main.py \
+python main_SDG.py \
 --date tryout \
 --model unet \
 --name 128over_5m5c \
