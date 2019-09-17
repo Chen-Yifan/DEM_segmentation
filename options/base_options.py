@@ -80,8 +80,6 @@ class BaseOptions():
         opt.isTrain = self.isTrain   # train or test
         opt.Model_path = os.path.join(opt.checkpoints_dir, opt.date, opt.name)
         opt.Result_path = os.path.join(opt.results_dir, opt.date, opt.name)
-        
-        self.print_options(opt)
 
         self.opt = opt
         return self.opt

@@ -1,12 +1,10 @@
 #!/bin/bash 
-cd segmentation/DEM_segmentation
-MODEL=tryout
 #PBS -k o 
-#PBS -l nodes=nano2:ppn=2:gpus=1,walltime=08:00:00
+#PBS -l nodes=nano1:ppn=2:gpus=1
+#PBS -l walltime=08:00:00
 #PBS -M yifanc3@illinois.edu
 #PBS -m abe 
-#PBS -N $MODEL
-#PBS -j oe
+#PBS -N tryout
 source activate tf3.6-v2
+cd segmentation/DEM_segmentation
 ./scripts/train.sh
-
