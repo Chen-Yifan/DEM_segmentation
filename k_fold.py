@@ -4,8 +4,7 @@ from keras.preprocessing.image import ImageDataGenerator
 import os
 import tensorflow as tf
 import keras.backend as K
-import model
-from utils import *
+from util.util import *
 import numpy as np
 from keras.models import Model
 import matplotlib.pyplot as plt
@@ -16,13 +15,13 @@ import re
 from keras.callbacks import TensorBoard
 
 
-def get_callbacks(name_weights, path, patience_lr):
+def get_callbacks(fold, name_weights, path, patience_lr):
     mcp_save = ModelCheckpoint(name_weights, save_best_only=False)
-#     reduce_lr_loss = ReduceLROnPlateau(monitor='loss', factor=0.5, patience=patience_lr, verbose=1, epsilon=1e-4, mode='min')
-    logdir = os.path.join(path,'log')
+   # reduce_lr_loss = ReduceLROnPlateau(monitor='loss', factor=0.5, patience=patience_lr, verbose=1, epsilon=1e-4, mode='min')
+    logdir = os.path.join(path,'log%s'%fold)
     tensorboard = TensorBoard(log_dir=logdir, histogram_freq=0,
                             write_graph=True, write_images=True)
-    return [mcp_save,tensorboard]
+    return [mcp_save, tensorboard]
 
 def save_result(train_frame_path, save_path, test_idx, results, test_x, test_y, shape = 128, multi_task = False):
     n = os.listdir(train_frame_path)
@@ -42,8 +41,8 @@ def save_result(train_frame_path, save_path, test_idx, results, test_x, test_y, 
         os.makedirs(save_mask_path)
         
     if(multi_task):
-        distance_shape = results[0].shape
-        binary_shape = results[1].shape
+        distance_shape = results[1].shape
+        binary_shape = results[0].shape
         
         clssify_pred = np.argmax(results[2],axis = -1)
         clssify_gt = np.argmax(test_y[2],axis = -1)
@@ -77,39 +76,43 @@ def save_result(train_frame_path, save_path, test_idx, results, test_x, test_y, 
                     
     
     
-def load_data_multi(img_folder, mask_folder, maskdist_folder, shape=128, band=6):
+def load_data_multi(img_folder, mask_folder, maskdist_folder, shape=128, band=6, dist_band=10):
     n = os.listdir(img_folder)
     n.sort(key=lambda var:[int(x) if x.isdigit() else x 
                                 for x in re.findall(r'[^0-9]|[0-9]+', var)])
+    mask = np.zeros((len(n), shape, shape, 2), dtype=np.float32)
+    mask_dist = np.zeros((len(n), shape, shape, dist_band), dtype=np.float32)
+    features = np.zeros((len(n),2),dtype=np.uint8)
+    img = np.zeros((len(n), shape, shape, band)).astype(np.float32)
     
-    if(band == 6):
-        img = np.zeros((len(n), shape, shape, 6)).astype(np.float32)
-        mask = np.zeros((len(n), shape, shape, 2), dtype=np.float32)
-        mask_dist = np.zeros((len(n), shape, shape, 9), dtype=np.float32)
-        features = np.zeros((len(n),2),dtype=np.uint8)
-
-        for i in range(len(n)): #initially from 0 to 16, c = 0. 
+    for i in range(len(n)): #initially from 0 to 16, c = 0. 
+        #frame
+        train_img = np.load(img_folder+'/'+n[i]) #normalization:the range is about -100 to 360
+        if(train_img.shape!=(shape,shape,6)):
+            continue
         
-            #frame
-            train_img = np.load(img_folder+'/'+n[i]) #normalization:the range is about -100 to 360
-            if(train_img.shape!=(shape,shape,6)):
-                continuecd 
+        # all six bands 
+        if(band == 6):
             img[i] = train_img
-         
-            #mask
-            train_mask = np.load(mask_folder+'/'+n[i]) # 1.0 or 2.0 
+        # exclude the 3rd band (interpolated)
+        elif(band == 5):
+            img[i] = np.concatenate((train_img[:,:,0:3], train_img[:,:,4:]), axis=-1)
             
-            if len(np.unique(train_mask)) == 2:
-                features[i:1] = 1 # has feature
-            else:
-                features[i:0] = 1 # no feature
-                
-            mask[i,:,:,0] = np.squeeze(1-train_mask) # 0 to 1
-            mask[i,:,:,1] = np.squeeze(train_mask)
-            train_mask_dist = np.load(maskdist_folder+'/'+n[i])
-            train_mask_dist = np.eye(9)[train_mask_dist]
-            mask_dist[i] = train_mask_dist
-        return img, mask, mask_dist, features
+        #mask
+        train_mask = np.load(mask_folder+'/'+n[i]) # 1.0 or 2.0 
+        
+        if len(np.unique(train_mask)) == 2:
+            features[i:1] = 1 # has feature
+        else:
+            features[i:0] = 1 # no feature
+            
+        mask[i,:,:,0] = np.squeeze(1-train_mask) # 0 to 1
+        mask[i,:,:,1] = np.squeeze(train_mask)
+        train_mask_dist = np.load(maskdist_folder+'/'+n[i])
+        train_mask_dist = np.eye(dist_band)[train_mask_dist]
+        mask_dist[i] = train_mask_dist
+    return img, mask, mask_dist, features
+    
 
 def load_data_feature(img_folder, mask_folder, shape=128, band=6):
     n = os.listdir(img_folder)
@@ -140,13 +143,17 @@ def load_data_feature(img_folder, mask_folder, shape=128, band=6):
     
     
 def load_data(img_folder, mask_folder, shape=128, band=5):
+    '''
+        load frame and mask into numpy array
+    '''
     n = os.listdir(img_folder)
     n.sort(key=lambda var:[int(x) if x.isdigit() else x 
                                 for x in re.findall(r'[^0-9]|[0-9]+', var)])
     
+    img = np.zeros((len(n), shape, shape, 6)).astype(np.float32)
+    mask = np.zeros((len(n), shape, shape, 2), dtype=np.float32)
     if(band == 6):
-        img = np.zeros((len(n), shape, shape, 6)).astype(np.float32)
-        mask = np.zeros((len(n), shape, shape, 2), dtype=np.float32)
+        
 
         for i in range(len(n)): #initially from 0 to 16, c = 0. 
             train_img_0 = np.load(img_folder+'/'+n[i]) #normalization:the range is about -100 to 360
@@ -243,6 +250,9 @@ def train_gen_aug(img_list, mask_list, batch_size=32, ratio = 0.18):
     img_datagen = ImageDataGenerator(**data_gen_args)
     mask_datagen = ImageDataGenerator(**data_gen_args)
 
+    img_datagen.fit(train_img)
+    mask_datagen.fit(train_mask)
+    
     seed = 2018
     img_gen = img_datagen.flow(train_img, seed = seed, batch_size=batch_size, shuffle=True)#shuffling
     mask_gen = mask_datagen.flow(train_mask, seed = seed, batch_size=batch_size, shuffle=True)
@@ -252,6 +262,9 @@ def train_gen_aug(img_list, mask_list, batch_size=32, ratio = 0.18):
     img_datagen = ImageDataGenerator()
     mask_datagen = ImageDataGenerator()
             
+    img_datagen.fit(train_img)
+    mask_datagen.fit(train_mask)
+    
     img_gen = img_datagen.flow(val_img, batch_size=batch_size, shuffle=True)
     mask_gen = mask_datagen.flow(val_mask, batch_size=batch_size, shuffle=True)
     val_gen = zip(img_gen, mask_gen)    
@@ -259,13 +272,10 @@ def train_gen_aug(img_list, mask_list, batch_size=32, ratio = 0.18):
     return train_gen, val_gen, a, b
 
 
-def MTgenerator(img_list, mask_list, mask_dist_list, split, batch_size=32):
+def MTgenerator(img_list, mask_list, mask_dist_list, feature_list, split, batch_size=32):
     if(split == 'train'):
         data_gen_args = dict(
                     horizontal_flip = True,
-                     width_shift_range = 0.1,
-                     height_shift_range = 0.1,
-                     zoom_range = 0.2, #resize
                      rotation_range = 10,
                 )
         img_datagen = ImageDataGenerator(**data_gen_args)
@@ -274,15 +284,16 @@ def MTgenerator(img_list, mask_list, mask_dist_list, split, batch_size=32):
         img_datagen = ImageDataGenerator()
 
     seed = 2018
-    img_gen = img_datagen.flow(img_list, seed = seed, batch_size=batch_size, shuffle=True)#shuffling
+    img_gen = img_datagen.flow(img_list, feature_list, seed = seed, batch_size=batch_size, shuffle=True)#shuffling
     mask_gen = img_datagen.flow(mask_list, seed = seed, batch_size=batch_size, shuffle=True)
-    
+    mask_dist_gen = img_datagen.flow(mask_dist_list, seed=seed, batch_size=batch_size, shuffle=True)
+
         #yield generated data
     while True:
-        X = img_gen.next()
+        X,Y3 = img_gen.next()
         Y1 = mask_gen.next()
         Y2 = mask_dist_gen.next()
-        yield X, [Y2, Y1]
+    yield X, [Y1, Y2, Y3]
 
 def train_gen_noaug(img_list, mask_list, batch_size=32, ratio = 0.18):
     n = len(img_list)

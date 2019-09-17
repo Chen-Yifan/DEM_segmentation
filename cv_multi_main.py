@@ -1,43 +1,42 @@
 # MT3
-from generator import *
-from keras.callbacks import ModelCheckpoint
-from keras.callbacks import CSVLogger
-from keras.callbacks import EarlyStopping,ReduceLROnPlateau
 import os
+import numpy as np
+from keras.callbacks import ModelCheckpoint,CSVLogger, EarlyStopping,ReduceLROnPlateau
+from keras.models import model_from_json
+from keras.models import Model
+from keras.optimizers import Adadelta, Adam, SGD
+
 import tensorflow as tf
 import keras.backend as K
 import model
 from metrics import *
 from losses import *
 from k_fold import *
-import numpy as np
-from keras.models import Model
-from keras.optimizers import Adadelta, Adam, SGD
-import matplotlib.pyplot as plt
-import time
-from functools import *
-from keras.models import model_from_json
+
+# import time
+# from functools import *
 
 
 #hyperparameters
-date = '8.14'
+date = '8.20'
 BATCH_SIZE = 32
 NO_OF_EPOCHS = 25
 shape = 128
 aug = False
-Model_name = '128over_MT3_unet_weightedloss_cce_9cdist_25e'
+Model_name = '128over_MT3_unet_weightedloss_cceAdal_5m5c_25e_200w5b'
 network = 'unet'
 k = 2
-band = 6
+band = 5
 norm = True
+dist_band=5
 
 print('batch_size:', BATCH_SIZE, '\ndate:', date, '\nshape:', shape, '\naug:',aug, '\nNetwork:', network,'\nModel_name:', Model_name, '\nk:',k, '; band:', band, '\nnorm:', norm)
     
 #Train the model with K-fold Cross Val
 #TRAIN
 train_frame_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_frames_5m6b_norm/'
-train_mask_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_masks_10m6b/'
-train_maskdst_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_masks_c9dist/'
+train_mask_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_masks_5m6b/'
+train_maskdst_path = '/home/yifanc3/dataset/data/selected_128_overlap/all_masks_10m5c/'
 
 print(train_frame_path, train_mask_path, train_maskdst_path)
 
@@ -49,7 +48,7 @@ mkdir(Checkpoint_path)
 
 
 # k-fold cross-validation
-img, mask, dstmask, features = load_data_multi(train_frame_path, train_mask_path, train_maskdst_path, shape, band)
+img, mask, dstmask, features = load_data_multi(train_frame_path, train_mask_path, train_maskdst_path, shape, band, dist_band)
 train_list, test_list = k_fold(len(img), k = k)
 print(len(train_list), len(test_list))
 
@@ -75,18 +74,21 @@ for i in range(k):
     
     #MODEL BUILD  multi_task
     if(network == 'unet'):
-        m = model.get_unet_multitask(input_shape = (shape,shape,band), dist_cl=9)
+        m = model.get_unet_multitask(input_shape = (shape,shape,band), dist_cl=dist_band)
     else:
-        m = model.segnet(multi_task = True, input_shape = (shape,shape,band),dist_cl=9)
+        m = model.segnet(multi_task = True, input_shape = (shape,shape,band),dist_cl=dist_band)
     
-    opt = Adam(lr=1E-5, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
+    opt = Adam(lr=1E-4, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
     opt2 = Adadelta(lr=1, rho=0.95, epsilon=1e-08, decay=0.0)
     opt3 = SGD(lr=0.01, decay=1e-6, momentum=0.99, nesterov=True)
     
     b_weights = np.array([1.0,300.0])
     b_loss = weighted_categorical_crossentropy(b_weights)
-    d_weights = np.array([1.0, 2.0, 4.0, 8.0, 16.0, 32, 64, 128, 256])
+#     d_weights = np.array([1.0, 2.0, 3.0, 4.0, 8.0, 16.0, 32, 64, 128, 256])
+    d_weights = np.array([1.0,5.0,25.0,50.0,150.0])
     d_loss = weighted_categorical_crossentropy(d_weights)
+    Mean_IOU = Mean_IoU_cl(cl=2)
+    Mean_IOU_dist = Mean_IoU_cl(cl=dist_band)
     m.compile( 
               optimizer = opt2, 
               loss = {'binary':b_loss, 'distance': d_loss, 
@@ -102,7 +104,7 @@ for i in range(k):
     
     weights_path = ckpt_path + 'weights.{epoch:02d}-{val_loss:.2f}-{val_binary_Mean_IOU:.2f}.hdf5'
     
-    callbacks = get_callbacks(weights_path, Model_path, 5)
+    callbacks = get_callbacks(i, weights_path, Model_path, 5)
 
     if(aug):
     # data augmentation
@@ -112,8 +114,8 @@ for i in range(k):
         b = n - a
         NO_OF_TRAINING_IMAGES = a
         NO_OF_VAL_IMAGES = b
-        train_gen = MTgenerator(train_x[0:a], train_y[0:a], train_y2[0:a],  'train', BATCH_SIZE)
-        val_gen = MTgenerator(train_x[a:], train_y[a:], train_y2[a:], 'val', BATCH_SIZE)
+        train_gen = MTgenerator(train_x[0:a], train_y[0:a], train_y2[0:a], train_y3[0:a], 'train', BATCH_SIZE)
+        val_gen = MTgenerator(train_x[a:], train_y[a:], train_y2[a:], train_y3[a:], 'val', BATCH_SIZE)
 
         history = m.fit_generator(train_gen, epochs=NO_OF_EPOCHS,
                               steps_per_epoch = (NO_OF_TRAINING_IMAGES//BATCH_SIZE),

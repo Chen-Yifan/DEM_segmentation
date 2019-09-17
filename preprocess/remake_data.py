@@ -56,25 +56,15 @@ test_masks = [f for f in all_masks if f in test_frames]
 
 #Add train, val, test frames and masks to relevant folders
 
-
 def add_frames(dir_name, image):
 # copyfile(src, dst)
     print(dir_name, image)
     src = FRAME_PATH+image
     dst = new_path +'{}'.format(dir_name)+'/'+image[-11:]
-    copyfile(src, dst) 
-#   tif = np.load(FRAME_PATH+image)
-#   img = tif.read_image()
-
-#   filename = new_path +'{}'.format(dir_name)+'/'+image[-11:]
-#   print(filename)
-#   tif = TIFF.open(filename, mode='w')
-#   tif.write_image(img)
-#   #img.save(DATA_PATH+'/{}'.format(dir_name)+'/'+image)
-
-
-  
-  
+    copyfile(src, dst)
+    
+    
+    
 def add_masks(dir_name, image):
   
 #   tif = TIFF.open(MASK_PATH+image)
