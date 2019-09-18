@@ -6,11 +6,11 @@ from keras.models import Model
 from keras.optimizers import Adadelta, Adam, SGD
 
 import tensorflow as tf
-import keras.backend as K
-from models import models
+from models import models,deeplab
 from metrics import *
 from losses import *
 from k_fold import *
+from util.util import *
 from options.train_options import TrainOptions
 
 #Options
@@ -21,17 +21,19 @@ NO_OF_EPOCHS = opt.epochs
 shape = opt.input_shape
 inc = opt.input_channel
 aug = opt.augmentation # to decide if shuffle
-Model_path = opt.Model_path
-result_path = opt.Result_path
+Model_path = opt.Model_path # os.path.join(opt.checkpoints_dir, opt.date, opt.name)
+Result_path = opt.Result_path
 model = opt.model
 k = opt.k
 frame_path = opt.frame_path
 mask_path = opt.mask_path
 date = opt.date
 Model_name = opt.name
+loss_function = opt.loss_function
+weight = opt.weight
 
 mkdir(Model_path)
-Checkpoint_path = Model_path + 'ckpt_weights/'
+Checkpoint_path = Model_path + '/ckpt_weights/'
 mkdir(Checkpoint_path)
 
 
@@ -42,7 +44,7 @@ print(len(train_list), len(test_list))
 
 model_history = [] 
 
-for i in range(k):
+for i in range(1,k):
     print('====The %s Fold===='%i)
     #shuffle the index
 #     random.shuffle(train_list[i])
@@ -57,38 +59,50 @@ for i in range(k):
     input_shape = (shape,shape,inc)
     if(model == 'unet'):
         m = models.unet(input_shape=input_shape)
-    else:
+    elif(model == 'segnet'):
         m = models.segnet(input_shape=input_shape)
+    elif(model == 'resnet'):
+        m = models.resnet(input_shape=input_shape)
+    else:
+        m = deeplab.DeeplabV2(input_shape=input_shape)
         
-
-    opt = Adam(lr=1E-5, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
-    opt2 = Adadelta(lr=1, rho=0.95, epsilon=1e-08, decay=0.0)
+    # optimizer    
+    if(opt.optimizer==2):
+        optimizer = Adam(lr=1E-5, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
+    else:
+        optimizer = Adadelta(lr=1, rho=0.95, epsilon=1e-08, decay=0.0)
     
-    weights = np.array([1.0,200.0])
-    loss = weighted_categorical_crossentropy(weights)
-
+    weights = np.array([1.0,weight])
+    
+    if(loss_function=='single'):
+        loss = weighted_categorical_crossentropy(weights) 
+    else:
+        loss = two_loss(weights)
+    
     Mean_IOU = Mean_IoU_cl(cl=2)
-    
-    m.compile( optimizer = opt2, loss = loss, metrics = [per_pixel_acc, Mean_IOU, Mean_IOU_label, precision, recall, f1score])
+    m.compile( optimizer = optimizer, loss = loss, metrics = [per_pixel_acc, Mean_IOU, Mean_IOU_label, precision, recall, f1score])
 
     #callback
     ckpt_path = Checkpoint_path + '%s/'%i
-    if not os.path.isdir(ckpt_path):
-        os.makedirs(ckpt_path)
-    weights_path = ckpt_path + 'weights.{epoch:02d}-{val_loss:.2f}-{val_Mean_IOU:.2f}.hdf5'
+    mkdir(ckpt_path)
+    weights_path = ckpt_path +'weights.{epoch:02d}-{val_loss:.2f}-{val_Mean_IOU:.2f}-{val_Mean_IOU_label:.2f}.hdf5'
     
-    callbacks = get_callbacks(i, weights_path, Model_path, 5)
+    callbacks = get_callbacks(i, opt.optimizer, weights_path, Model_path, 5)
     
     if(aug):
-    # data augmentation
-        train_gen, val_gen, NO_OF_TRAINING_IMAGES, NO_OF_VAL_IMAGES = train_gen_aug(train_x, train_y, 32, ratio = 0.18)
+        print('aug==1')   
+ # data augmentation
+        train_gen, NO_OF_TRAINING_IMAGES, NO_OF_VAL_IMAGES = train_gen_aug(train_x, train_y, 32, ratio = 0.18)
+        val_img = train_x[NO_OF_TRAINING_IMAGES:]
+        val_mask = train_y[NO_OF_TRAINING_IMAGES:]
         history = m.fit_generator(train_gen, epochs=NO_OF_EPOCHS,
                               steps_per_epoch = (NO_OF_TRAINING_IMAGES//BATCH_SIZE),
-                              validation_data=val_gen,
+                              validation_data=(val_img,val_mask),
                               validation_steps=(NO_OF_VAL_IMAGES//BATCH_SIZE),
                               shuffle = True,
                               callbacks=callbacks)
     else:
+        print('aug==0')
 #         train_gen, val_gen, NO_OF_TRAINING_IMAGES, NO_OF_VAL_IMAGES = train_gen_noaug(train_x, train_y, 32, ratio = 0.18)
         history = m.fit(train_x, train_y, epochs=NO_OF_EPOCHS, batch_size=BATCH_SIZE, callbacks=callbacks,
                          verbose=1, validation_split=0.18, shuffle = True)
@@ -107,17 +121,23 @@ for i in range(k):
     print('======Start Testing======')
 
     score = m.evaluate(test_x, test_y, verbose=0)
-    print("%s: %.2f%%" % (m.metrics_names[1], score[1]*100))
-    print("%s: %.2f%%" % (m.metrics_names[2], score[2]*100))
-    print("%s: %.2f%%" % (m.metrics_names[3], score[3]*100))
-    print("%s: %.2f%%" % (m.metrics_names[4], score[4]*100))
-    print("%s: %.2f%%" % (m.metrics_names[5], score[5]*100))
-    print("%s: %.2f%%" % (m.metrics_names[6], score[6]*100))
 
+    message = ''
+    for j in range(7):
+        print("%s: %.2f%%" % (m.metrics_names[j], score[j]*100))
+        message += "%s: %.2f%% \n" % (m.metrics_names[j], score[j]*100)
+        
+    output_file = os.path.join(Model_path, 'output_%s'%i)
+    with open(output_file, 'wt') as opt_file:
+            opt_file.write(message)
+            opt_file.write('\n')
+            
+            
     results = m.predict(test_x)
     new_r = np.argmax(results,axis=-1)
 
     #save image
+    result_path = os.path.join(Result_path, '%s'%i)
     mkdir(result_path)
     print('result:', result_path)
     

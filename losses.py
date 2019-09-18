@@ -24,6 +24,16 @@ def pixel_wise_loss(y_true, y_pred, shape=128):
    # loss = tf.nn.softmax_cross_entropy_with_logits(labels=y_true,logits=y_pred)
     return K.mean(loss,axis=-1)
 
+def dice_coef(y_true, y_pred):
+    y_true_f = K.flatten(y_true)
+    y_pred_f = K.flatten(y_pred)
+    intersection = K.sum(y_true_f * y_pred_f)
+    return (2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
+
+def dice_coef_loss():
+    return -dice_coef(y_true, y_pred)
+
+
 def weighted_categorical_crossentropy(weights): # after softmax
     """
     A weighted version of keras.objectives.categorical_crossentropy
@@ -48,6 +58,23 @@ def weighted_categorical_crossentropy(weights): # after softmax
         loss = y_true * K.log(y_pred) * weights
         loss = -K.sum(loss, -1)
         return loss
+    
+    return loss
+
+def two_loss(weights):
+    
+    weights = K.variable(weights)
+        
+    def loss(y_true, y_pred):
+        dice_loss = dice_coef_loss(y_true, y_pred)
+        # scale predictions so that the class probas of each sample sum to 1
+        y_pred /= K.sum(y_pred, axis=-1, keepdims=True)
+        # clip to prevent NaN's and Inf's
+        y_pred = K.clip(y_pred, K.epsilon(), 1 - K.epsilon())
+        # calc
+        loss = y_true * K.log(y_pred) * weights
+        loss = -K.sum(loss, -1)
+        return loss + dice_loss
     
     return loss
 

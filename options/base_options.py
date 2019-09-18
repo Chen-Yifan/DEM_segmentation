@@ -18,7 +18,7 @@ class BaseOptions():
         parser.add_argument("--model", type=str, default='unet', help='choose which model to use')
         parser.add_argument('--name', type=str, default='experiment_name', help='name of the experiment. It decides where to store samples and models')
         parser.add_argument('--checkpoints_dir', type=str, default='/home/yifanc3/models/', help='models are saved here')
-        parser.add_argument('--augmentation', type=bool, default=0, help='do augmentation or not')
+        parser.add_argument('--augmentation', type=int, default=0, help='do augmentation or not')
         parser.add_argument("--results_dir", type=str, default='/home/yifanc3/results/', help='results are saved here')
         parser.add_argument("--batch_size", type=int, default=32)
         parser.add_argument("--epochs", type=int, default=100)
@@ -29,7 +29,6 @@ class BaseOptions():
          
         self.initialized = True
         return parser
-    
     
     def gather_options(self):
         """Initialize our parser with basic options(only once).
@@ -81,8 +80,6 @@ class BaseOptions():
         opt.isTrain = self.isTrain   # train or test
         opt.Model_path = os.path.join(opt.checkpoints_dir, opt.date, opt.name)
         opt.Result_path = os.path.join(opt.results_dir, opt.date, opt.name)
-        
-        self.print_options(opt)
 
         self.opt = opt
         return self.opt

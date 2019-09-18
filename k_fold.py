@@ -15,13 +15,16 @@ import re
 from keras.callbacks import TensorBoard
 
 
-def get_callbacks(fold, name_weights, path, patience_lr):
+def get_callbacks(fold, optimizer, name_weights, path, patience_lr):
     mcp_save = ModelCheckpoint(name_weights, save_best_only=False)
-   # reduce_lr_loss = ReduceLROnPlateau(monitor='loss', factor=0.5, patience=patience_lr, verbose=1, epsilon=1e-4, mode='min')
+    reduce_lr_loss = ReduceLROnPlateau(monitor='loss', factor=0.5, patience=patience_lr, verbose=1, epsilon=1e-4, mode='min')
     logdir = os.path.join(path,'log%s'%fold)
     tensorboard = TensorBoard(log_dir=logdir, histogram_freq=0,
                             write_graph=True, write_images=True)
-    return [mcp_save, tensorboard]
+    if(optimizer!=1):
+        return [mcp_save, tensorboard]
+    else:
+        return [mcp_save, tensorboard, reduce_lr_loss]
 
 def save_result(train_frame_path, save_path, test_idx, results, test_x, test_y, shape = 128, multi_task = False):
     n = os.listdir(train_frame_path)
@@ -225,22 +228,14 @@ def train_gen_aug(img_list, mask_list, batch_size=32, ratio = 0.18):
     b = n - a
     train_img = img_list[0:a]
     train_mask = mask_list[0:a]
-    val_img = img_list[a:]
-    val_mask = mask_list[a:]
+#     val_img = img_list[a:]
+#     val_mask = mask_list[a:]
     
-    
-#     datagen = ImageDataGenerator(
-#     featurewise_center=True,
-# #     featurewise_std_normalization=True,
-#     rotation_range=20,
-#     width_shift_range=0.2,
-#     height_shift_range=0.2,
-#     horizontal_flip=True)
 
 # train gen
     data_gen_args = dict(
-                        horizontal_flip = True,
-#                          vertical_flip = True,
+                         horizontal_flip = True,
+                         vertical_flip = True,
                          width_shift_range = 0.1,
                          height_shift_range = 0.1,
                          zoom_range = 0.2, #resize
@@ -258,18 +253,18 @@ def train_gen_aug(img_list, mask_list, batch_size=32, ratio = 0.18):
     mask_gen = mask_datagen.flow(train_mask, seed = seed, batch_size=batch_size, shuffle=True)
     train_gen = zip(img_gen, mask_gen)
 
-# val_gen
-    img_datagen = ImageDataGenerator()
-    mask_datagen = ImageDataGenerator()
+# # val_gen
+#     img_datagen = ImageDataGenerator()
+#     mask_datagen = ImageDataGenerator()
             
-    img_datagen.fit(train_img)
-    mask_datagen.fit(train_mask)
+#     img_datagen.fit(train_img)
+#     mask_datagen.fit(train_mask)
     
-    img_gen = img_datagen.flow(val_img, batch_size=batch_size, shuffle=True)
-    mask_gen = mask_datagen.flow(val_mask, batch_size=batch_size, shuffle=True)
-    val_gen = zip(img_gen, mask_gen)    
+#     img_gen = img_datagen.flow(val_img, batch_size=batch_size, shuffle=True)
+#     mask_gen = mask_datagen.flow(val_mask, batch_size=batch_size, shuffle=True)
+#     val_gen = zip(img_gen, mask_gen)    
         
-    return train_gen, val_gen, a, b
+    return train_gen, a, b
 
 
 def MTgenerator(img_list, mask_list, mask_dist_list, feature_list, split, batch_size=32):
