@@ -1,10 +1,10 @@
 #!/bin/bash
 python cv_main.py \
 --date tryout \
---name 128over5m6b_deeplab_Adadelta_200w_100e \
---model deeplab \
+--name 128over5m6b_unet_Adadelta_200w_100e \
+--model unet \
 --loss_function single \
---epoch 100 \
+--epoch 1 \
 --augmentation 1 \
 --mask_name all_masks_5m6b \
 --weight 1.0 \

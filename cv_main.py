@@ -1,16 +1,20 @@
 import os
+import pandas as pd
 import numpy as np
 from keras.callbacks import ModelCheckpoint,CSVLogger, EarlyStopping,ReduceLROnPlateau
 from keras.models import model_from_json
 from keras.models import Model
 from keras.optimizers import Adadelta, Adam, SGD
 
+
 import tensorflow as tf
 from models import models,deeplab
 from metrics import *
 from losses import *
-from k_fold import *
+from helper import *
 from util.util import *
+from util.summarize import *
+
 from options.train_options import TrainOptions
 
 #Options
@@ -55,7 +59,8 @@ for i in range(1,k):
     test_x = img[test_list[i]]
     test_y = mask[test_list[i]]
     
-    #model 
+    '''Define_model'''
+    
     input_shape = (shape,shape,inc)
     if(model == 'unet'):
         m = models.unet(input_shape=input_shape)
@@ -90,7 +95,7 @@ for i in range(1,k):
     callbacks = get_callbacks(i, opt.optimizer, weights_path, Model_path, 5)
     
     if(aug):
-        print('aug==1')   
+        print('aug==1')
  # data augmentation
         train_gen, NO_OF_TRAINING_IMAGES, NO_OF_VAL_IMAGES = train_gen_aug(train_x, train_y, 32, ratio = 0.18)
         val_img = train_x[NO_OF_TRAINING_IMAGES:]
@@ -109,17 +114,24 @@ for i in range(1,k):
     
     model_history.append(history)
     
-    # serialize model to JSON
+    '''Save model'''
     model_json = m.to_json()
     with open(os.path.join(Model_path,"model%s.json" %i), "w") as json_file:
         json_file.write(model_json)
+
+    # convert the history.history dict to a pandas DataFrame: 
+    hist_df = pd.DataFrame(history.history) 
+    # save to json:  
+    hist_json_file = 'history_%s.json'%i 
+    with open(hist_json_file, mode='w') as f:
+        hist_df.to_json(f)
+        
     # serialize weights to HDF5
     print("Saved model to disk")
     m.save(os.path.join(Model_path,'model%s.h5' %i))
     
-    #TEST
+    '''Evaluate Model'''
     print('======Start Testing======')
-
     score = m.evaluate(test_x, test_y, verbose=0)
 
     message = ''
@@ -132,7 +144,7 @@ for i in range(1,k):
             opt_file.write(message)
             opt_file.write('\n')
             
-            
+    '''Save Result'''
     results = m.predict(test_x)
     new_r = np.argmax(results,axis=-1)
 
@@ -144,4 +156,7 @@ for i in range(1,k):
     save_result(frame_path, result_path, test_list[i], results, test_x, test_y, shape)
     # saveFrame_256(save_frame_path, test_frame_path, X)
     print("======="*12, end="\n\n\n")
-
+    
+    
+    '''Summarize Model '''
+    summarize_performance(history, Model_path)
