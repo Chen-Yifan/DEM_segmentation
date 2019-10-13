@@ -94,6 +94,17 @@ def multi_weighted_loss(y_true, y_pred, shape=128):
     return tf.reduce_mean(scaled_error)
 
 
+# def sparse_cat_crossentropy_w(weight):
+    
+#     def loss(y_true, y_pred):
+#         y_true = tf.cast(y_true, tf.int32)
+#         return tf.losses.sparse_softmax_cross_entropy(
+#                 labels=y_true,
+#                 logits=y_pred,
+#                 weights=weight)
+#     return loss
+
+
 def multi_weighted_loss_v2(y_true, y_pred, shape=128):
     y_true = tf.reshape(tensor=y_true, shape=(-1, shape*shape, 5))
     y_pred = tf.reshape(tensor=y_pred, shape=(-1, shape*shape, 5))

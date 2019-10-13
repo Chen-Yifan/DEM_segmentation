@@ -1,14 +1,27 @@
 import matplotlib.pyplot as plt
+import os
 
-def summarize_performance(history, Model_path)
+def summarize_performance(history, Model_path):
+    print(history.history.keys())
+    
+    if('lr' in history.history.keys()):
+        plt.plot(history.history['lr'])
+        plt.title('Model lr')
+        plt.ylabel('lr')
+        plt.xlabel('Epoch')
+        plt.savefig(os.path.join(Model_path,'lr.png'))
+        plt.clf()
+        plt.cla()
+        plt.close()
+         
     # Plot training & validation accuracy values
-    plt.plot(history.history['Mean_IOU_label'])
-    plt.plot(history.history['val_Mean_IOU_label'])
-    plt.title('Model Mean_IOU_label')
-    plt.ylabel('Mean_IOU_label')
+    plt.plot(history.history['iou_label'])
+    plt.plot(history.history['val_iou_label'])
+    plt.title('Model iou_label')
+    plt.ylabel('iou_label')
     plt.xlabel('Epoch')
     plt.legend(['Train', 'Val'], loc='upper left')
-    plt.savefig(os.path.join(Model_path,'Mean_IOU_label.png'))
+    plt.savefig(os.path.join(Model_path,'iou_label.png'))
     plt.clf()
     plt.cla()
     plt.close()
@@ -46,3 +59,6 @@ def summarize_performance(history, Model_path)
     plt.clf()
     plt.cla()
     plt.close()
+    
+    
+

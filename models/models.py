@@ -53,7 +53,7 @@ def unet(n_classes=2, input_shape = (128,128,5), output_mode='softmax', pretrain
     model.summary()
     
     if(pretrained_weights):
-        model.load_weights(pretrained_weights)    
+        model.load_weights(pretrained_weights)
 
 
     return model
@@ -121,13 +121,13 @@ def get_unet_multitask(n_classes=2, dist_cl=5, input_shape = (128,128,6), output
 
 
 def segnet(
-        multi_task = False,
+        n_labels = 2,
         input_shape = (128,128,5),
         dist_cl = 5,
-        n_labels = 2,
         kernel=3,
         pool_size=(2, 2),
-        output_mode='softmax'):
+        output_mode='softmax', 
+        multi_task = False,):
     # encoder
     inputs = Input(shape=input_shape)
 

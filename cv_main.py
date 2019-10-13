@@ -5,10 +5,12 @@ from keras.callbacks import ModelCheckpoint,CSVLogger, EarlyStopping,ReduceLROnP
 from keras.models import model_from_json
 from keras.models import Model
 from keras.optimizers import Adadelta, Adam, SGD
+from segmentation_models import Unet
+from segmentation_models.metrics import iou_score
 
 
 import tensorflow as tf
-from models import models,deeplab
+from models import models,deeplab,unet_3d
 from metrics import *
 from losses import *
 from helper import *
@@ -35,6 +37,10 @@ date = opt.date
 Model_name = opt.name
 loss_function = opt.loss_function
 weight = opt.weight
+n_classes = opt.n_classes
+derivative = opt.derivative
+load_pretrained = opt.load_pretrained
+weights_path = opt.weights_path
 
 mkdir(Model_path)
 Checkpoint_path = Model_path + '/ckpt_weights/'
@@ -42,7 +48,29 @@ mkdir(Checkpoint_path)
 
 
 # k-fold cross-validation
-img, mask = load_data(frame_path, mask_path, shape, inc)
+img, mask = load_data(frame_path, mask_path, shape, inc, n_classes)
+print(img.shape)
+
+if(inc == 4):
+    #planc
+    img = img[:,:,:,derivative,np.newaxis]
+    inc = 1
+    
+elif(derivative == -1):
+    img = img[:,:,:,-1,np.newaxis]
+    inc = 1
+    
+elif(derivative < 6):
+    img = img[:,:,:,derivative,np.newaxis]
+    inc = 1
+
+else:    
+    img = np.concatenate((img[:,:,:,1,np.newaxis],img[:,:,:,0,np.newaxis], img[:,:,:,3,np.newaxis]), axis=-1)
+    inc = 3
+    
+print(img.shape,inc)
+
+    
 train_list, test_list = k_fold(len(img), k = k)
 print(len(train_list), len(test_list))
 
@@ -62,15 +90,28 @@ for i in range(1,k):
     '''Define_model'''
     
     input_shape = (shape,shape,inc)
-    if(model == 'unet'):
-        m = models.unet(input_shape=input_shape)
-    elif(model == 'segnet'):
-        m = models.segnet(input_shape=input_shape)
-    elif(model == 'resnet'):
-        m = models.resnet(input_shape=input_shape)
-    else:
-        m = deeplab.DeeplabV2(input_shape=input_shape)
+    if load_pretrained:
+        m = Unet(input_shape=input_shape, classes=2,
+                 encoder_weights='imagenet',activation='softmax')
+        all_layers = m.layers
+        n = len(all_layers)
+        for i in range(int(n/2-1)):
+            all_layers[i].trainable = False
+        m.summary()
         
+    elif(model == 'unet'):
+        m = models.unet(n_classes, input_shape)
+    elif(model == 'Unet'):
+        m = Unet(classes = 2, input_shape=input_shape, activation='softmax')
+    elif(model == 'resnet18'):
+        m = Unet('resnet18',classes = 2, input_shape=input_shape, activation='softmax')
+    elif(model == 'segnet'):
+        m = models.segnet(n_classes, input_shape)
+    elif(model == 'resnet'):
+        m = models.resnet(n_classes, input_shape)
+    else:
+        m = deeplab.DeeplabV2(n_classes, input_shape)
+    
     # optimizer    
     if(opt.optimizer==2):
         optimizer = Adam(lr=1E-5, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
@@ -78,25 +119,24 @@ for i in range(1,k):
         optimizer = Adadelta(lr=1, rho=0.95, epsilon=1e-08, decay=0.0)
     
     weights = np.array([1.0,weight])
-    
     if(loss_function=='single'):
-        loss = weighted_categorical_crossentropy(weights) 
+        loss = weighted_categorical_crossentropy(weights)
     else:
         loss = two_loss(weights)
     
     Mean_IOU = Mean_IoU_cl(cl=2)
-    m.compile( optimizer = optimizer, loss = loss, metrics = [per_pixel_acc, Mean_IOU, Mean_IOU_label, precision, recall, f1score])
+    m.compile( optimizer = optimizer, loss = loss, metrics = [Mean_IOU, per_pixel_acc, iou_label, iou_back, recall_1, precision_1,f1score_1,recall_0, precision_0, f1score_0])
 
     #callback
     ckpt_path = Checkpoint_path + '%s/'%i
     mkdir(ckpt_path)
-    weights_path = ckpt_path +'weights.{epoch:02d}-{val_loss:.2f}-{val_Mean_IOU:.2f}-{val_Mean_IOU_label:.2f}.hdf5'
+    weights_path = ckpt_path +'weights.{epoch:02d}-{val_loss:.2f}-{val_Mean_IOU:.2f}-{val_iou_label}.hdf5'
     
     callbacks = get_callbacks(i, opt.optimizer, weights_path, Model_path, 5)
     
     if(aug):
         print('aug==1')
- # data augmentation
+    # data augmentation
         train_gen, NO_OF_TRAINING_IMAGES, NO_OF_VAL_IMAGES = train_gen_aug(train_x, train_y, 32, ratio = 0.18)
         val_img = train_x[NO_OF_TRAINING_IMAGES:]
         val_mask = train_y[NO_OF_TRAINING_IMAGES:]
@@ -121,8 +161,7 @@ for i in range(1,k):
 
     # convert the history.history dict to a pandas DataFrame: 
     hist_df = pd.DataFrame(history.history) 
-    # save to json:  
-    hist_json_file = 'history_%s.json'%i 
+    hist_json_file = os.path.join(Model_path, 'history_%s.json'%i)
     with open(hist_json_file, mode='w') as f:
         hist_df.to_json(f)
         
@@ -135,7 +174,7 @@ for i in range(1,k):
     score = m.evaluate(test_x, test_y, verbose=0)
 
     message = ''
-    for j in range(7):
+    for j in range(11):
         print("%s: %.2f%%" % (m.metrics_names[j], score[j]*100))
         message += "%s: %.2f%% \n" % (m.metrics_names[j], score[j]*100)
         
@@ -144,6 +183,10 @@ for i in range(1,k):
             opt_file.write(message)
             opt_file.write('\n')
             
+    '''Summarize Model '''
+    print('======Plot Loss======')
+    summarize_performance(history, Model_path)
+    
     '''Save Result'''
     results = m.predict(test_x)
     new_r = np.argmax(results,axis=-1)
@@ -157,6 +200,3 @@ for i in range(1,k):
     # saveFrame_256(save_frame_path, test_frame_path, X)
     print("======="*12, end="\n\n\n")
     
-    
-    '''Summarize Model '''
-    summarize_performance(history, Model_path)

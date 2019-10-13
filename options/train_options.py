@@ -15,6 +15,7 @@ class TrainOptions(BaseOptions):
         parser.add_argument('--mask_name',type=str, default='all_masks_5m6b')
         parser.add_argument('--loss_function',type=str, default='single')
         parser.add_argument('--weight',type=float, default=200.0)
+        parser.add_argument('--load_pretrained', type=int, default=0)
         
         
                             

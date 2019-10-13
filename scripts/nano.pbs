@@ -1,10 +1,10 @@
 #!/bin/bash 
 #PBS -k o 
-#PBS -l nodes=nano5:ppn=2:gpus=1
+#PBS -l nodes=nano3:ppn=2:gpus=1
 #PBS -l walltime=08:00:00
 #PBS -M yifanc3@illinois.edu
 #PBS -m abe 
-#PBS -N 128over5m6b_deeplab_Adadelta_twoloss200w_100e
+#PBS -N 128over5m7bfill_103_unet_Adadelta_200w_30e
 source activate tf3.6-v2
 cd ~/segmentation/DEM_segmentation
 ./scripts/train.sh

@@ -16,11 +16,11 @@ from keras.callbacks import TensorBoard
 
 def get_callbacks(fold, optimizer, name_weights, path, patience_lr):
     mcp_save = ModelCheckpoint(name_weights, save_best_only=False)
-    reduce_lr_loss = ReduceLROnPlateau(monitor='loss', factor=0.5, patience=patience_lr, verbose=1, epsilon=1e-4, mode='min')
+    reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=patience_lr, verbose=1, epsilon=1e-4, mode='min')
     logdir = os.path.join(path,'log%s'%fold)
     tensorboard = TensorBoard(log_dir=logdir, histogram_freq=0,
                             write_graph=True, write_images=True)
-    if(optimizer!=1):
+    if(optimizer==1):
         return [mcp_save, tensorboard]
     else:
         return [mcp_save, tensorboard, reduce_lr_loss]
@@ -72,7 +72,6 @@ def save_result(train_frame_path, save_path, test_idx, results, test_x, test_y, 
             img = np.argmax(results[i],axis = -1)
             img = np.squeeze(img)
             np.save(os.path.join(save_result_path,"%s_predict.npy"%name[0:-4]),img)
-
             np.save(os.path.join(save_frame_path,"%s.npy"%name[0:-4]),test_x[i])
             np.save(os.path.join(save_mask_path,"%s.npy"%name[0:-4]),test_y[i])
                     
@@ -122,7 +121,7 @@ def load_data_feature(img_folder, mask_folder, shape=128, band=6):
                                 for x in re.findall(r'[^0-9]|[0-9]+', var)])
     
     if(band == 6):
-        img = np.zeros((len(n), shape, shape, 6)).astype(np.float32)
+        img = np.zeros((len(n), shape, shape, band)).astype(np.float32)
         features = np.zeros((len(n),2),dtype=np.uint8)
 
         for i in range(len(n)): #initially from 0 to 16, c = 0. 
@@ -143,8 +142,42 @@ def load_data_feature(img_folder, mask_folder, shape=128, band=6):
 
         return img, features    
     
+from scipy import signal   
+def curvature(array):
+    px = 1
+    py = 1
+    g = [[(-1/(6*px)), 0 , (1/(6*px))],
+         [(-1/(6*px)), 0 , (1/(6*px))],
+         [(-1/(6*px)), 0 , (1/(6*px))]]
+    h = [[(1/(6*py)),(1/(6*py)),(1/(6*py))],
+         [0,0,0],
+         [(-1/(6*py)),(-1/(6*py)),(-1/(6*py))]]
+    d = [[(1/(3*(px**2))),(-2/(3*(px**2))),(1/(3*(px**2)))],
+         [(1/(3*(px**2))),(-2/(3*(px**2))),(1/(3*(px**2)))],
+         [(1/(3*(px**2))),(-2/(3*(px**2))),(1/(3*(px**2)))]]
+    e = [[(1/(3*(py**2))),(1/(3*(py**2))),(1/(3*(py**2)))],
+         [(-2/(3*(py**2))),(-2/(3*(py**2))),(-2/(3*(py**2)))],
+         [(1/(3*(py**2))),(1/(3*(py**2))),(1/(3*(py**2)))]]
+    f = [[(-1/(4*(px*py))),0, (1/(4*(px*py)))],
+         [0,0,0],
+         [(1/(4*(px*py))),0,(-1/(4*(px*py)))]]
+
+    gi = signal.convolve2d(array, g, boundary='symm', mode='same')
+    hi = signal.convolve2d(array, h, boundary='symm', mode='same')
+    di = signal.convolve2d(array, d, boundary='symm', mode='same')
+    ei = signal.convolve2d(array, e, boundary='symm', mode='same')
+    fi = signal.convolve2d(array, f, boundary='symm', mode='same')
+
+#     slope  = np.sqrt (np.power(hi,2)+np.power(gi,2))
+#     aspect = np.arctan(hi/gi)
+    planc  = -1*((np.power(hi, 2)*di)-(2*gi*hi*fi)+(np.power(gi,2)*ei)/(np.power((np.power(gi,2)+np.power(hi,2)),1.5)))
+    profc  = -1*(((np.power(gi,2)*di)+(2*gi*hi*fi) +(np.power(hi,2)*ei))/ ((np.power(gi,2)+np.power(hi,2))*(np.power( (1+np.power(gi,2)+np.power(hi,2)),1.5)) ))
+    meanc  = -1 *( ((1+np.power(hi,2))*di) -(2*gi*hi*fi) +((1+np.power(gi,2))*ei) / (2*np.power( (1+np.power(gi,2)+np.power(hi,2)),1.5)  ))
+
+    return np.stack([array, planc, profc,meanc], axis=-1)
     
-def load_data(img_folder, mask_folder, shape=128, band=5):
+    
+def load_data(img_folder, mask_folder, shape=128, band=5, n_classes=2):
     '''
         load frame and mask into numpy array
     '''
@@ -152,42 +185,54 @@ def load_data(img_folder, mask_folder, shape=128, band=5):
     n.sort(key=lambda var:[int(x) if x.isdigit() else x 
                                 for x in re.findall(r'[^0-9]|[0-9]+', var)])
     
-    img = np.zeros((len(n), shape, shape, 6)).astype(np.float32)
-    mask = np.zeros((len(n), shape, shape, 2), dtype=np.float32)
-    if(band == 6):
-        
-
+    img = np.zeros((len(n), shape, shape, band)).astype(np.float32)
+    mask = np.zeros((len(n), shape, shape, n_classes), dtype=np.int32)
+    
+    if(band == 4):
         for i in range(len(n)): #initially from 0 to 16, c = 0. 
             train_img_0 = np.load(img_folder+'/'+n[i]) #normalization:the range is about -100 to 360
-            if(train_img_0.shape!=(shape,shape,6)):
+            array = train_img_0[:,:,-1]
+            img[i] = curvature(array)
+            #train_mask
+            train_mask = np.load(mask_folder+'/'+n[i]) # 1.0 or 2.0
+            if(n_classes == 2):
+                mask[i,:,:,0] = np.squeeze(1-train_mask) # 0 to 1
+                mask[i,:,:,1] = np.squeeze(train_mask)
+            else:
+                mask[i,:,:,0] = np.squeeze(train_mask)
+                
+    if(band == 6 or band == 7):
+        for i in range(len(n)): #initially from 0 to 16, c = 0. 
+            train_img_0 = np.load(img_folder+'/'+n[i]) #normalization:the range is about -100 to 360
+            if(train_img_0.shape!=(shape,shape,band)):
                 continue
-#             img[i] = np.concatenate((train_img_0[:,:,0:3], train_img_0[:,:,4:]), axis=-1)
             img[i] = train_img_0
 
             #train_mask
             train_mask = np.load(mask_folder+'/'+n[i]) # 1.0 or 2.0 
-            mask[i,:,:,0] = np.squeeze(1-train_mask) # 0 to 1
-            mask[i,:,:,1] = np.squeeze(train_mask)
+            
+            if(n_classes == 2):
+                mask[i,:,:,0] = np.squeeze(1-train_mask) # 0 to 1
+                mask[i,:,:,1] = np.squeeze(train_mask)
+            else:
+                mask[i,:,:,0] = np.squeeze(train_mask)
             
     elif band==5:
-        img = np.zeros((len(n), shape, shape, 5)).astype(np.float32)
-        mask = np.zeros((len(n), shape, shape, 2), dtype=np.float32)
-        
         for i in range(len(n)): #initially from 0 to 16, c = 0. 
             train_img_0 = np.load(img_folder+'/'+n[i]) #normalization:the range is about -100 to 360
             if(train_img_0.shape!=(shape,shape,6)):
                 continue
             img[i] = np.concatenate((train_img_0[:,:,0:3], train_img_0[:,:,4:]), axis=-1)
-#             img[i] = train_img_0
             #train_mask
             train_mask = np.load(mask_folder+'/'+n[i]) # 1.0 or 2.0 
-            mask[i,:,:,0] = np.squeeze(1-train_mask) # 0 to 1
-            mask[i,:,:,1] = np.squeeze(train_mask)
+
+            if(n_classes == 2):
+                mask[i,:,:,0] = np.squeeze(1-train_mask) # 0 to 1
+                mask[i,:,:,1] = np.squeeze(train_mask)
+            elif(n_classes == 1):
+                mask[i,:,:,0] = np.squeeze(train_mask)
             
     elif band == 1:
-        img = np.zeros((len(n), shape, shape, 1)).astype(np.float32)
-        mask = np.zeros((len(n), shape, shape, 2), dtype=np.float32)
-
         for i in range(len(n)): #initially from 0 to 16, c = 0. 
             train_img_0 = np.load(img_folder+'/'+n[i]) #normalization:the range is about -100 to 360
             if(train_img_0.shape!=(shape,shape,6)):
@@ -197,9 +242,12 @@ def load_data(img_folder, mask_folder, shape=128, band=5):
 
             #train_mask
             train_mask = np.load(mask_folder+'/'+n[i]) # 1.0 or 2.0 
-            mask[i,:,:,0] = np.squeeze(1-train_mask) # 0 to 1
-            mask[i,:,:,1] = np.squeeze(train_mask)            
-    
+            if(n_classes == 2):
+                mask[i,:,:,0] = np.squeeze(1-train_mask) # 0 to 1
+                mask[i,:,:,1] = np.squeeze(train_mask)
+            else:
+                mask[i,:,:,0] = np.squeeze(train_mask)
+                
     return img, mask
 
 def k_fold(n, k=3):

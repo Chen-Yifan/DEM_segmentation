@@ -26,7 +26,10 @@ class BaseOptions():
         parser.add_argument('--input_channel', type=int, default=5)
         parser.add_argument('--input_shape', type=int, default=128, help='input image width/height')
         parser.add_argument('--k', type=int, default=1, help='k_fold cross validation')
-         
+        parser.add_argument('--n_classes', type=int, default=2, help='output classes')
+        parser.add_argument('--derivative', type=int, default=6, help='derivative experiments, which derivative to include')
+        parser.add_argument("--weights_path", type=str, default='')
+        
         self.initialized = True
         return parser
     
