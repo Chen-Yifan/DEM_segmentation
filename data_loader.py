@@ -1,5 +1,6 @@
 from libtiff import TIFF
 import numpy as np
+import os
 
 def is_feature_present(input_array):
     num_1 = np.count_nonzero(input_array)
