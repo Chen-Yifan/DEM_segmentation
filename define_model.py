@@ -155,6 +155,7 @@ def define_model(Data, opt):
     num_filters = opt.num_filters
     n_epoch = opt.n_epoch
     bs = opt.batch_size
+    init = opt.weight_init
     
     model = build_model(dim, learn_rate, 1e-6, drop, FL, init, num_filters)
     

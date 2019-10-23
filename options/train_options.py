@@ -15,7 +15,7 @@ class TrainOptions(BaseOptions):
         parser.add_argument('--frame_name',type=str, default='DEM_retile')
         parser.add_argument('--mask_name',type=str, default='labels_retile')
         parser.add_argument('--lambda', type=float, default=1e-6, help='weight regularization factor')
-        parser.add_argument('--weight_init', type=float, default='he_normal')
+        parser.add_argument('--weight_init', type=str, default='he_normal')
         parser.add_argument('--dropout', type=float, default=0.15, help='dropout rate')
         parser.add_argument('--lr', type=float, default=0.0001, help='learning rate')
         parser.add_argument('--num_filters', type=int, default=112, help='number of filters for the first conv')
