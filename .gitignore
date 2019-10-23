@@ -3,6 +3,8 @@
 *.out
 *.err
 *.pyc
+checkpoints/
+results/
 /output
 .ipynb_checkpoints/
 __pycache__/
