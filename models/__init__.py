@@ -7,4 +7,3 @@ from skimage.io import imsave
 from keras.models import *
 from keras.layers import *
 from keras import backend as keras
-from layers import MaxPoolingWithArgmax2D, MaxUnpooling2D

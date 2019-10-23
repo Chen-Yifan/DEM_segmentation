@@ -149,8 +149,9 @@ def f1score_0(y_true, y_pred):
 def per_pixel_acc(y_true, y_pred): # class1 and class0 actually the same
 #     accuracy=(TP+TN)/(TP+TN+FP+FN)
     #class 1
-    y_pred = K.argmax(y_pred)
-    y_true = K.argmax(y_true)
+    #y_pred = K.argmax(y_pred)
+    y_pred = K.cast(K.greater(y_pred,0.5),'float32')
+    #y_true = K.argmax(y_true)
    # TP = tf.compat.v2.math.count_nonzero(y_pred * y_true)
     TP = tf.math.count_nonzero(y_pred * y_true)
     TN = tf.math.count_nonzero((1-y_pred)*(1-y_true))
@@ -178,13 +179,27 @@ def FN(y_true, y_pred):
     return FN/(FP + FN)
 
 
+# def iou_coef(y_true, y_pred, smooth=1):
+#     """
+#     IoU = (|X &amp; Y|)/ (|X or Y|)
+#     """
+#     intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
+#     union = K.sum(y_true,-1) + K.sum(y_pred,-1) - intersection
+#     return (intersection + smooth) / ( union + smooth)
+
+# def iou_coef_loss(y_true, y_pred):
+#     return -iou_coef(y_true, y_pred)
+                  
+                  
 def iou_label(y_true, y_pred):
     ''' 
     calculate iou for label class
     IOU = true_positive / (true_positive + false_positive + false_negative)
     '''
-    y_pred = K.argmax(y_pred)
-    y_true = K.argmax(y_true)
+    y_pred = K.cast(K.greater(y_pred,0.5),'float32')
+#     y_pred = K.argmax(y_pred)
+#     y_pred = K.greater(y_pred, 0.3)
+#     y_true = K.argmax(y_true)
    # TP = tf.compat.v2.math.count_nonzero(y_pred * y_true)
     TP = tf.math.count_nonzero(y_pred * y_true)
     TN = tf.math.count_nonzero((1-y_pred)*(1-y_true))
