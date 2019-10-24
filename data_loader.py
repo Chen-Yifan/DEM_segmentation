@@ -1,6 +1,7 @@
 from libtiff import TIFF
 import numpy as np
 import os
+import re
 
 def is_feature_present(input_array):
     # num_1 = np.count_nonzero(input_array)
@@ -11,7 +12,7 @@ def is_feature_present(input_array):
     return (np.sum(input_array)>0)
 
 
-def load_feature_data(frame_dir, mask_dir, gradient=True, dim=512):
+def load_feature_data(frame_dir, mask_dir, gradient=False, dim=512):
     
     '''load frames and masks into two numpy array respectively
         -----
@@ -25,8 +26,12 @@ def load_feature_data(frame_dir, mask_dir, gradient=True, dim=512):
     maxx = 0.0
     tif = False
     frame_names = os.listdir(frame_dir)
-    if('tif' in frame_names[0]):
+    frame_names.sort(key=lambda var:[int(x) if x.isdigit() else x 
+                                for x in re.findall(r'[^0-9]|[0-9]+', var)])
+    # check file format
+    if(frame_names[0][-3:]=='tif'):
         tif = True
+        
     for frame_file in frame_names:
         frame_path = os.path.join(frame_dir, frame_file)
         if tif:
@@ -45,9 +50,9 @@ def load_feature_data(frame_dir, mask_dir, gradient=True, dim=512):
             if gradient:
                 [dx, dy] = np.gradient(frame_array)
                 frame_array = np.sqrt((dx*dx)+(dy*dy))
-                amin, amax = np.min(frame_array), np.max(frame_array)
-                if amin < minn: minn = amin 
-                if amax > maxx: maxx = amax 
+            amin, amax = np.min(frame_array), np.max(frame_array)
+            if amin < minn: minn = amin 
+            if amax > maxx: maxx = amax 
             frames.append(frame_array)
             masks.append(label_array)
            

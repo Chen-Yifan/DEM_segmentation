@@ -14,7 +14,7 @@ class BaseOptions():
         """Define the common options that are used in both training and test."""
         
         parser.add_argument("--date", type=str, default='tryout', help='date is a split directory to save our model')
-        parser.add_argument("--isTrain", type=bool, default=1, help='is train or test')
+        parser.add_argument("--isTrain", type=int, default=1, help='is train or test')
         parser.add_argument("--model", type=str, default='unet', help='choose which model to use')
         parser.add_argument("--results_dir", type=str, default='./results/', help='results are saved here')
         parser.add_argument('--ckpt_name', type=str, default='experiment', help='name of the experiment. It decides where to store samples and models')
@@ -80,9 +80,8 @@ class BaseOptions():
     def parse(self):
         """Parse our options, create checkpoints directory suffix, and set up gpu device."""
         opt = self.gather_options()
-        opt.isTrain = self.isTrain   # train or test
         opt.model_path = os.path.join(opt.ckpt_dir, opt.date, opt.ckpt_name)
-        opt.result_path = os.path.join(opt.results_dir, opt.date, opt.ckpt_name)
+        opt.result_path = os.path.join(opt.results_dir, opt.date, opt.ckpt_name, 'epoch%s'%str(opt.n_epoch))
 
         self.opt = opt
         return self.opt

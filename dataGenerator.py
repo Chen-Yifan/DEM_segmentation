@@ -9,7 +9,7 @@ def squeeze(batches): # change to enable x and y together
         yield (batch_x, batch_y) 
         
 
-def custom_image_generator2(data, target, batch_size=32):
+def custom_image_generator(data, target, batch_size=32):
     """Custom image generator that manipulates image/target pairs to prevent
     overfitting in the Convolutional Neural Network.
     Parameters
@@ -46,7 +46,7 @@ def custom_image_generator2(data, target, batch_size=32):
     return train_gen
 
 
-def custom_image_generator(data, target, batch_size=32):
+def custom_image_generator2(data, target, batch_size=32):
     """Custom image generator that manipulates image/target pairs to prevent
     overfitting in the Convolutional Neural Network.
     Parameters
