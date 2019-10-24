@@ -4,6 +4,8 @@ from build_model import build_model
 from keras.callbacks import ModelCheckpoint,TensorBoard,CSVLogger,EarlyStopping,ReduceLROnPlateau
 from keras.models import model_from_json
 from dataGenerator import custom_image_generator
+from keras.optimizers import Adadelta, Adam, SGD
+from metrics import iou_label,per_pixel_acc
     
 
 def get_callbacks(weights_path, model_path, patience_lr):
@@ -32,7 +34,7 @@ def define_model(Data, opt):
 
     weights_path = None 
     if opt.save_model:
-        weights_path = opt.model_path +'/weights.{epoch:02d}-{val_loss:.2f}-{val_iou_label}.hdf5'
+        weights_path = opt.model_path +'/weights.{epoch:02d}-{val_loss:.2f}-{val_iou_label:.2f}.hdf5'
     
     callbacks = get_callbacks(weights_path, opt.model_path, 5)
     
@@ -73,3 +75,56 @@ def define_model(Data, opt):
     
     print('==================FINISH WITHOUT ERROR===================')
 #     return Y_preds
+
+def find_weight_dir(opt):
+    #file_name[8:10] = the epoch
+    weights = os.listdir(opt.model_path)
+    print('model_path',opt.model_path)
+    for i in weights:
+        print(i)
+        if 'weights'in i and int(i[8:10]) == opt.n_epoch:
+            return os.path.join(opt.model_path,i)
+
+def test_model(Data, opt):
+    
+    json_path = opt.model_path + '/model.json'
+    json_file = open(json_path, 'r')
+    loaded_model_json = json_file.read()
+    json_file.close()
+    
+    #load model and weights
+    weight_dir = find_weight_dir(opt)
+    print(weight_dir)
+    print(weight_dir)
+    model = model_from_json(loaded_model_json)
+    model.load_weights(weight_dir)
+    
+    learn_rate = opt.lr
+    optimizer = Adam(lr=learn_rate)
+    
+    model.compile(loss='binary_crossentropy', metrics=[iou_label,per_pixel_acc,'accuracy'], optimizer=optimizer)
+    model.summary()
+    
+    print('***********FINISH TRAIN & START TESTING******************')
+    X_true, Y_true = Data['test'][0], Data['test'][1]
+    
+    score = model.evaluate(X_true, Y_true)    
+    print('***********TEST RESULTS, write to output.txt*************')
+    message = ''
+    for j in range(len(model.metrics_names)):
+        print("%s: %.2f%%" % (model.metrics_names[j], score[j]*100))
+        message += "%s: %.2f%% \n" % (model.metrics_names[j], score[j]*100)
+        
+    with open(opt.model_path+'/output.txt', 'wt') as opt_file:
+        opt_file.write(message)
+        opt_file.write('\n')
+            
+    print('********************SAVE RESULTS ************************')
+    Y_preds = model.predict(X_true)
+    np.save(opt.result_path + '/gt_labels.npy', Data['test'][1])
+    np.save(opt.result_path + '/pred_labels.npy', Y_preds)        
+    
+    print('==================FINISH WITHOUT ERROR===================')
+#     return Y_preds
+    
+

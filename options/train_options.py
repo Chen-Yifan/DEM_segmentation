@@ -26,7 +26,7 @@ class TrainOptions(BaseOptions):
         
 #         parser.add_argument('--weight',type=float, default=200.0)
                             
-        self.isTrain = True
+#         self.isTrain = True
         return parser    
 
     def parse(self):

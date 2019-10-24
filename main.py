@@ -12,13 +12,14 @@ import numpy as np
 from options.train_options import TrainOptions
 from data_loader import load_feature_data, preprocess
 from sklearn.model_selection import train_test_split
-from define_model import define_model
+from define_model import define_model, test_model
 from visualize import visualize
 from util.util import *
+import sys
 
-if __name__ == '__main__':
-    
-    # parse my options
+
+def main():
+
     opt = TrainOptions().parse()
     print('point0, option parser finished')
 
@@ -26,7 +27,7 @@ if __name__ == '__main__':
         default: load the gradient of DEM
         return:  min, max among all the input images
     '''
-    frame_data, mask_data, minn, maxx = load_feature_data(opt.frame_path, opt.mask_path, gradient=True,dim=opt.input_shape)
+    frame_data, mask_data, minn, maxx = load_feature_data(opt.frame_path, opt.mask_path, gradient=False,dim=opt.input_shape)
     
     print('point1, finished load data')
     
@@ -59,12 +60,19 @@ if __name__ == '__main__':
     '''
     preprocess(Data_dict, minn, maxx, opt.input_shape)
     
-    # the actual model
     mkdir(opt.result_path)
-    mkdir(opt.model_path)
-    define_model(Data_dict, opt)
+    if opt.isTrain:
+        # the actual model
+        mkdir(opt.model_path)
+        define_model(Data_dict, opt)
     
+    else:
+        # test/ prediction
+        print('===========test==========')
+        test_model(Data_dict, opt)
+        
     # visualize result
+    img = Data_dict['test'][0][:,:,:,0]
     real = np.load(opt.result_path + '/gt_labels.npy')
     pred = np.load(opt.result_path + '/pred_labels.npy') 
     
@@ -79,7 +87,7 @@ if __name__ == '__main__':
                     predicted_data[i,j,k] =0
 	
     for i in range(100):
-        visualize(opt.result_path,real,pred,predicted_data,i)
+        visualize(opt.result_path,img,real,pred,predicted_data,i)
         
     
-    
+main()    

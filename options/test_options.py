@@ -11,7 +11,6 @@ class TestOptions(BaseOptions):
         parser = BaseOptions.initialize(self, parser)
         parser.add_argument('--frame_name',type=str, default='all_frames_5m6b_norm')
         parser.add_argument('--mask_name',type=str, default='all_masks_5m6b')
-        parser.add_argument("--weights_name", type=str, default='')
                                   
         self.isTrain = False
         return parser    

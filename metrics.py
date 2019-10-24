@@ -157,7 +157,7 @@ def per_pixel_acc(y_true, y_pred): # class1 and class0 actually the same
     TN = tf.math.count_nonzero((1-y_pred)*(1-y_true))
     FP = tf.math.count_nonzero(y_pred*(1-y_true))
     FN = tf.math.count_nonzero((1-y_pred)*y_true)
-    acc0 = (TP+TN)/(TP+TN+FP+FN)
+    acc0 = (TP)/(TP+FN)
     return acc0
 
 def FP(y_true, y_pred):
