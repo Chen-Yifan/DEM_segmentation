@@ -56,7 +56,7 @@ def build_model(dim, learn_rate, lmbda, drop, FL, init, n_filters):
         Constructed Keras model.
     """
     print('Making UNET model...')
-    img_input = Input(shape=(128, 128, 1))
+    img_input = Input(shape=(dim, dim, 1))
     print('here passsed')
     a1 = Convolution2D(n_filters, FL, FL, activation='relu', init=init,
                        W_regularizer=l2(lmbda), border_mode='same')(img_input)
@@ -121,7 +121,7 @@ def build_model(dim, learn_rate, lmbda, drop, FL, init, n_filters):
     u = Convolution2D(1, 1, 1, activation=final_activation, init=init,
                       W_regularizer=l2(lmbda), border_mode='same')(u)
     
-    u = Reshape((128, 128))(u)
+    u = Reshape((dim, dim))(u)
     
     model = Model(inputs=img_input, outputs=u)
 

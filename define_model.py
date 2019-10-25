@@ -20,7 +20,7 @@ def get_callbacks(weights_path, model_path, patience_lr):
 
 
 def define_model(Data, opt):
-    dim = opt.input_shape,
+    dim = int(opt.input_shape),
     learn_rate = opt.lr
 #     lmbda = opt.lambda
     drop = opt.dropout
