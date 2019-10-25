@@ -1,4 +1,4 @@
-from libtiff import TIFF
+from PIL import Image
 import numpy as np
 import os
 import re
@@ -24,20 +24,15 @@ def load_feature_data(frame_dir, mask_dir, gradient=False, dim=512):
     masks = []
     minn = float("inf")
     maxx = 0.0
-    tif = False
     frame_names = os.listdir(frame_dir)
     frame_names.sort(key=lambda var:[int(x) if x.isdigit() else x 
                                 for x in re.findall(r'[^0-9]|[0-9]+', var)])
-    # check file format
-    if(frame_names[0][-3:]=='tif'):
-        tif = True
-        
     for frame_file in frame_names:
         frame_path = os.path.join(frame_dir, frame_file)
-        if tif:
+        if frame_file[-3:]=='tif':
             mask_path = os.path.join(mask_dir, frame_file.replace('fillnodata','building_label'))
-            frame_array = TIFF.open(frame_path).read_image()
-            label_array = TIFF.open(mask_path).read_image()
+            frame_array = np.array(Image.open(frame_path))
+            label_array = np.array(Image.open(mask_path))
         else:
             mask_path = os.path.join(mask_dir, frame_file)
             frame_array = np.load(frame_path)
