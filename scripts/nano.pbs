@@ -1,10 +1,10 @@
 #!/bin/bash 
 #PBS -k o 
-#PBS -l nodes=nano1:ppn=2:gpus=1
+#PBS -l nodes=nano3:ppn=2:gpus=1
 #PBS -l walltime=08:00:00
 #PBS -M yifanc3@illinois.edu
-#PBS -m abe 
-#PBS -N tryout
+#PBS -m abe
+#PBS -N modularcode_try 
 source activate tf3.6-v2
-cd segmentation/DEM_segmentation
+cd ~/segmentation/DEM_segmentation
 ./scripts/train.sh

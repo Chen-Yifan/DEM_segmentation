@@ -40,7 +40,8 @@ def Mean_IoU_cl(cl=2, shape=128):
     
     return Mean_IOU
 
-
+    
+    
 def Mean_IOU_label(y_true, y_pred, shape=128):
     s = K.shape(y_true)
 
@@ -70,62 +71,94 @@ def Mean_IOU_label(y_true, y_pred, shape=128):
     return K.mean( iou_masked )
 
 
-def precision(y_true, y_pred):
+
+def precision_1(y_true, y_pred):
     """Precision metric.
+    precision = TP/(TP + FP)
     Only computes a batch-wise average of precision.
     Computes the precision, a metric for multi-label classification of
     how many selected items are relevant.
     """
-    y_pred = K.expand_dims(K.cast(K.argmax(y_pred),dtype='float32'), axis=-1)
-    y_true = K.expand_dims(K.cast(K.argmax(y_true),dtype='float32'), axis=-1)
-    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
-    predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
-    precision = true_positives / (predicted_positives + K.epsilon())
-    return precision
+    y_pred = K.argmax(y_pred)
+    y_true = K.argmax(y_true)
+   # TP = tf.compat.v2.math.count_nonzero(y_pred * y_true)
+    TP = tf.math.count_nonzero(y_pred * y_true)
+    FP = tf.math.count_nonzero(y_pred*(1-y_true))
+    return TP/(TP + FP)
+
+def precision_0(y_true, y_pred):
+    """Precision metric.
+    precision = TP/(TP + FP)
+    Only computes a batch-wise average of precision.
+    Computes the precision, a metric for multi-label classification of
+    how many selected items are relevant.
+    """
+    y_pred = 1-K.argmax(y_pred)
+    y_true = 1-K.argmax(y_true)
+   # TP = tf.compat.v2.math.count_nonzero(y_pred * y_true)
+    TP = tf.math.count_nonzero(y_pred * y_true)
+    FP = tf.math.count_nonzero(y_pred*(1-y_true))
+    return TP/(TP + FP)
 
 
-def recall(y_true, y_pred):
+def recall_1(y_true, y_pred):
     """Recall metric.
+    recall = TP/(TP+FN)
     Only computes a batch-wise average of recall.
     Computes the recall, a metric for multi-label classification of
     how many relevant items are selected.
     """
-    y_pred = K.expand_dims(K.cast(K.argmax(y_pred),dtype='float32'), axis=-1)
-    y_true = K.expand_dims(K.cast(K.argmax(y_true),dtype='float32'), axis=-1)
-    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
-    possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
-    recall = true_positives / (possible_positives + K.epsilon())
-    return recall
+    y_pred = K.argmax(y_pred)
+    y_true = K.argmax(y_true)
+   # TP = tf.compat.v2.math.count_nonzero(y_pred * y_true)
+    TP = tf.math.count_nonzero(y_pred * y_true)
+    FN = tf.math.count_nonzero((1-y_pred)*y_true)
+    return TP/(TP + FN)
+
+def recall_0(y_true, y_pred):
+    """Recall metric.
+    recall = TP/(TP+FN)
+    Only computes a batch-wise average of recall.
+    Computes the recall, a metric for multi-label classification of
+    how many relevant items are selected.
+    """
+    y_pred = 1-K.argmax(y_pred)
+    y_true = 1-K.argmax(y_true)
+   # TP = tf.compat.v2.math.count_nonzero(y_pred * y_true)
+    TP = tf.math.count_nonzero(y_pred * y_true)
+    FN = tf.math.count_nonzero((1-y_pred)*y_true)
+    return TP/(TP + FN)
 
 
-def f1score(y_true, y_pred):
-    pre = precision(y_true, y_pred)
-    rec = recall(y_true, y_pred)
+def f1score_1(y_true, y_pred):
+    pre = precision_1(y_true, y_pred)
+    rec = recall_1(y_true, y_pred)
     denominator = (pre + rec)
     numerator = (pre * rec)
     result = (numerator/denominator)*2
     return result
 
-def per_pixel_acc(y_true, y_pred):
+def f1score_0(y_true, y_pred):
+    pre = precision_0(y_true, y_pred)
+    rec = recall_0(y_true, y_pred)
+    denominator = (pre + rec)
+    numerator = (pre * rec)
+    result = (numerator/denominator)*2
+    return result
+
+def per_pixel_acc(y_true, y_pred): # class1 and class0 actually the same
 #     accuracy=(TP+TN)/(TP+TN+FP+FN)
     #class 1
-    y_pred = K.argmax(y_pred)
-    y_true = K.argmax(y_true)
+    #y_pred = K.argmax(y_pred)
+    y_pred = K.cast(K.greater(y_pred,0.5),'float32')
+    #y_true = K.argmax(y_true)
    # TP = tf.compat.v2.math.count_nonzero(y_pred * y_true)
     TP = tf.math.count_nonzero(y_pred * y_true)
     TN = tf.math.count_nonzero((1-y_pred)*(1-y_true))
     FP = tf.math.count_nonzero(y_pred*(1-y_true))
     FN = tf.math.count_nonzero((1-y_pred)*y_true)
-    acc0 = (TP+TN)/(TP+TN+FP+FN)
-    #class 0
-    y_pred = 1-y_pred
-    y_true = 1-y_true
-    TP = tf.math.count_nonzero(y_pred * y_true)
-    TN = tf.math.count_nonzero((1-y_pred)*(1-y_true))
-    FP = tf.math.count_nonzero(y_pred*(1-y_true))
-    FN = tf.math.count_nonzero((1-y_pred)*y_true)
-    acc1 = (TP+TN)/(TP+TN+FP+FN)    
-    return (acc0 + acc1)/2
+    acc0 = (TP)/(TP+FN)
+    return acc0
 
 def FP(y_true, y_pred):
     y_pred = K.argmax(y_pred)
@@ -145,21 +178,52 @@ def FN(y_true, y_pred):
         return 0
     return FN/(FP + FN)
 
-# def TP(y_true, y_pred):
-#     y_pred = K.argmax(y_pred)
-#     y_true = K.argmax(y_true)
-#     TP = tf.math.count_nonzero(y_pred * y_true)
-    
-#     return TP
 
-# def TN(y_true, y_pred):
+# def iou_coef(y_true, y_pred, smooth=1):
+#     """
+#     IoU = (|X &amp; Y|)/ (|X or Y|)
+#     """
+#     intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
+#     union = K.sum(y_true,-1) + K.sum(y_pred,-1) - intersection
+#     return (intersection + smooth) / ( union + smooth)
+
+# def iou_coef_loss(y_true, y_pred):
+#     return -iou_coef(y_true, y_pred)
+                  
+                  
+def iou_label(y_true, y_pred):
+    ''' 
+    calculate iou for label class
+    IOU = true_positive / (true_positive + false_positive + false_negative)
+    '''
+    y_pred = K.cast(K.greater(y_pred,0.5),'float32')
 #     y_pred = K.argmax(y_pred)
+#     y_pred = K.greater(y_pred, 0.3)
 #     y_true = K.argmax(y_true)
-#     TN = tf.math.count_nonzero((1-y_pred)*(1-y_true))
-#     TP = tf.math.count_nonzero(y_pred * y_true)
-#     return TN / (TN + TP)
+   # TP = tf.compat.v2.math.count_nonzero(y_pred * y_true)
+    TP = tf.math.count_nonzero(y_pred * y_true)
+    TN = tf.math.count_nonzero((1-y_pred)*(1-y_true))
+    FP = tf.math.count_nonzero(y_pred*(1-y_true))
+    FN = tf.math.count_nonzero((1-y_pred)*y_true)
+    return TP/(TP+FP+FN)
+
+
+def iou_back(y_true, y_pred):
+    ''' 
+    calculate iou for background class
+    IOU = true_positive / (true_positive + false_positive + false_negative)
+    '''
+    y_pred = 1-K.argmax(y_pred)
+    y_true = 1-K.argmax(y_true)
+   # TP = tf.compat.v2.math.count_nonzero(y_pred * y_true)
+    TP = tf.math.count_nonzero(y_pred * y_true)
+    TN = tf.math.count_nonzero((1-y_pred)*(1-y_true))
+    FP = tf.math.count_nonzero(y_pred*(1-y_true))
+    FN = tf.math.count_nonzero((1-y_pred)*y_true)
+    return TP/(TP+FP+FN)
 
 def accuracy(y_true, y_pred):
+    '''calculate classification accuracy'''
     y_pred = K.argmax(y_pred)
     y_true = K.argmax(y_true)
     TP = tf.math.count_nonzero(y_pred * y_true)

@@ -1,8 +1,11 @@
+scripts/
 128*
 *.h5
 *.out
 *.err
 *.pyc
+checkpoints/
+results/
 /output
 .ipynb_checkpoints/
 __pycache__/
