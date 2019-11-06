@@ -16,6 +16,13 @@ def dissimilarity_loss(y_true, y_pred):
     return:
         dissimialirity loss
     '''
+    #define evaluation metric, dissimilarity
+    pred = y_pred
+    gt = y_true
+    a,b = np.where(pred==1)
+    pred_idxs = np.column_stack((a,b))
+    a,b = np.where(img==1)
+    gt_idxs = np.column_stack((a,b)) # create a list with (row,column)
     loss = 0
     #loop through ones in pred find nearest ones in gt
     for pred_idx in pred_idxs:
