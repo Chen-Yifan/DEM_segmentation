@@ -6,6 +6,9 @@ from keras.models import model_from_json
 from dataGenerator import custom_image_generator
 from keras.optimizers import Adadelta, Adam, SGD
 from metrics import iou_label,per_pixel_acc
+from util.util import *
+import tensorflow as tf
+from segmentation_models import Unet
     
 
 def get_callbacks(weights_path, model_path, patience_lr):
@@ -16,11 +19,16 @@ def get_callbacks(weights_path, model_path, patience_lr):
     if weights_path:
         mcp_save = ModelCheckpoint(weights_path, save_best_only=False)
         return [mcp_save, tensorboard]
-    return [tensorboard]
+#     return [tensorboard]
 
+def sparse_softmax_cce(y_true, y_pred):
+    if len(y_true.get_shape()) == 4:
+        y_true = K.squeeze(y_true, axis=-1)
+    y_true = tf.cast(y_true, 'uint8')
+    return tf.keras.backend.sparse_categorical_crossentropy(y_true,y_pred)
 
 def define_model(Data, opt):
-    dim = int(opt.input_shape),
+    dim = 128
     learn_rate = opt.lr
 #     lmbda = opt.lambda
     drop = opt.dropout
@@ -30,8 +38,14 @@ def define_model(Data, opt):
     bs = opt.batch_size
     init = opt.weight_init
     
-    model = build_model(dim, learn_rate, 1e-6, drop, FL, init, num_filters)
+    model = Unet(classes = 2, input_shape=(dim,dim,1), activation='softmax')
+#     model = build_model(dim, learn_rate, 1e-6, drop, FL, init, num_filters)
+    
+    optimizer = Adam(lr=learn_rate)
+    model.compile(loss=sparse_softmax_cce, metrics=[iou_label,per_pixel_acc,'accuracy'], optimizer=optimizer)
+    model.summary()
 
+    
     weights_path = None 
     if opt.save_model:
         weights_path = opt.model_path +'/weights.{epoch:02d}-{val_loss:.2f}-{val_iou_label:.2f}.hdf5'
@@ -39,6 +53,8 @@ def define_model(Data, opt):
     callbacks = get_callbacks(weights_path, opt.model_path, 5)
     
     n_train, n_test, n_val = len(Data['train'][0]), len(Data['test'][0]), len(Data['val'][0])
+    np.save(opt.result_path + '/inputs.npy', Data['test'][0])
+    np.save(opt.result_path + '/gt_labels.npy', Data['test'][1])
     
     model.fit_generator(
             #(Data['train'][0], Data['train'][1]),
@@ -70,11 +86,11 @@ def define_model(Data, opt):
             
     print('********************SAVE RESULTS ************************')
     Y_preds = model.predict(X_true)
-    np.save(opt.result_path + '/gt_labels.npy', Data['test'][1])
-    np.save(opt.result_path + '/pred_labels.npy', Y_preds)        
-    
+    result_dir = opt.result_path + '/epoch%s/'%opt.n_epoch
+    mkdir(result_dir)
+    np.save(result_dir + 'pred_labels.npy', Y_preds)    
     print('==================FINISH WITHOUT ERROR===================')
-#     return Y_preds
+    return X_true, Y_true, Y_preds
 
 def find_weight_dir(opt):
     #file_name[8:10] = the epoch
@@ -85,7 +101,7 @@ def find_weight_dir(opt):
         if 'weights'in i and int(i[8:10]) == opt.n_epoch:
             return os.path.join(opt.model_path,i)
 
-def test_model(Data, opt):
+def test_model(opt):
     
     json_path = opt.model_path + '/model.json'
     json_file = open(json_path, 'r')
@@ -106,7 +122,8 @@ def test_model(Data, opt):
     model.summary()
     
     print('***********FINISH TRAIN & START TESTING******************')
-    X_true, Y_true = Data['test'][0], Data['test'][1]
+    X_true = np.load(opt.result_path + '/inputs.npy')
+    Y_true = np.load(opt.result_path + '/gt_labels.npy') 
     
     score = model.evaluate(X_true, Y_true)    
     print('***********TEST RESULTS, write to output.txt*************')
@@ -121,10 +138,11 @@ def test_model(Data, opt):
             
     print('********************SAVE RESULTS ************************')
     Y_preds = model.predict(X_true)
-    np.save(opt.result_path + '/gt_labels.npy', Data['test'][1])
-    np.save(opt.result_path + '/pred_labels.npy', Y_preds)        
-    
+    result_dir = opt.result_path + '/epoch%s/'%opt.n_epoch
+    mkdir(result_dir)
+    np.save(result_dir + 'pred_labels.npy', Y_preds)   
+
     print('==================FINISH WITHOUT ERROR===================')
-#     return Y_preds
+    return X_true, Y_true, Y_preds
     
 

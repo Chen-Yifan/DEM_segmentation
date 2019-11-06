@@ -2,6 +2,8 @@ from PIL import Image
 import numpy as np
 import os
 import re
+import scipy.misc
+import random
 
 def is_feature_present(input_array):
     # num_1 = np.count_nonzero(input_array)
@@ -12,45 +14,61 @@ def is_feature_present(input_array):
     return (np.sum(input_array)>0)
 
 
-def load_feature_data(frame_dir, mask_dir, gradient=False, dim=512):
+def load_feature_data(frame_dir, mask_dir, gradient=False, dim=512,shuffle=False):
     
     '''load frames and masks into two numpy array respectively
         -----
         condition: with feature
         input: frame_dir, mask_dir (each file in tif format)
+        
+        process: always resize to 128x128 as model input
         -----
+        
     '''
     frames = []
     masks = []
     minn = float("inf")
     maxx = 0.0
     frame_names = os.listdir(frame_dir)
-    frame_names.sort(key=lambda var:[int(x) if x.isdigit() else x 
-                                for x in re.findall(r'[^0-9]|[0-9]+', var)])
-    for frame_file in frame_names:
+    if shuffle:
+        random.shuffle(frame_names)
+    else:
+        frame_names.sort(key=lambda var:[int(x) if x.isdigit() else x 
+                                    for x in re.findall(r'[^0-9]|[0-9]+', var)])
+    
+    for i in range(len(frame_names)):
+        print(i)
+        if len(frames)>=6700:
+            break
+        frame_file = frame_names[i]
         frame_path = os.path.join(frame_dir, frame_file)
-        if frame_file[-3:]=='tif':
-            mask_path = os.path.join(mask_dir, frame_file.replace('fillnodata','building_label'))
-            frame_array = np.array(Image.open(frame_path))
-            label_array = np.array(Image.open(mask_path))
-        else:
-            mask_path = os.path.join(mask_dir, frame_file)
-            frame_array = np.load(frame_path)
-            label_array = np.load(mask_path)
-        frame_array = frame_array
+    #tif
+        mask_path = os.path.join(mask_dir, frame_file.replace('DEM','label'))
+        frame_array = np.array(Image.open(frame_path))
+        label_array = np.array(Image.open(mask_path))
+    #npy
+#         mask_path = os.path.join(mask_dir, frame_file)
+#         frame_array = np.load(frame_path)
+#         label_array = np.load(mask_path)
         dims = frame_array.shape
         if dims[0]!=dim or dims[1]!=dim:
             continue
         if(is_feature_present(label_array)):
+            frame_array = np.array(Image.fromarray(frame_array).resize((128,128), Image.BILINEAR))
+            label_array = np.array(Image.fromarray(label_array).resize((128,128), Image.NEAREST))
+            if (len(np.unique(frame_array))<3):
+                continue 
             if gradient:
                 [dx, dy] = np.gradient(frame_array)
                 frame_array = np.sqrt((dx*dx)+(dy*dy))
-            amin, amax = np.min(frame_array), np.max(frame_array)
-            if amin < minn: minn = amin 
-            if amax > maxx: maxx = amax 
+            # only count for positive part
+#             amin, amax = np.min(frame_array[frame_array>0]), np.max(frame_array[frame_array>0])
+#             if amin < minn: minn = amin 
+#             if amax > maxx: maxx = amax 
+#             print(np.min(frame_array), np.max(frame_array),np.unique(label_array))
             frames.append(frame_array)
             masks.append(label_array)
-           
+    print(len(frames), len(masks))
     return np.array(frames),np.array(masks), minn, maxx
 
 def preprocess(Data, minn, maxx, dim=128, low=0.1, hi=1.0):
@@ -68,8 +86,8 @@ def preprocess(Data, minn, maxx, dim=128, low=0.1, hi=1.0):
     """
     for key in Data:
         print (key)
-
-        Data[key][0] = Data[key][0].reshape(len(Data[key][0]), dim, dim, 1)
+        
+        Data[key][0] = Data[key][0].reshape(len(Data[key][0]), 128, 128, 1)
         for i, img in enumerate(Data[key][0]):
             img = img / 255.
             # img[img > 0.] = 1. - img[img > 0.]      #inv color

@@ -125,8 +125,4 @@ def build_model(dim, learn_rate, lmbda, drop, FL, init, n_filters):
     
     model = Model(inputs=img_input, outputs=u)
 
-    optimizer = Adam(lr=learn_rate)
-    model.compile(loss='binary_crossentropy', metrics=[iou_label,per_pixel_acc,'accuracy'], optimizer=optimizer)
-    model.summary()
-
     return model

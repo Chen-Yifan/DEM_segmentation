@@ -26,6 +26,7 @@ def custom_image_generator(data, target, batch_size=32):
         
     """
     train_img, train_mask = data, np.expand_dims(target, axis=-1)
+    print(train_img.shape, train_mask.shape)
     
     data_gen_args = dict(
                          horizontal_flip = True,

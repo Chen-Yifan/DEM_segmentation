@@ -1,3 +1,6 @@
+import matplotlib as mpl
+mpl.use('Agg')
+
 from matplotlib import pyplot as plt
 
 def visualize(result_path, img_data, real_data, predict_data, predicted_data, idx):
@@ -5,7 +8,7 @@ def visualize(result_path, img_data, real_data, predict_data, predicted_data, id
     f = plt.figure(figsize = (10,10))
     
     f.add_subplot(2,2,1)
-    cs = plt.imshow(img_data[idx,:,:])
+    cs = plt.imshow(img_data[idx,:,:,0])
     cbar = f.colorbar(cs)
     cbar.ax.minorticks_off()
     plt.title('image')

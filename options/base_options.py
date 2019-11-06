@@ -81,7 +81,7 @@ class BaseOptions():
         """Parse our options, create checkpoints directory suffix, and set up gpu device."""
         opt = self.gather_options()
         opt.model_path = os.path.join(opt.ckpt_dir, opt.date, opt.ckpt_name)
-        opt.result_path = os.path.join(opt.results_dir, opt.date, opt.ckpt_name, 'epoch%s'%str(opt.n_epoch))
+        opt.result_path = os.path.join(opt.results_dir, opt.date, opt.ckpt_name)
 
         self.opt = opt
         return self.opt
