@@ -7,6 +7,38 @@ import tensorflow as tf
 from keras.utils import to_categorical
 from itertools import product
 
+from scipy.spatial.distance import cdist
+
+def dissimilarity_loss(y_true, y_pred):
+    '''
+    args:
+        y_true y_pred are in the same dimension, in shape (dim,dim)
+    return:
+        dissimialirity loss
+    '''
+    loss = 0
+    #loop through ones in pred find nearest ones in gt
+    for pred_idx in pred_idxs:
+        if gt[pred_idx[0],pred_idx[1]] == 1:
+            continue
+        elif len(gt_idxs)==0: # no corresponding 1 in gt array
+            loss += 2*img.shape[0]
+        else:
+            dist_1 = cdist(np.array([[pred_idx[0],pred_idx[1]]]), gt_idxs,'cityblock')
+            loss += dist_1.min()
+            
+    # loop through ones in gt find nearest ones in pred
+    for gt_idx in gt_idxs:
+        if gt[gt_idx[0],gt_idx[1]] == 1:
+            continue
+        elif len(pred_idxs)==0: # no corresponding 1 in gt array
+            loss += 2*img.shape[0]
+        else:
+            dist_2 = cdist(np.array([[gt_idx[0],gt_idx[1]]]), pred_idxs,'cityblock')
+            loss += dist_2.min()
+    
+    return loss
+
 # plan B
 def pixel_wise_loss(y_true, y_pred, shape=128):
 #     y_pred = K.argmax(y_pred)
