@@ -7,7 +7,7 @@ In this repo, we implement a Unet model with data preprocessing for segmenting g
 ### Prerequisites
 - Tensorflow
 - keras
-- gdal 
+- gdal (optional, matters when you need to retile from a large DEM)
   + Anaconda: `conda install -c conda-forge gdal`
   + pip : `pip install GDAL`
 
