@@ -70,8 +70,7 @@ Based on Unet, we add Convolution2D regularization parameter, Dropout layer, and
 
 ## Train and Test 
 Train_frame_path and train_mask_path contains npy tile files.
-
-```./scripts/train.sh```
+To train the model:  ```./scripts/train.sh```
 
   main.py: the main function
   
@@ -86,7 +85,7 @@ Train_frame_path and train_mask_path contains npy tile files.
   losses.py: loss functions that might be helpful.
   
   metrics.py: metrics to measure the performance.
-            Please use iou_label during training, and feel free to test your model after training is done with ```[dissimilarity_loss](https://github.com/fffibonacci/DEM_segmentation/blob/master/losses.py#L11) ``` 
+            Please use iou_label during training, and feel free to test your model after training is done with [dissimilarity_loss](https://github.com/fffibonacci/DEM_segmentation/blob/master/losses.py#L11)
  
  
  
