@@ -196,11 +196,11 @@ def iou_label(y_true, y_pred):
     calculate iou for label class
     IOU = true_positive / (true_positive + false_positive + false_negative)
     '''
-    y_pred = K.cast(K.greater(y_pred,0.5),'float32')
-#     y_pred = K.argmax(y_pred)
-#     y_pred = K.greater(y_pred, 0.3)
-#     y_true = K.argmax(y_true)
-   # TP = tf.compat.v2.math.count_nonzero(y_pred * y_true)
+    if(y_pred.shape[-1]!=1): # one-hot
+        y_pred = K.cast(K.argmax(y_pred,axis=-1),'float32')
+    else:
+        y_pred = K.cast(K.greater(y_pred,0.5),'float32')
+
     TP = tf.math.count_nonzero(y_pred * y_true)
     TN = tf.math.count_nonzero((1-y_pred)*(1-y_true))
     FP = tf.math.count_nonzero(y_pred*(1-y_true))

@@ -8,7 +8,7 @@ from keras.optimizers import Adadelta, Adam, SGD
 from metrics import iou_label,per_pixel_acc
 from util.util import *
 import tensorflow as tf
-from segmentation_models import Unet
+from models.models import *
     
 
 def get_callbacks(weights_path, model_path, patience_lr):
@@ -38,13 +38,7 @@ def define_model(Data, opt):
     bs = opt.batch_size
     init = opt.weight_init
     
-    model = Unet(classes = 2, input_shape=(dim,dim,1), activation='softmax')
-#     model = build_model(dim, learn_rate, 1e-6, drop, FL, init, num_filters)
-    
-    optimizer = Adam(lr=learn_rate)
-    model.compile(loss=sparse_softmax_cce, metrics=[iou_label,per_pixel_acc,'accuracy'], optimizer=optimizer)
-    model.summary()
-
+    model = unet_shirui(2, (dim,dim,1), 1e-6, drop, init, num_filters, output_mode='softmax')
     
     weights_path = None 
     if opt.save_model:

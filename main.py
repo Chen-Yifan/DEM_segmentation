@@ -21,8 +21,8 @@ def train_test_val_split(frame_data,mask_data):
     a = int(n*0.75)
     b = int(n*0.85)
     
-    x_train,x_val,x_test = frame_data[:a],frame_data[a,b],frame_data[b:]
-    y_train,y_val,y_test = mask_data[:a],mask_data[a,b],mask_data[b:]
+    x_train,x_val,x_test = frame_data[:a],frame_data[a:b],frame_data[b:]
+    y_train,y_val,y_test = mask_data[:a],mask_data[a:b],mask_data[b:]
     return x_train, x_val, x_test, y_train, y_val, y_test
 
 def main():
@@ -83,17 +83,10 @@ def main():
 #     img = np.load(opt.result_path + '/inputs.npy')    
 #     real = np.load(opt.result_path + '/gt_labels.npy')    
     
-    predicted_data = np.zeros(pred.shape)
-    for i in range(pred.shape[0]):
-        for j in range(pred.shape[1]):
-            for k in range(pred.shape[2]):
-                if (pred[i,j,k]>=0.5):
-                    predicted_data[i,j,k] =1
-                else:
-                    predicted_data[i,j,k] =0
+    
     result_dir = opt.result_path + '/epoch%s/'%opt.n_epoch
     for i in range(100):
-        visualize(result_dir,img,real,pred,predicted_data,i)
+        visualize(result_dir,img,real,pred,i)
         
     
 main()    

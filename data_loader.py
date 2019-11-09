@@ -38,7 +38,7 @@ def load_feature_data(frame_dir, mask_dir, gradient=False, dim=512,shuffle=False
     
     for i in range(len(frame_names)):
         print(i)
-        if len(frames)>=6700:
+        if len(frames)>=270:
             break
         frame_file = frame_names[i]
         frame_path = os.path.join(frame_dir, frame_file)
@@ -52,22 +52,25 @@ def load_feature_data(frame_dir, mask_dir, gradient=False, dim=512,shuffle=False
 #         label_array = np.load(mask_path)
         dims = frame_array.shape
         if dims[0]!=dim or dims[1]!=dim:
+            os.remove(mask_path)
+            os.remove(frame_path)
             continue
         if(is_feature_present(label_array)):
             frame_array = np.array(Image.fromarray(frame_array).resize((128,128), Image.BILINEAR))
             label_array = np.array(Image.fromarray(label_array).resize((128,128), Image.NEAREST))
             if (len(np.unique(frame_array))<3):
-                continue 
+                os.remove(mask_path)
+                os.remove(frame_path) 
+                continue
             if gradient:
                 [dx, dy] = np.gradient(frame_array)
                 frame_array = np.sqrt((dx*dx)+(dy*dy))
-            # only count for positive part
-#             amin, amax = np.min(frame_array[frame_array>0]), np.max(frame_array[frame_array>0])
-#             if amin < minn: minn = amin 
-#             if amax > maxx: maxx = amax 
-#             print(np.min(frame_array), np.max(frame_array),np.unique(label_array))
             frames.append(frame_array)
             masks.append(label_array)
+        else:
+            os.remove(mask_path)
+            os.remove(frame_path)
+            
     print(len(frames), len(masks))
     return np.array(frames),np.array(masks), minn, maxx
 
@@ -88,6 +91,7 @@ def preprocess(Data, minn, maxx, dim=128, low=0.1, hi=1.0):
         print (key)
         
         Data[key][0] = Data[key][0].reshape(len(Data[key][0]), 128, 128, 1)
+        Data[key][1] = Data[key][1].reshape(len(Data[key][1]), 128, 128, 1)
         for i, img in enumerate(Data[key][0]):
             img = img / 255.
             # img[img > 0.] = 1. - img[img > 0.]      #inv color
@@ -95,27 +99,3 @@ def preprocess(Data, minn, maxx, dim=128, low=0.1, hi=1.0):
             img[img > 0] = low + (img[img > 0] - minn) * (hi - low) / (maxx - minn)
             Data[key][0][i] = img 
             
-# def preprocess(Data, minn, maxx, dim=512, low=0.1, hi=1.):
-#     """Normalize and rescale (and optionally invert) images.
-#     Parameters
-#     ----------
-#     Data : hdf5
-#         Data array.
-#     dim : integer, optional
-#         Dimensions of images, assumes square.
-#     low : float, optional
-#         Minimum rescale value. Default is 0.1 since background pixels are 0.
-#     hi : float, optional
-#         Maximum rescale value.
-#     """
-#     for key in Data:
-#         print (key)
-
-#         Data[key][0] = Data[key][0].reshape(len(Data[key][0]), dim, dim, 1)
-        
-#         for i, img in enumerate(Data[key][0]):
-#             img = img / 255.
-#             # minn, maxx = np.min(img[img > 0]), np.max(img[img > 0])
-#             img[img > 0] = low + (img[img > 0] - minn) * (hi - low) / (maxx - minn)
-#             Data[key][0][i] = img 
-    
