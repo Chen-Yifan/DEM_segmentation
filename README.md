@@ -1,5 +1,7 @@
 # DEM_segmentation
 
+In this repo, we implement a Unet model with data preprocessing for segmenting geographical feature such as waterways on Ditial Elevation Maps (DEM).
+
 ## Setup
 
 ### Prerequisites
@@ -74,7 +76,7 @@ To train the model:  ```./scripts/train.sh```
 
   main.py: the main function
   
-  data_loader.py: load data as arrays, and do preprocess such as normalization.
+  data_loader.py: load data as arrays, and do preprocess such as normalization. In this part, we only experiment with single-band DEM input or its gradient. To include their derivatives, please change the shape of the arrays also the size of input, output of the model.
   
   dataGenerator.py: data batch augmentation for training.
   
