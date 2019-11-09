@@ -54,7 +54,7 @@ def load_feature_data(frame_dir, mask_dir, gradient=False, dim=512):
     return np.array(frames),np.array(masks), minn, maxx
 
 def preprocess(Data, minn, maxx, dim=128, low=0.1, hi=1.0):
-    """Normalize and rescale (and optionally invert) images.
+    """Normalize and rescale (and optionally invert) images by local minn and maxx. 
     Parameters
     ----------
     Data : hdf5
@@ -77,27 +77,3 @@ def preprocess(Data, minn, maxx, dim=128, low=0.1, hi=1.0):
             img[img > 0] = low + (img[img > 0] - minn) * (hi - low) / (maxx - minn)
             Data[key][0][i] = img 
             
-# def preprocess(Data, minn, maxx, dim=512, low=0.1, hi=1.):
-#     """Normalize and rescale (and optionally invert) images.
-#     Parameters
-#     ----------
-#     Data : hdf5
-#         Data array.
-#     dim : integer, optional
-#         Dimensions of images, assumes square.
-#     low : float, optional
-#         Minimum rescale value. Default is 0.1 since background pixels are 0.
-#     hi : float, optional
-#         Maximum rescale value.
-#     """
-#     for key in Data:
-#         print (key)
-
-#         Data[key][0] = Data[key][0].reshape(len(Data[key][0]), dim, dim, 1)
-        
-#         for i, img in enumerate(Data[key][0]):
-#             img = img / 255.
-#             # minn, maxx = np.min(img[img > 0]), np.max(img[img > 0])
-#             img[img > 0] = low + (img[img > 0] - minn) * (hi - low) / (maxx - minn)
-#             Data[key][0][i] = img 
-    
