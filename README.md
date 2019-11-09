@@ -74,7 +74,7 @@ Based on Unet, we add Convolution2D regularization parameter, Dropout layer, and
 Train_frame_path and train_mask_path contains npy tile files.
 To train the model:  ```./scripts/train.sh```
 
-  main.py: the main function
+  ```main.py```: the main function
   
   ```data_loader.py```: load data as arrays, and do preprocess such as normalization. In this part, we only experiment with single-band DEM input or its gradient. To include their derivatives, please change the shape of the arrays also the size of input, output of the model.
   
