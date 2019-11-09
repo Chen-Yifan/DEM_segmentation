@@ -17,7 +17,8 @@ git clone git@github.com:fffibonacci/DEM_segmentation.git
 cd DEM_segmentation
 ```
 
-## Generate dataset from a DEM
+## Generate dataset from a DEM 
+skip this if you have a dataset ready
 ###  Original TIFF files: 
 
   DEM:
