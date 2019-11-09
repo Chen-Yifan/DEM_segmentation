@@ -76,17 +76,17 @@ To train the model:  ```./scripts/train.sh```
 
   main.py: the main function
   
-  data_loader.py: load data as arrays, and do preprocess such as normalization. In this part, we only experiment with single-band DEM input or its gradient. To include their derivatives, please change the shape of the arrays also the size of input, output of the model.
+  ```data_loader.py```: load data as arrays, and do preprocess such as normalization. In this part, we only experiment with single-band DEM input or its gradient. To include their derivatives, please change the shape of the arrays also the size of input, output of the model.
   
-  dataGenerator.py: data batch augmentation for training.
+  ```dataGenerator.py```: data batch augmentation for training.
   
-  build_model.py: the actual model structure and compile the model.
+  ```build_model.py```: the actual model structure and compile the model.
   
-  define_model.py: fit the model and callback specifications for train and test.
+  ```define_model.py```: fit the model and callback specifications for train and test.
   
-  losses.py: loss functions that might be helpful.
+  ```losses.py```: loss functions that might be helpful.
   
-  metrics.py: metrics to measure the performance.
+  ```metrics.py```: metrics to measure the performance.
             Please use iou_label during training, and feel free to test your model after training is done with [dissimilarity_loss](https://github.com/fffibonacci/DEM_segmentation/blob/master/losses.py#L11)
  
  
