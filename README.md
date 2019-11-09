@@ -15,8 +15,7 @@ git clone git@github.com:fffibonacci/DEM_segmentation.git
 cd DEM_segmentation
 ```
 
-
-## Generate dataset
+## Generate dataset from a DEM
 ###  Original TIFF files: 
 
   DEM:
@@ -66,13 +65,23 @@ gdal_retile.py -v -r near -ps 128 128 -co “TILED=YES”  -targetDir masks_128_
 gdal_retile.py -v -r near -ps 128 128 -co “TILED=YES”  -targetDir annotations_128_overlap  -tileIndex  tiles_annotations  -overlap 64     -csv annotations.csv  -csvDelim ,  annotated_mask.tif 
 ```
 
-### 3. Filter the image files
-After rename all the tiled image files, run notebook from [/DEM_segmentation/preprocess/selection_run.ipynb](https://github.com/fffibonacci/DEM_segmentation/blob/master/preprocess/selection_run.ipynb)
+## Model Setup
+Based on Unet, we add Convolution2D regularization parameter, Dropout layer, and we also modify the number of filters. We use Adam algorithm as our optimizer.
 
-By running this notebook, we select the same number of files with features (image containing more than 100 labelled pixels) and without features.
-
-
-## Train and Test (cross validation)
+## Train and Test 
 Train_frame_path and train_mask_path contains npy tile files.
 
-```python cv_main.py```
+```./scripts/train.sh```
+
+  main.py: the main function
+  data_loader.py: load data as arrays, and do preprocess such as normalization
+  dataGenerator.py: data batch augmentation for training
+  build_model.py: the actual model structure and compile the model.
+  define_model.py: fit the model and callback specifications for train and test.
+  losses.py: loss functions that might be helpful
+  metrics.py: metrics to measure the performance.
+            Please use iou_label during training, and feel free to test your model after training is done with ```[dissimilarity_loss](https://github.com/fffibonacci/DEM_segmentation/blob/master/losses.py#L11) ``` 
+ 
+ 
+ 
+
