@@ -1,3 +1,4 @@
+import numpy as np
 import matplotlib as mpl
 mpl.use('Agg')
 
@@ -11,7 +12,7 @@ def visualize(result_path, img_data, real_data, predict_data, idx):
         img_data = img_data[:,:,:,0]
     if predict_data.shape[-1]==1:
         predict_data = predict_data[:,:,:,0]
-        predicted_data = np.cast(predict_data>=0.5,'uint8')
+        predicted_data = (predict_data>=0.5).astype('uint8')
         print('predicted_data',predicted_data.shape)
     elif predict_data.shape[-1]==2:
         predict_data = np.argmax(predict_data,axis=-1)

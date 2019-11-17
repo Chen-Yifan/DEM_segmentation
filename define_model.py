@@ -1,6 +1,5 @@
 import os
 import numpy as np
-from build_model import build_model
 from keras.callbacks import ModelCheckpoint,TensorBoard,CSVLogger,EarlyStopping,ReduceLROnPlateau
 from keras.models import model_from_json
 from dataGenerator import custom_image_generator
@@ -9,23 +8,20 @@ from metrics import iou_label,per_pixel_acc
 from util.util import *
 import tensorflow as tf
 from models.models import *
-    
+from models.deeplab import *
+from losses import * 
 
 def get_callbacks(weights_path, model_path, patience_lr):
 
     logdir = os.path.join(model_path,'log')
     tensorboard = TensorBoard(log_dir=logdir, histogram_freq=0,
                             write_graph=True, write_images=True)
+    reduce_lr_loss = ReduceLROnPlateau(factor=0.9)
     if weights_path:
         mcp_save = ModelCheckpoint(weights_path, save_best_only=False)
-        return [mcp_save, tensorboard]
-#     return [tensorboard]
+        return [mcp_save, reduce_lr_loss, tensorboard]
+    return [reduce_lr_loss, tensorboard]
 
-def sparse_softmax_cce(y_true, y_pred):
-    if len(y_true.get_shape()) == 4:
-        y_true = K.squeeze(y_true, axis=-1)
-    y_true = tf.cast(y_true, 'uint8')
-    return tf.keras.backend.sparse_categorical_crossentropy(y_true,y_pred)
 
 def define_model(Data, opt):
     dim = 128
@@ -38,7 +34,11 @@ def define_model(Data, opt):
     bs = opt.batch_size
     init = opt.weight_init
     
-    model = unet_shirui(2, (dim,dim,1), 1e-6, drop, init, num_filters, output_mode='softmax')
+#     model = DeeplabV2(n_classes=1, input_shape=(dim,dim,1))
+#     model = segnet(1,(dim,dim,1),'sigmoid') 
+    #model = unet(1,(dim,dim,1),'sigmoid') 
+    model = unet_shirui(1, (dim,dim,1), 1e-6, drop, init, num_filters, output_mode='sigmoid')
+    
     
     weights_path = None 
     if opt.save_model:
@@ -106,19 +106,21 @@ def test_model(opt):
     weight_dir = find_weight_dir(opt)
     print(weight_dir)
     print(weight_dir)
-    model = model_from_json(loaded_model_json)
+    model = model_from_json(loaded_model_json, custom_objects = 
+                    {'MaxPoolingWithArgmax2D': MaxPoolingWithArgmax2D, 'MaxUnpooling2D':MaxUnpooling2D})
     model.load_weights(weight_dir)
     
     learn_rate = opt.lr
     optimizer = Adam(lr=learn_rate)
     
     model.compile(loss='binary_crossentropy', metrics=[iou_label,per_pixel_acc,'accuracy'], optimizer=optimizer)
+    #model.compile(loss=sparse_softmax_cce, metrics=[iou_label,per_pixel_acc,'accuracy'], optimizer=optimizer)
     model.summary()
     
     print('***********FINISH TRAIN & START TESTING******************')
     X_true = np.load(opt.result_path + '/inputs.npy')
     Y_true = np.load(opt.result_path + '/gt_labels.npy') 
-    
+    print(X_true.shape, Y_true.shape)
     score = model.evaluate(X_true, Y_true)    
     print('***********TEST RESULTS, write to output.txt*************')
     message = ''

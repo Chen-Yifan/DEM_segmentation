@@ -4,8 +4,8 @@ from keras.preprocessing.image import ImageDataGenerator
 def squeeze(batches): # change to enable x and y together
     while True:
         batch_x, batch_y = next(batches)
-        batch_y = batch_y[:,:,:,0]
-        
+#        batch_y = batch_y[:,:,:,0]
+        print(batch_x.shape, batch_y.shape)       
         yield (batch_x, batch_y) 
         
 
@@ -42,7 +42,7 @@ def custom_image_generator(data, target, batch_size=32):
     img_gen = img_datagen.flow(train_img, seed = seed, batch_size=batch_size, shuffle=True)#shuffling
     mask_gen = mask_datagen.flow(train_mask, seed = seed, batch_size=batch_size, shuffle=True)
     train_gen = zip(img_gen, mask_gen)
-#     train_gen = squeeze(train_gen)
+    #train_gen = squeeze(train_gen)
     
     return train_gen
 

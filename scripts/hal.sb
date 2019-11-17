@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name='yifanDL'
-#SBATCH --output='building_DEM_dgen_Unet_128.%j.%N.out'
-#SBATCH --error='building_DEM_dgen_Unet_128.%j.%N.err'
+#SBATCH --output='building_DEM_dgen_softmax_128.%j.%N.out'
+#SBATCH --error='building_DEM_dgen_softmax_128.%j.%N.err'
 #SBATCH --partition=gpux1
 module load powerai
 ./scripts/train.sh

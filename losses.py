@@ -46,6 +46,12 @@ def dissimilarity_loss(y_true, y_pred):
     
     return loss
 
+def sparse_softmax_cce(y_true, y_pred):
+    if len(y_true.get_shape()) == 4:
+        y_true = K.squeeze(y_true, axis=-1)
+    y_true = tf.cast(y_true, 'uint8')
+    return tf.keras.backend.sparse_categorical_crossentropy(y_true,y_pred)
+
 # plan B
 def pixel_wise_loss(y_true, y_pred, shape=128):
 #     y_pred = K.argmax(y_pred)

@@ -38,7 +38,7 @@ def main():
         '''
 
         frame_data, mask_data, minn, maxx = load_feature_data(opt.frame_path, opt.mask_path, 
-                                                              gradient=False,dim=opt.input_shape,shuffle=True)
+                                                              gradient=False,dim=opt.input_shape,shuffle=False)
         print(np.min(frame_data),np.max(frame_data),np.unique(mask_data))
         print('point1, finished load data')
 

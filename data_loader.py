@@ -14,7 +14,7 @@ def is_feature_present(input_array):
     return (np.sum(input_array)>0)
 
 
-def load_feature_data(frame_dir, mask_dir, gradient=False, dim=512,shuffle=False):
+def load_feature_data(frame_dir, mask_dir, gradient=False, dim=512,shuffle=False,resize=False):
     
     '''load frames and masks into two numpy array respectively
         -----
@@ -30,46 +30,45 @@ def load_feature_data(frame_dir, mask_dir, gradient=False, dim=512,shuffle=False
     minn = float("inf")
     maxx = 0.0
     frame_names = os.listdir(frame_dir)
+    frame_names.sort(key=lambda var:[int(x) if x.isdigit() else x
+                                    for x in re.findall(r'[^0-9]|[0-9]+', var)])
     if shuffle:
         random.shuffle(frame_names)
-    else:
-        frame_names.sort(key=lambda var:[int(x) if x.isdigit() else x 
-                                    for x in re.findall(r'[^0-9]|[0-9]+', var)])
     
     for i in range(len(frame_names)):
-        print(i)
-        if len(frames)>=270:
-            break
         frame_file = frame_names[i]
+        if len(frames)>30:
+            break
         frame_path = os.path.join(frame_dir, frame_file)
-    #tif
         mask_path = os.path.join(mask_dir, frame_file.replace('DEM','label'))
-        frame_array = np.array(Image.open(frame_path))
-        label_array = np.array(Image.open(mask_path))
-    #npy
-#         mask_path = os.path.join(mask_dir, frame_file)
-#         frame_array = np.load(frame_path)
-#         label_array = np.load(mask_path)
+    #tif
+        if(frame_file[-3:]=='tif'):
+            if not os.path.exists(mask_path):
+                os.remove(frame_path)
+                continue
+            frame_array = np.array(Image.open(frame_path))
+            label_array = np.array(Image.open(mask_path))    
+#npy
+        else:
+            mask_path = os.path.join(mask_dir, frame_file)
+            frame_array = np.load(frame_path)
+            label_array = np.load(mask_path)
         dims = frame_array.shape
-        if dims[0]!=dim or dims[1]!=dim:
-            os.remove(mask_path)
-            os.remove(frame_path)
+        if dims[0]!=dim or dims[1]!=dim or (not is_feature_present(label_array)) or (len(np.unique(frame_array))<3):
+            # os.remove(mask_path)
+            # os.remove(frame_path)
             continue
-        if(is_feature_present(label_array)):
+        print(frame_file)
+        
+        if gradient:
+            [dx, dy] = np.gradient(frame_array)
+            frame_array = np.sqrt((dx*dx)+(dy*dy))
+        if resize:
             frame_array = np.array(Image.fromarray(frame_array).resize((128,128), Image.BILINEAR))
             label_array = np.array(Image.fromarray(label_array).resize((128,128), Image.NEAREST))
-            if (len(np.unique(frame_array))<3):
-                os.remove(mask_path)
-                os.remove(frame_path) 
-                continue
-            if gradient:
-                [dx, dy] = np.gradient(frame_array)
-                frame_array = np.sqrt((dx*dx)+(dy*dy))
-            frames.append(frame_array)
-            masks.append(label_array)
-        else:
-            os.remove(mask_path)
-            os.remove(frame_path)
+            
+        frames.append(frame_array)
+        masks.append(label_array)
             
     print(len(frames), len(masks))
     return np.array(frames),np.array(masks), minn, maxx
