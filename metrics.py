@@ -193,7 +193,7 @@ def FN(y_true, y_pred):
 #     return -iou_coef(y_true, y_pred)
                   
                   
-def iou_label(y_true, y_pred):
+def iou_label(y_true, y_pred, threshold=0):
     ''' 
     calculate iou for label class
     IOU = true_positive / (true_positive + false_positive + false_negative)
@@ -202,7 +202,7 @@ def iou_label(y_true, y_pred):
     if(y_pred.shape[-1]==2): # one-hot
         y_pred = K.cast(K.argmax(y_pred,axis=-1),'uint8')
     elif(y_pred.shape[-1]==1):
-        y_pred = K.cast(K.greater(K.squeeze(y_pred,axis=-1),0.5),'uint8')
+        y_pred = K.cast(K.greater(K.squeeze(y_pred,axis=-1),threshold),'uint8')
     y_true = K.cast(K.squeeze(y_true,axis=-1),'uint8')
     TP = tf.math.count_nonzero(y_pred * y_true)
     TN = tf.math.count_nonzero((1-y_pred)*(1-y_true))

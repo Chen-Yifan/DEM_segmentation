@@ -151,9 +151,9 @@ def unet_shirui(n_classes=1, input_shape = (128,128,1), lmbda=1e-6, drop=0.45, i
     if output_mode == 'softmax':
         model.compile(loss=sparse_softmax_cce, metrics=[iou_label,per_pixel_acc,'accuracy'], optimizer=optimizer)
     elif output_mode = 'sigmoid': 
-        model.compile(loss='binary_crossentropy',metrics=[iou_label,per_pixel_acc,'accuracy'], optimizer=optimizer)
+        model.compile(loss='binary_crossentropy',metrics=[partial(iou_label,threshold=0.5),per_pixel_acc,'accuracy'], optimizer=optimizer)
     else:
-        model.compile(loss=L.lovasz_hinge, metrics=[iou_label,per_pixel_acc,'accuracy'], optimizer=optimizer)
+        model.compile(loss=L.lovasz_loss, metrics=[iou_label,per_pixel_acc,'accuracy'], optimizer=optimizer)
         
     model.summary()
     
