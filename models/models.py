@@ -149,11 +149,11 @@ def unet_shirui(n_classes=1, input_shape = (128,128,1), lmbda=1e-6, drop=0.45, i
     
     optimizer = Adam(lr=3e-4)
     if output_mode == 'softmax':
-        model.compile(loss=sparse_softmax_cce, metrics=[iou_label,per_pixel_acc,'accuracy'], optimizer=optimizer)
-    elif output_mode = 'sigmoid': 
-        model.compile(loss='binary_crossentropy',metrics=[partial(iou_label,threshold=0.5),per_pixel_acc,'accuracy'], optimizer=optimizer)
+        model.compile(loss=sparse_softmax_cce, metrics=[iou_label,per_pixel_acc,accuracy], optimizer=optimizer)
+    elif output_mode == 'sigmoid': 
+        model.compile(loss='binary_crossentropy',metrics=[partial(iou_label,threshold=0.5), partial(per_pixel_acc,threshold=0.5),partial(accuracy,threshold=0.5)], optimizer=optimizer)
     else:
-        model.compile(loss=L.lovasz_loss, metrics=[iou_label,per_pixel_acc,'accuracy'], optimizer=optimizer)
+        model.compile(loss=L.lovasz_loss, metrics=[iou_label,per_pixel_acc,accuracy], optimizer=optimizer)
         
     model.summary()
     
@@ -161,42 +161,42 @@ def unet_shirui(n_classes=1, input_shape = (128,128,1), lmbda=1e-6, drop=0.45, i
         model.load_weights(pretrained_weights)
     return model
 
-def unet(n_classes=1, input_shape = (128,128,1), output_mode='sigmoid', pretrained_weights = None):
+def unet(n_classes=1, input_shape = (128,128,1), activation='elu',output_mode='sigmoid', pretrained_weights = None):
     inputs = Input(input_shape)
-    conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(inputs)
-    conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv1)
+    conv1 = Conv2D(32, (3, 3), activation=activation, padding='same')(inputs)
+    conv1 = Conv2D(32, (3, 3), activation=activation, padding='same')(conv1)
     pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
 
-    conv2 = Conv2D(64, (3, 3), activation='relu', padding='same')(pool1)
-    conv2 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv2)
+    conv2 = Conv2D(64, (3, 3), activation=activation, padding='same')(pool1)
+    conv2 = Conv2D(64, (3, 3), activation=activation, padding='same')(conv2)
     pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
 
-    conv3 = Conv2D(128, (3, 3), activation='relu', padding='same')(pool2)
-    conv3 = Conv2D(128, (3, 3), activation='relu', padding='same')(conv3)
+    conv3 = Conv2D(128, (3, 3), activation=activation, padding='same')(pool2)
+    conv3 = Conv2D(128, (3, 3), activation=activation, padding='same')(conv3)
     pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
 
-    conv4 = Conv2D(256, (3, 3), activation='relu', padding='same')(pool3)
-    conv4 = Conv2D(256, (3, 3), activation='relu', padding='same')(conv4)
+    conv4 = Conv2D(256, (3, 3), activation=activation, padding='same')(pool3)
+    conv4 = Conv2D(256, (3, 3), activation=activation, padding='same')(conv4)
     pool4 = MaxPooling2D(pool_size=(2, 2))(conv4)
 
-    conv5 = Conv2D(512, (3, 3), activation='relu', padding='same')(pool4)
-    conv5 = Conv2D(512, (3, 3), activation='relu', padding='same')(conv5)
+    conv5 = Conv2D(512, (3, 3), activation=activation, padding='same')(pool4)
+    conv5 = Conv2D(512, (3, 3), activation=activation, padding='same')(conv5)
 
     up6 = concatenate([UpSampling2D(size=(2, 2))(conv5), conv4], axis=3)
-    conv6 = Conv2D(256, (3, 3), activation='relu', padding='same')(up6)
-    conv6 = Conv2D(256, (3, 3), activation='relu', padding='same')(conv6)
+    conv6 = Conv2D(256, (3, 3), activation=activation, padding='same')(up6)
+    conv6 = Conv2D(256, (3, 3), activation=activation, padding='same')(conv6)
 
     up7 = concatenate([UpSampling2D(size=(2, 2))(conv6), conv3], axis=3)
-    conv7 = Conv2D(128, (3, 3), activation='relu', padding='same')(up7)
-    conv7 = Conv2D(128, (3, 3), activation='relu', padding='same')(conv7)
+    conv7 = Conv2D(128, (3, 3), activation=activation, padding='same')(up7)
+    conv7 = Conv2D(128, (3, 3), activation=activation, padding='same')(conv7)
 
     up8 = concatenate([UpSampling2D(size=(2, 2))(conv7), conv2], axis=3)
-    conv8 = Conv2D(64, (3, 3), activation='relu', padding='same')(up8)
-    conv8 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv8)
+    conv8 = Conv2D(64, (3, 3), activation=activation, padding='same')(up8)
+    conv8 = Conv2D(64, (3, 3), activation=activation, padding='same')(conv8)
 
     up9 = concatenate([UpSampling2D(size=(2, 2))(conv8), conv1], axis=3)
-    conv9 = Conv2D(32, (3, 3), activation='relu', padding='same')(up9)
-    conv9 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv9)
+    conv9 = Conv2D(32, (3, 3), activation=activation, padding='same')(up9)
+    conv9 = Conv2D(32, (3, 3), activation=activation, padding='same')(conv9)
 
     conv10 = Conv2D(n_classes, (1, 1),activation=output_mode)(conv9) # no softmax
     
@@ -204,9 +204,13 @@ def unet(n_classes=1, input_shape = (128,128,1), output_mode='sigmoid', pretrain
     
     optimizer = Adam(lr=3e-4)
     if output_mode == 'softmax':
-        model.compile(loss=sparse_softmax_cce, metrics=[iou_label,per_pixel_acc,'accuracy'], optimizer=optimizer)
+        model.compile(loss=L.lovasz_softmax, metrics=['accuracy',iou_label], optimizer=optimizer)
+        
+    elif output_mode == 'sigmoid': 
+        model.compile(loss='binary_crossentropy',metrics=[partial(iou_label,threshold=0.5), partial(per_pixel_acc,threshold=0.5),partial(accuracy,threshold=0.5)], optimizer=optimizer)
+        
     else:
-        model.compile(loss='binary_crossentropy',metrics=[iou_label,per_pixel_acc,'accuracy'], optimizer=optimizer)
+        model.compile(loss=L.lovasz_loss, metrics=[iou_label,per_pixel_acc,accuracy], optimizer=optimizer)
         
     model.summary()
     

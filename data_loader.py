@@ -11,7 +11,7 @@ def is_feature_present(input_array):
     # print('********point1***********\n label #1 > #0', num_1>num_0)
     # assert num_1 < num_0, 'label 1 should be label but now is background'
     
-    return (np.sum(input_array)>0)
+    return (np.sum(input_array)>100)
 
 
 def load_feature_data(frame_dir, mask_dir, gradient=False, dim=512,shuffle=False,resize=False):
@@ -37,8 +37,8 @@ def load_feature_data(frame_dir, mask_dir, gradient=False, dim=512,shuffle=False
     
     for i in range(len(frame_names)):
         frame_file = frame_names[i]
-        if len(frames)>30:
-            break
+        #if len(frames)>30:
+        #    break
         frame_path = os.path.join(frame_dir, frame_file)
         mask_path = os.path.join(mask_dir, frame_file.replace('DEM','label'))
     #tif
@@ -88,8 +88,9 @@ def preprocess(Data, minn, maxx, dim=128, low=0.1, hi=1.0):
     """
     for key in Data:
         print (key)
-        
-        Data[key][0] = Data[key][0].reshape(len(Data[key][0]), 128, 128, 1)
+        if Data[key][0].ndim != 4:
+            Data[key][0] = Data[key][0].reshape(len(Data[key][0]), 128, 128, 1)
+            
         Data[key][1] = Data[key][1].reshape(len(Data[key][1]), 128, 128, 1)
         for i, img in enumerate(Data[key][0]):
             img = img / 255.

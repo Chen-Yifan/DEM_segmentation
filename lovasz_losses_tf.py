@@ -7,7 +7,7 @@ from __future__ import print_function, division
 
 import tensorflow as tf
 import numpy as np
-
+import keras.backend as K
 
 def lovasz_grad(gt_sorted):
     """
@@ -92,7 +92,7 @@ def flatten_binary_scores(scores, labels, ignore=None):
 # --------------------------- MULTICLASS LOSSES ---------------------------
 
 
-def lovasz_softmax(probas, labels, classes='present', per_image=False, ignore=None, order='BHWC'):
+def lovasz_softmax(labels, probas, classes='present', per_image=False, ignore=None, order='BHWC'):
     """
     Multi-class Lovasz-Softmax loss
       probas: [B, H, W, C] or [B, C, H, W] Variable, class probabilities at each prediction (between 0 and 1)
@@ -179,11 +179,8 @@ def flatten_probas(probas, labels, ignore=None, order='BHWC'):
 def lovasz_loss(y_true, y_pred):
     y_true, y_pred = K.cast(K.squeeze(y_true, -1), 'int32'), K.cast(K.squeeze(y_pred, -1), 'float32')
     logits = y_pred
-    loss = lovasz_hinge(logits, y_true, per_image = True, ignore = None)
+    loss = lovasz_hinge(logits, y_true, per_image = False, ignore = None)
     return loss
 
 
-def iou(y_true, y_pred):
-    
-    
     

@@ -10,6 +10,7 @@ import tensorflow as tf
 from models.models import *
 from models.deeplab import *
 from losses import * 
+from build_model import *
 
 def get_callbacks(weights_path, model_path, patience_lr):
 
@@ -33,16 +34,18 @@ def define_model(Data, opt):
     n_epoch = opt.n_epoch
     bs = opt.batch_size
     init = opt.weight_init
+    input_channel = opt.input_channel
     
-#     model = DeeplabV2(n_classes=1, input_shape=(dim,dim,1))
-#     model = segnet(1,(dim,dim,1),'sigmoid') 
-    #model = unet(1,(dim,dim,1),'sigmoid') 
-    model = unet_shirui(1, (dim,dim,1), 1e-6, drop, init, num_filters, output_mode='sigmoid')
+#     model = DeeplabV2(n_classes=1, input_shape=(dim,dim,input_channel))
+#     model = segnet(1,(dim,dim,input_channel),'sigmoid') 
+    model = unet(1,(dim,dim,input_channel),'elu',None) 
+#     model = unet_shirui(1, (dim,dim,input_channel), 1e-6, drop, init, num_filters, output_mode=None)
     
+#    model = build_model(dim, n_classes=1)
     
     weights_path = None 
     if opt.save_model:
-        weights_path = opt.model_path +'/weights.{epoch:02d}-{val_loss:.2f}-{val_iou_label:.2f}.hdf5'
+        weights_path = opt.model_path +'/weights.{epoch:02d}-{val_loss:.2f}.hdf5'#-{val_iou_label:.2f}.hdf5'
     
     callbacks = get_callbacks(weights_path, opt.model_path, 5)
     
@@ -51,7 +54,7 @@ def define_model(Data, opt):
     np.save(opt.result_path + '/gt_labels.npy', Data['test'][1])
     
     model.fit_generator(
-            #(Data['train'][0], Data['train'][1]),
+#             (Data['train'][0], Data['train'][1]),
             custom_image_generator(Data['train'][0], Data['train'][1],
                                    batch_size=bs),
             steps_per_epoch= n_train//bs, epochs=n_epoch, verbose=1,
