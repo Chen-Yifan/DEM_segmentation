@@ -4,7 +4,7 @@ from keras import backend as K
 from skimage.io import imsave
 from keras.models import *
 from keras.layers import *
-from keras.optimizers import Adam
+from keras.optimizers import *
 from metrics import *
 from losses import *
 from keras.regularizers import l2
@@ -148,6 +148,7 @@ def unet_shirui(n_classes=1, input_shape = (128,128,1), lmbda=1e-6, drop=0.45, i
     model = Model(inputs = inputs, outputs = conv10)
     
     optimizer = Adam(lr=3e-4)
+    optimizer = Adadelta(learning_rate=1.0, rho=0.95)
     if output_mode == 'softmax':
         model.compile(loss=sparse_softmax_cce, metrics=[iou_label,per_pixel_acc,accuracy], optimizer=optimizer)
     elif output_mode == 'sigmoid': 
