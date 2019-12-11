@@ -7,6 +7,51 @@ import tensorflow as tf
 from keras.utils import to_categorical
 from itertools import product
 
+from scipy.spatial.distance import cdist
+
+def dissimilarity_loss(y_true, y_pred):
+    '''
+    args:
+        y_true y_pred are in the same dimension, in shape (dim,dim)
+    return:
+        dissimialirity loss
+    '''
+    #define evaluation metric, dissimilarity
+    pred = y_pred
+    gt = y_true
+    a,b = np.where(pred==1)
+    pred_idxs = np.column_stack((a,b))
+    a,b = np.where(img==1)
+    gt_idxs = np.column_stack((a,b)) # create a list with (row,column)
+    loss = 0
+    #loop through ones in pred find nearest ones in gt
+    for pred_idx in pred_idxs:
+        if gt[pred_idx[0],pred_idx[1]] == 1:
+            continue
+        elif len(gt_idxs)==0: # no corresponding 1 in gt array
+            loss += 2*img.shape[0]
+        else:
+            dist_1 = cdist(np.array([[pred_idx[0],pred_idx[1]]]), gt_idxs,'cityblock')
+            loss += dist_1.min()
+            
+    # loop through ones in gt find nearest ones in pred
+    for gt_idx in gt_idxs:
+        if gt[gt_idx[0],gt_idx[1]] == 1:
+            continue
+        elif len(pred_idxs)==0: # no corresponding 1 in gt array
+            loss += 2*img.shape[0]
+        else:
+            dist_2 = cdist(np.array([[gt_idx[0],gt_idx[1]]]), pred_idxs,'cityblock')
+            loss += dist_2.min()
+    
+    return loss
+
+def sparse_softmax_cce(y_true, y_pred):
+    if len(y_true.get_shape()) == 4:
+        y_true = K.squeeze(y_true, axis=-1)
+    y_true = tf.cast(y_true, 'uint8')
+    return tf.keras.backend.sparse_categorical_crossentropy(y_true,y_pred)
+
 # plan B
 def pixel_wise_loss(y_true, y_pred, shape=128):
 #     y_pred = K.argmax(y_pred)

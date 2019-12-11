@@ -13,7 +13,7 @@ import keras_spatial.grid as grid
 from geopandas import GeoDataFrame
 from rasterio.crs import CRS
 import numpy as np
-
+from dataGenerator import *
 def test_preprocess_modify_array():
 
     def pre(arr, maxval):
@@ -48,8 +48,7 @@ def dataGen(new_batch_size=16):
                
             sdg2:  the output data generator
                 
-            select_gen(original_gen, size, new_batch)
-                we need to select those pairs with features only, eliminate those without features
+            filter_to_array: function to filter the generator and return x,y arrays
     '''
     def pre(arr):
         return 1 - np.where(arr==2,0,1)
@@ -69,10 +68,10 @@ def dataGen(new_batch_size=16):
     sdg.batch_size = batch_size
     df = sdg.regular_grid(*size)
     # clear negative values + normalization
-    df['max'] = [a.max() for a in sdg.flow_from_dataframe(df, batch_size=1)]
-    df['min'] = [a[np.where(a>=0)].min() for a in sdg.flow_from_dataframe(df, batch_size=1)]
-    print('global max/min (ignore negative values)',df['max'].max(), df['min'].min())
-    sdg.add_preprocess_callback('normalize', norm, df['max'].max(), df['min'].min())
+#     df['max'] = [a.max() for a in sdg.flow_from_dataframe(df, batch_size=1)]
+#     df['min'] = [a[np.where(a>=0)].min() for a in sdg.flow_from_dataframe(df, batch_size=1)]
+#     print('global max/min (ignore negative values)',df['max'].max(), df['min'].min())
+#     sdg.add_preprocess_callback('normalize', norm, df['max'].max(), df['min'].min())
     
     sdg2 = SpatialDataGenerator(batch_size=batch_size)
     sdg2.profile = sdg.profile
@@ -86,42 +85,39 @@ def dataGen(new_batch_size=16):
     
     print('length of dfs',len(df), len(df2))
     gen = zip(frameGen, maskGen)
-    print('old dataGen to new dataGen')
-    newGen = filter_gen(gen,size,new_batch_size)
+    print('dataGen to array')
+    x,y = filter_to_array(gen,size,new_batch_size)
     
-    # start testing
-    # x,y = next(newGen)
-    # print('back',x.shape, y.shape, np.max(x), np.min(x), np.unique(y))
-    return newGen
-    
-def filter_gen(orig_gen, size, new_batch=16):
-    '''from old gen to new gen
-    
-    args:
-        orig_gen: original generator with batch_size=1
-        size: size of the generated image
-            (default: channel = 1)
-        new_batch: new batch size after the filter
-        
+    # normalize x
+    print('normalize it')
+    minv = x[np.where(x>=0)].min()
+    maxv = x.max()
+    x = (x - minv)/(maxv-minv)
+    return x,y
+
+
+def filter_to_array(orig_gen, size, new_batch=16):
     '''
+    filter both images and masks with no features
+    and return x_array, y_array in shape [n, width, height, channel]
+    '''
+    x_array = []
+    y_array = []
+    i = 0
     while True:
-        i = 0
-        batch_x = np.zeros((new_batch,size[0],size[1], 1))
-        batch_y = np.zeros((new_batch,size[0],size[1], 1))
-        
-        while i < new_batch:
+        try:
             x, y = next(orig_gen)
-            batch_size = len(x)
-            if np.max(y)==0:
-                continue
-            batch_x[i]=x
-            batch_y[i]=y
-            i+=1
-        print('new_batch',batch_x.shape, batch_y.shape)
-        if(len(batch_x.shape)!=new_batch):
+        except:
+            print('stopIterator')
             break
-        yield (batch_x, batch_y)   
-    
+        if np.max(y)==0:
+            continue
+        i+=1
+        x_array.append(x)
+        y_array.append(y)
+    x_array = np.squeeze(np.array(x_array),axis=1)
+    y_array = np.squeeze(np.array(y_array),axis=1)
+    return x_array,y_array
     
 # Driver Code 
 if __name__ == '__main__': 

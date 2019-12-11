@@ -1,22 +1,25 @@
 #!/usr/bin/env python
 
-
+# Reference: https://github.com/FaranIdo/deeplabv2-keras-tf/blob/master/deeplabv2_model.py
 # Based on: https://github.com/DavideA/deeplabv2-keras/blob/master/predict.py
 
 
 from keras.models import Model
 from keras.layers import Input, Conv2D, MaxPooling2D, Add, ZeroPadding2D, Dropout, Activation, UpSampling2D
+from metrics import *
+from losses import *
+from keras.optimizers import Adam
 
 
 WEIGHTS_PATH = 'deeplabV2_weights_tf.h5'
 VOC2012_CLASSES_COUNT = 21
 
-
-def DeeplabV2(input_shape=(128,128,5),
+def DeeplabV2(n_classes=1,
+             input_shape=(128,128,1),
             upsampling=8,
-            apply_softmax=True,
-            load_weights=False,
-            classes=2):
+            output_mode="sigmoid",
+            pretrained_weight=False,
+            ):
     
 #     if load_weights and classes != VOC2012_CLASSES_COUNT:
 #         raise ValueError('For using existing weights - `classes` should be 21')
@@ -76,7 +79,7 @@ def DeeplabV2(input_shape=(128,128,5),
     b1 = Dropout(0.5)(b1)
     b1 = Conv2D(filters=1024, kernel_size=(1, 1), activation='relu', name='fc7_1')(b1)
     b1 = Dropout(0.5)(b1)
-    b1 = Conv2D(filters=classes, kernel_size=(1, 1), activation='relu', name='fc8_voc12_1')(b1)
+    b1 = Conv2D(filters=n_classes, kernel_size=(1, 1), activation='relu', name='fc8_voc12_1')(b1)
 
     # hole = 12
     b2 = ZeroPadding2D(padding=(12, 12))(p5)
@@ -84,7 +87,7 @@ def DeeplabV2(input_shape=(128,128,5),
     b2 = Dropout(0.5)(b2)
     b2 = Conv2D(filters=1024, kernel_size=(1, 1), activation='relu', name='fc7_2')(b2)
     b2 = Dropout(0.5)(b2)
-    b2 = Conv2D(filters=classes, kernel_size=(1, 1), activation='relu', name='fc8_voc12_2')(b2)
+    b2 = Conv2D(filters=n_classes, kernel_size=(1, 1), activation='relu', name='fc8_voc12_2')(b2)
 
     # hole = 18
     b3 = ZeroPadding2D(padding=(18, 18))(p5)
@@ -92,7 +95,7 @@ def DeeplabV2(input_shape=(128,128,5),
     b3 = Dropout(0.5)(b3)
     b3 = Conv2D(filters=1024, kernel_size=(1, 1), activation='relu', name='fc7_3')(b3)
     b3 = Dropout(0.5)(b3)
-    b3 = Conv2D(filters=classes, kernel_size=(1, 1), activation='relu', name='fc8_voc12_3')(b3)
+    b3 = Conv2D(filters=n_classes, kernel_size=(1, 1), activation='relu', name='fc8_voc12_3')(b3)
 
     # hole = 24
     b4 = ZeroPadding2D(padding=(24, 24))(p5)
@@ -100,20 +103,23 @@ def DeeplabV2(input_shape=(128,128,5),
     b4 = Dropout(0.5)(b4)
     b4 = Conv2D(filters=1024, kernel_size=(1, 1), activation='relu', name='fc7_4')(b4)
     b4 = Dropout(0.5)(b4)
-    b4 = Conv2D(filters=classes, kernel_size=(1, 1), activation='relu', name='fc8_voc12_4')(b4)
+    b4 = Conv2D(filters=n_classes, kernel_size=(1, 1), activation='relu', name='fc8_voc12_4')(b4)
 
     s = Add()([b1, b2, b3, b4])
     logits = UpSampling2D(size=upsampling, interpolation='bilinear')(s)
-    
-    if apply_softmax:
-        out = Activation('softmax')(logits)
-    else:
-        out = logits
+
+    out = Activation(output_mode)(logits)
 
     model = Model(img_input, out, name='deeplabV2')
-#     if(pretrained_weight):
-#         model.load_weights(WEIGHTS_PATH)
-
+    if(pretrained_weight):
+        model.load_weights(WEIGHTS_PATH)
+    
+    optimizer = Adam(lr=3e-4)
+    if output_mode == 'softmax':
+        model.compile(loss=sparse_softmax_cce, metrics=[iou_label,per_pixel_acc,'accuracy'], optimizer=optimizer)
+    else:
+        model.compile(loss='binary_crossentropy',metrics=[iou_label,per_pixel_acc,'accuracy'], optimizer=optimizer)
+        
     model.summary()
 
     return model

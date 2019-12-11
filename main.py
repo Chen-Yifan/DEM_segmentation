@@ -16,6 +16,7 @@ from define_model import define_model, test_model
 from visualize import visualize
 from util.util import *
 import sys
+from ksGen import dataGen
 
 
 def main():
@@ -27,15 +28,14 @@ def main():
         default: load the gradient of DEM
         return:  min, max among all the input images
     '''
-    # frame_data, mask_data, minn, maxx = load_feature_data(opt.frame_path, opt.mask_path, gradient=False,dim=opt.input_shape)
+    print('point1, finished load data')
+    frame_data, mask_data = dataGen(opt.batch_size)
     
-    # print('point1, finished load data')
-    
-    # print('point2, shape frame mask', frame_data.shape, mask_data.shape)
+    print('point2, shape frame mask', frame_data.shape, mask_data.shape)
     '''2. split train_val_test:
             input_train/val/test
             label_train/val/test  '''
-    '''input_train, input_test, label_train, label_test = train_test_split(
+    input_train, input_test, label_train, label_test = train_test_split(
                 frame_data, mask_data, test_size=0.15, shuffle=False)
 
     input_train, input_val, label_train, label_val = train_test_split(
@@ -54,14 +54,11 @@ def main():
                 label_test.astype('float32')]
     }
     
-    preprocess(Data_dict, minn, maxx, opt.input_shape)
-    '''
-    
     mkdir(opt.result_path)
     if opt.isTrain:
         # the actual model
         mkdir(opt.model_path)
-        define_model(opt)
+        define_model(Data_dict, opt)
     
     else:
         # test/ prediction
