@@ -37,8 +37,8 @@ def load_feature_data(frame_dir, mask_dir, gradient=False, dim=512,shuffle=False
     
     for i in range(len(frame_names)):
         frame_file = frame_names[i]
-        #if len(frames)>30:
-        #    break
+        if len(frames)>30:
+            break
         frame_path = os.path.join(frame_dir, frame_file)
         mask_path = os.path.join(mask_dir, frame_file.replace('DEM','label'))
     #tif

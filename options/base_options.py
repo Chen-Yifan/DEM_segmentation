@@ -82,6 +82,6 @@ class BaseOptions():
         opt = self.gather_options()
         opt.model_path = os.path.join(opt.ckpt_dir, opt.date, opt.ckpt_name)
         opt.result_path = os.path.join(opt.results_dir, opt.date, opt.ckpt_name)
-
+        util.mkdir(opt.result_path)
         self.opt = opt
         return self.opt
