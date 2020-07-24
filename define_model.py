@@ -4,13 +4,13 @@ from keras.callbacks import ModelCheckpoint,TensorBoard,CSVLogger,EarlyStopping,
 from keras.models import model_from_json
 from dataGenerator import custom_image_generator
 from keras.optimizers import Adadelta, Adam, SGD
-from metrics import iou_label,per_pixel_acc
+from metrics import *
 from util.util import *
 import tensorflow as tf
 from models.models import *
 from models.deeplab import *
 from losses import * 
-from build_model import *
+import lovasz_losses_tf as L
 
 def get_callbacks(weights_path, model_path, patience_lr):
 
@@ -36,16 +36,23 @@ def define_model(Data, opt):
     init = opt.weight_init
     input_channel = opt.input_channel
     
+    # different loss function
+    if opt.loss == 'bce':
+        model = unet(1,(dim,dim,input_channel),'relu','sigmoid')
+    elif opt.loss == 'cce':
+        model = unet(1,(dim,dim,input_channel),'relu','softmax') 
+    else:
+        model = unet(1,(dim,dim,input_channel),'elu',None) 
+        
 #     model = DeeplabV2(n_classes=1, input_shape=(dim,dim,input_channel))
 #     model = segnet(1,(dim,dim,input_channel),'sigmoid') 
-    model = unet(1,(dim,dim,input_channel),'elu',None) 
-#     model = unet_shirui(1, (dim,dim,input_channel), 1e-6, drop, init, num_filters, output_mode=None)
+#     model = unet(1,(dim,dim,input_channel),'relu','sigmoid') #lovasz 'elu' None threshold 0 
+#     model = unet_shirui(1, (dim,dim,input_channel), 1e-6, drop, init, num_filters, output_mode='sigmoid')
     
-#    model = build_model(dim, n_classes=1)
     
     weights_path = None 
     if opt.save_model:
-        weights_path = opt.model_path +'/weights.{epoch:02d}-{val_loss:.2f}.hdf5'#-{val_iou_label:.2f}.hdf5'
+        weights_path = opt.model_path +'/weights.{epoch:02d}-{val_loss:.2f}-{val_iou:.2f}.hdf5'
     
     callbacks = get_callbacks(weights_path, opt.model_path, 5)
     
@@ -116,8 +123,13 @@ def test_model(opt):
     learn_rate = opt.lr
     optimizer = Adam(lr=learn_rate)
     
-    model.compile(loss='binary_crossentropy', metrics=[iou_label,per_pixel_acc,'accuracy'], optimizer=optimizer)
-    #model.compile(loss=sparse_softmax_cce, metrics=[iou_label,per_pixel_acc,'accuracy'], optimizer=optimizer)
+    if opt.loss=='bce':
+        model.compile(loss='binary_crossentropy', metrics=[iou_label(),per_pixel_acc(),accuracy()], optimizer=optimizer)
+    elif opt.loss=='cce':
+        model.compile(loss=sparse_softmax_cce, metrics=[iou_label(),per_pixel_acc(),accuracy()], optimizer=optimizer)
+    else:
+        model.compile(loss=L.lovasz_loss, metrics=[iou_label(threshold=0),per_pixel_acc(threshold=0),accuracy(threshold=0)], optimizer=optimizer)
+        
     model.summary()
     
     print('***********FINISH TRAIN & START TESTING******************')

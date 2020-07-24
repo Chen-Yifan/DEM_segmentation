@@ -4,21 +4,24 @@ mpl.use('Agg')
 
 from matplotlib import pyplot as plt
 
-def visualize(result_path, img_data, real_data, predict_data, idx):
-    
+def visualize(result_path, img_data, real_data, predict_data, idx, threshold):
+    if threshold:
+        threshold = 0.5
+        
     if real_data.ndim==4:
         real_data = real_data[:,:,:,0]
     if img_data.ndim==4:
         img_data = img_data[:,:,:,0]
     if predict_data.shape[-1]==1:
         predict_data = predict_data[:,:,:,0]
-        predicted_data = (predict_data>=0).astype('uint8')
+        predicted_data = (predict_data>=threshold).astype('uint8')
         print('predicted_data',predicted_data.shape)
     elif predict_data.shape[-1]==2:
         predict_data = np.argmax(predict_data,axis=-1)
         predicted_data = predict_data
 
     f = plt.figure(figsize = (10,10))
+    f.suptitle('The'+str(idx)+'th image')
     
     f.add_subplot(2,2,1)
     cs = plt.imshow(img_data[idx])

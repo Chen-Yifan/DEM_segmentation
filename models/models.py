@@ -148,13 +148,13 @@ def unet_shirui(n_classes=1, input_shape = (128,128,1), lmbda=1e-6, drop=0.45, i
     model = Model(inputs = inputs, outputs = conv10)
     
     optimizer = Adam(lr=3e-4)
-    optimizer = Adadelta(learning_rate=1.0, rho=0.95)
+    #optimizer = Adadelta()
     if output_mode == 'softmax':
         model.compile(loss=sparse_softmax_cce, metrics=[iou_label,per_pixel_acc,accuracy], optimizer=optimizer)
-    elif output_mode == 'sigmoid': 
-        model.compile(loss='binary_crossentropy',metrics=[partial(iou_label,threshold=0.5), partial(per_pixel_acc,threshold=0.5),partial(accuracy,threshold=0.5)], optimizer=optimizer)
+    elif output_mode == 'sigmoid':
+        model.compile(loss='binary_crossentropy', metrics=[iou_label,per_pixel_acc,accuracy], optimizer=optimizer)
     else:
-        model.compile(loss=L.lovasz_loss, metrics=[iou_label,per_pixel_acc,accuracy], optimizer=optimizer)
+        model.compile(loss=L.lovasz_loss, metrics=[iou_label(threshold=0),per_pixel_acc(threshold=0),accuracy(threshold=0)], optimizer=optimizer)
         
     model.summary()
     
@@ -204,14 +204,15 @@ def unet(n_classes=1, input_shape = (128,128,1), activation='elu',output_mode='s
     model = Model(inputs = inputs, outputs = conv10)
     
     optimizer = Adam(lr=3e-4)
+#     optimizer = Adadelta()
     if output_mode == 'softmax':
-        model.compile(loss=L.lovasz_softmax, metrics=['accuracy',iou_label], optimizer=optimizer)
+        model.compile(loss=sparse_softmax_cce, metrics=[iou_label(),per_pixel_acc(),accuracy()], optimizer=optimizer)
         
     elif output_mode == 'sigmoid': 
-        model.compile(loss='binary_crossentropy',metrics=[partial(iou_label,threshold=0.5), partial(per_pixel_acc,threshold=0.5),partial(accuracy,threshold=0.5)], optimizer=optimizer)
+        model.compile(loss='binary_crossentropy',metrics=[iou_label(),per_pixel_acc(),accuracy()], optimizer=optimizer)
         
     else:
-        model.compile(loss=L.lovasz_loss, metrics=[iou_label,per_pixel_acc,accuracy], optimizer=optimizer)
+        model.compile(loss=L.lovasz_loss, metrics=[iou_label(threshold=0),per_pixel_acc(threshold=0),accuracy(threshold=0)], optimizer=optimizer)
         
     model.summary()
     
@@ -347,7 +348,8 @@ def segnet(
 
     model = Model(inputs=inputs, outputs=outputs, name="SegNet")
     
-    optimizer = Adam(lr=3e-4)
+#     optimizer = Adam(lr=3e-4)
+    optimizer = Adadelta()
     if output_mode == 'softmax':
         model.compile(loss=sparse_softmax_cce, metrics=[iou_label,per_pixel_acc,'accuracy'], optimizer=optimizer)
     else:

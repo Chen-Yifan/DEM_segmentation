@@ -146,22 +146,6 @@ def f1score_0(y_true, y_pred):
     result = (numerator/denominator)*2
     return result
 
-def per_pixel_acc(y_true, y_pred, threshold=0): # class1 and class0 actually the same
-#     accuracy=(TP+TN)/(TP+TN+FP+FN)
-    #class 1
-    if(y_pred.shape[-1]==2): # one-hot
-        y_pred = K.cast(K.argmax(y_pred,axis=-1),'uint8')
-    elif(y_pred.shape[-1]==1):
-        y_pred = K.cast(K.greater(K.squeeze(y_pred,axis=-1),threshold),'uint8')
-    y_true = K.cast(K.squeeze(y_true,axis=-1),'uint8')
-
-    TP = tf.math.count_nonzero(y_pred * y_true)
-    TN = tf.math.count_nonzero((1-y_pred)*(1-y_true))
-    FP = tf.math.count_nonzero(y_pred*(1-y_true))
-    FN = tf.math.count_nonzero((1-y_pred)*y_true)
-    acc1 = (TP)/(TP+FN)
-    return acc1
-
 def FP(y_true, y_pred):
     y_pred = K.argmax(y_pred)
     y_true = K.argmax(y_true)
@@ -181,34 +165,43 @@ def FN(y_true, y_pred):
     return FN/(FP + FN)
 
 
-# def iou_coef(y_true, y_pred, smooth=1):
-#     """
-#     IoU = (|X &amp; Y|)/ (|X or Y|)
-#     """
-#     intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
-#     union = K.sum(y_true,-1) + K.sum(y_pred,-1) - intersection
-#     return (intersection + smooth) / ( union + smooth)
+def per_pixel_acc(threshold=0.5): # class1 and class0 actually the same
+    def per_pixel_accuracy(y_true, y_pred):
+    #     accuracy=(TP+TN)/(TP+TN+FP+FN)
+        #class 1
+        if(y_pred.shape[-1]==2): # one-hot
+            y_pred = K.cast(K.argmax(y_pred,axis=-1),'uint8')
+        elif(y_pred.shape[-1]==1):
+            y_pred = K.cast(K.greater(K.squeeze(y_pred,axis=-1),threshold),'uint8')
+        y_true = K.cast(K.squeeze(y_true,axis=-1),'uint8')
 
-# def iou_coef_loss(y_true, y_pred):
-#     return -iou_coef(y_true, y_pred)
+        TP = tf.math.count_nonzero(y_pred * y_true)
+        TN = tf.math.count_nonzero((1-y_pred)*(1-y_true))
+        FP = tf.math.count_nonzero(y_pred*(1-y_true))
+        FN = tf.math.count_nonzero((1-y_pred)*y_true)
+        acc1 = (TP)/(TP+FN)
+        return acc1
+    return per_pixel_accuracy
                   
                   
-def iou_label(y_true, y_pred, threshold=0):
-    ''' 
-    calculate iou for label class
-    IOU = true_positive / (true_positive + false_positive + false_negative)
-    '''
-    print(y_true.shape,y_pred.shape)
-    if(y_pred.shape[-1]==2): # one-hot
-        y_pred = K.cast(K.argmax(y_pred,axis=-1),'uint8')
-    elif(y_pred.shape[-1]==1):
-        y_pred = K.cast(K.greater(K.squeeze(y_pred,axis=-1),threshold),'uint8')
-    y_true = K.cast(K.squeeze(y_true,axis=-1),'uint8')
-    TP = tf.math.count_nonzero(y_pred * y_true)
-    TN = tf.math.count_nonzero((1-y_pred)*(1-y_true))
-    FP = tf.math.count_nonzero(y_pred*(1-y_true))
-    FN = tf.math.count_nonzero((1-y_pred)*y_true)
-    return TP/(TP+FP+FN)
+def iou_label(threshold=0.5):
+    def iou(y_true, y_pred):
+        ''' 
+        calculate iou for label class
+        IOU = true_positive / (true_positive + false_positive + false_negative)
+        '''
+        print(y_true.shape,y_pred.shape)
+        if(y_pred.shape[-1]==2): # one-hot
+            y_pred = K.cast(K.argmax(y_pred,axis=-1),'uint8')
+        elif(y_pred.shape[-1]==1):
+            y_pred = K.cast(K.greater(K.squeeze(y_pred,axis=-1),threshold),'uint8')
+        y_true = K.cast(K.squeeze(y_true,axis=-1),'uint8')
+        TP = tf.math.count_nonzero(y_pred * y_true)
+        TN = tf.math.count_nonzero((1-y_pred)*(1-y_true))
+        FP = tf.math.count_nonzero(y_pred*(1-y_true))
+        FN = tf.math.count_nonzero((1-y_pred)*y_true)
+        return TP/(TP+FP+FN)
+    return iou
 
 
 def iou_back(y_true, y_pred):
@@ -225,18 +218,19 @@ def iou_back(y_true, y_pred):
     FN = tf.math.count_nonzero((1-y_pred)*y_true)
     return TP/(TP+FP+FN)
 
-def accuracy(y_true, y_pred, threshold=0):
-    '''calculate classification accuracy'''
-    if(y_pred.shape[-1]==2): # one-hot
-        y_pred = K.cast(K.argmax(y_pred,axis=-1),'uint8')
-    elif(y_pred.shape[-1]==1):
-        y_pred = K.cast(K.greater(K.squeeze(y_pred,axis=-1), threshold),'uint8')
-    y_true = K.cast(K.squeeze(y_true,axis=-1),'uint8')
+def accuracy(threshold=0.5):
+    def acc(y_true, y_pred):
+        '''calculate classification accuracy'''
+        if(y_pred.shape[-1]==2): # one-hot
+            y_pred = K.cast(K.argmax(y_pred,axis=-1),'uint8')
+        elif(y_pred.shape[-1]==1):
+            y_pred = K.cast(K.greater(K.squeeze(y_pred,axis=-1), threshold),'uint8')
+        y_true = K.cast(K.squeeze(y_true,axis=-1),'uint8')
 
-    TP = tf.math.count_nonzero(y_pred * y_true)
-    TN = tf.math.count_nonzero((1-y_pred)*(1-y_true))
-    FP = tf.math.count_nonzero(y_pred*(1-y_true))
-    FN = tf.math.count_nonzero((1-y_pred)*y_true)
-    acc = (TP+TN)/(TP+TN+FP+FN)
+        TP = tf.math.count_nonzero(y_pred * y_true)
+        TN = tf.math.count_nonzero((1-y_pred)*(1-y_true))
+        FP = tf.math.count_nonzero(y_pred*(1-y_true))
+        FN = tf.math.count_nonzero((1-y_pred)*y_true)
+        result = (TP+TN)/(TP+TN+FP+FN)
+        return result
     return acc
-
