@@ -1,36 +1,46 @@
+import numpy as np
+import matplotlib as mpl
+mpl.use('Agg')
+
 from matplotlib import pyplot as plt
 
-def visualize(result_path, img_data, real_data, predict_data, predicted_data, idx):
-    
+def visualize(result_path, img_data, real_data, predict_data, idx, threshold):
+    if threshold:
+        threshold = 0.5
+        
+    if real_data.ndim==4:
+        real_data = real_data[:,:,:,0]
+    if img_data.ndim==4:
+        img_data = img_data[:,:,:,0]
+    if predict_data.shape[-1]==1:
+        predict_data = predict_data[:,:,:,0]
+        predicted_data = (predict_data>=threshold).astype('uint8')
+        print('predicted_data',predicted_data.shape)
+    elif predict_data.shape[-1]==2:
+        predict_data = np.argmax(predict_data,axis=-1)
+        predicted_data = predict_data
+
     f = plt.figure(figsize = (10,10))
+    f.suptitle('The'+str(idx)+'th image')
     
     f.add_subplot(2,2,1)
-    cs = plt.imshow(img_data[idx,:,:])
+    cs = plt.imshow(img_data[idx])
     cbar = f.colorbar(cs)
     cbar.ax.minorticks_off()
     plt.title('image')
     
     f.add_subplot(2,2,2)
-    cs = plt.imshow(real_data[idx,:,:])
+    cs = plt.imshow(real_data[idx])
     cbar = f.colorbar(cs)
     cbar.ax.minorticks_off()
     plt.title('real')
     
     f.add_subplot(2,2,3)
-    cs = plt.imshow(predict_data[idx,:,:])
+    cs = plt.imshow(predict_data[idx])
     cbar = f.colorbar(cs)
     cbar.ax.minorticks_off()
     plt.title('predicted')
     
-    # predicted_data = np.zeros((predict_data.shape[0], predict_data.shape[1], predict_data.shape[2]))
-    # f.add_subplot(1,3,3)
-    # for i in range(predict_data.shape[0]):
-        # for j in range(predict_data.shape[1]):
-            # for k in range(predict_data.shape[2]):
-                # if (predict_data[i,j,k]>=0.3):
-                    # predicted_data[i,j,k] =1
-                # else:
-                    # predicted_data[i,j,k] =0
     f.add_subplot(2,2,4)
     cs = plt.imshow(predicted_data[idx,:,:])
     cbar = f.colorbar(cs)

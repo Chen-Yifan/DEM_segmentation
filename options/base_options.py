@@ -14,7 +14,7 @@ class BaseOptions():
         """Define the common options that are used in both training and test."""
         
         parser.add_argument("--date", type=str, default='tryout', help='date is a split directory to save our model')
-        parser.add_argument("--isTrain", type=int, default=1, help='is train or test')
+        parser.add_argument("--isTrain", action='store_true', help='is True, in train mode, otherwise test mode')
         parser.add_argument("--model", type=str, default='unet', help='choose which model to use')
         parser.add_argument("--results_dir", type=str, default='./results/', help='results are saved here')
         parser.add_argument('--ckpt_name', type=str, default='experiment', help='name of the experiment. It decides where to store samples and models')
@@ -26,9 +26,11 @@ class BaseOptions():
         parser.add_argument("--optimizer", type=str, default='Adadelta', help='1:Adam, 2:Adadelta')
         parser.add_argument('--input_channel', type=int, default=1)
         parser.add_argument('--input_shape', type=int, default=512, help='input image width/height')
-        parser.add_argument('--use_gradient', type=int, default=1, help='if use gradient as input')
+        parser.add_argument('--use_gradient', action='store_true',, help='if use gradient as input')
         parser.add_argument('--n_classes', type=int, default=2, help='output classes')
-        parser.add_argument('--save_model', type=int, default=1, help='whether or not we save the model to ckpt_dir')
+        parser.add_argument('--save_model', action='store_true', help='whether or not we save the model to ckpt_dir')
+        parser.add_argument('--threshold', type=int, default=0, help='if 0: threshold=0, if 1, threshold=0.5')
+        parser.add_argument('--loss', type=str, default='bce', help='which loss function to use')
 
         self.initialized = True
         return parser
@@ -81,7 +83,7 @@ class BaseOptions():
         """Parse our options, create checkpoints directory suffix, and set up gpu device."""
         opt = self.gather_options()
         opt.model_path = os.path.join(opt.ckpt_dir, opt.date, opt.ckpt_name)
-        opt.result_path = os.path.join(opt.results_dir, opt.date, opt.ckpt_name, 'epoch%s'%str(opt.n_epoch))
-
+        opt.result_path = os.path.join(opt.results_dir, opt.date, opt.ckpt_name)
+        util.mkdir(opt.result_path)
         self.opt = opt
         return self.opt

@@ -8,6 +8,7 @@ from keras.utils import to_categorical
 from itertools import product
 
 from scipy.spatial.distance import cdist
+
 def dissimilarity_loss(y_true, y_pred):
     '''
     args:
@@ -42,8 +43,15 @@ def dissimilarity_loss(y_true, y_pred):
         else:
             dist_2 = cdist(np.array([[gt_idx[0],gt_idx[1]]]), pred_idxs,'cityblock')
             loss += dist_2.min()
-     return loss
     
+    return loss
+
+def sparse_softmax_cce(y_true, y_pred):
+    if len(y_true.get_shape()) == 4:
+        y_true = K.squeeze(y_true, axis=-1)
+    y_true = tf.cast(y_true, 'uint8')
+    return tf.keras.backend.sparse_categorical_crossentropy(y_true,y_pred)
+
 # plan B
 def pixel_wise_loss(y_true, y_pred, shape=128):
 #     y_pred = K.argmax(y_pred)
@@ -61,54 +69,15 @@ def pixel_wise_loss(y_true, y_pred, shape=128):
    # loss = tf.nn.softmax_cross_entropy_with_logits(labels=y_true,logits=y_pred)
     return K.mean(loss,axis=-1)
 
-def weighted_categorical_crossentropy(weights): # after softmax
+def dice_coef(y_true, y_pred, smooth=1):
     """
-    A weighted version of keras.objectives.categorical_crossentropy
-    
-    Variables:
-        weights: numpy array of shape (C,) where C is the number of classes
-    
-    Usage:
-        weights = np.array([0.5,2,10]) # Class one at 0.5, class 2 twice the normal weights, class 3 10x.
-        loss = weighted_categorical_crossentropy(weights)
-        model.compile(loss=loss,optimizer='adam')
+    Dice = (2*|X & Y|)/ (|X|+ |Y|)
+         =  2*sum(|A*B|)/(sum(A^2)+sum(B^2))
+    ref: https://arxiv.org/pdf/1606.04797v1.pdf
     """
-    
-    weights = K.variable(weights)
-        
-    def loss(y_true, y_pred):
-        # scale predictions so that the class probas of each sample sum to 1
-        y_pred /= K.sum(y_pred, axis=-1, keepdims=True)
-        # clip to prevent NaN's and Inf's
-        y_pred = K.clip(y_pred, K.epsilon(), 1 - K.epsilon())
-        # calc
-        loss = y_true * K.log(y_pred) * weights
-        loss = -K.sum(loss, -1)
-        return loss
-    
-    return loss
-
-def multi_weighted_loss_v2(y_true, y_pred, shape=128):
-    y_true = tf.reshape(tensor=y_true, shape=(-1, shape*shape, 5))
-    y_pred = tf.reshape(tensor=y_pred, shape=(-1, shape*shape, 5))
-    return tf.compat.v1.losses.softmax_cross_entropy(
-        y_true,
-        y_pred,
-        weights=[1,20,50,100,200])
-
-def multi_weighted_loss_v3(y_true, y_pred, shape=128):
-    y_true = tf.reshape(tensor=y_true, shape=(-1, shape*shape, 5))
-    y_pred = tf.reshape(tensor=y_pred, shape=(-1, shape*shape, 5))
-    class_weights = [1,20,50,100,200]
-    class_weights = tf.multiply(y_true, class_weights)
-    loss_crossentropy = tf.losses.softmax_cross_entropy(class_weights, y_pred)
-    return tf.reduce_mean(loss_crossentropy)
-          
-def dice_coef(y_true, y_pred, smooth = 0.01):
-    y_true_f = K.flatten(y_true)
-    y_pred_f = K.flatten(y_pred)
-    intersection = K.sum(y_true_f * y_pred_f)
-    return (2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
+    intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
+    return (2. * intersection + smooth) / (K.sum(K.square(y_true),-1) + K.sum(K.square(y_pred),-1) + smooth)
 
 def dice_coef_loss(y_true, y_pred):
     return 1-dice_coef(y_true, y_pred)
+
