@@ -14,7 +14,9 @@ def centerline_acc(y_true, y_pred):
     acc = ( y_true_center & y_pred ) / y_true_center
     """
     smooth = 0.01
-    y_true_center = K.cast(medial_axis(y_true), dtype='uint8')
+    y_true = y_true.numpy()
+    y_pred = y_pred.numpy()
+    y_true_center = medial_axis(y_true).astype('uint8')
     return (K.sum(y_true_center & y_pred))/K.sum(y_true_center + smooth)
 
 
