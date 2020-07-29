@@ -150,11 +150,11 @@ def unet_shirui(n_classes=1, input_shape = (128,128,1), lmbda=1e-6, drop=0.45, i
     optimizer = Adam(lr=3e-4)
     #optimizer = Adadelta()
     if output_mode == 'softmax':
-        model.compile(loss=sparse_softmax_cce, metrics=[iou_label,per_pixel_acc,accuracy], optimizer=optimizer)
+        model.compile(loss=sparse_softmax_cce, metrics=[centerline_acc, iou_label,per_pixel_acc,accuracy], optimizer=optimizer)
     elif output_mode == 'sigmoid':
-        model.compile(loss='binary_crossentropy', metrics=[iou_label,per_pixel_acc,accuracy], optimizer=optimizer)
+        model.compile(loss='binary_crossentropy', metrics=[centerline_acc, iou_label,per_pixel_acc,accuracy], optimizer=optimizer)
     else:
-        model.compile(loss=L.lovasz_loss, metrics=[iou_label(threshold=0),per_pixel_acc(threshold=0),accuracy(threshold=0)], optimizer=optimizer)
+        model.compile(loss=L.lovasz_loss, metrics=[centerline_acc, iou_label(threshold=0),per_pixel_acc(threshold=0),accuracy(threshold=0)], optimizer=optimizer)
         
     model.summary()
     
@@ -206,13 +206,13 @@ def unet(n_classes=1, input_shape = (128,128,1), activation='elu',output_mode='s
     optimizer = Adam(lr=3e-4)
 #     optimizer = Adadelta()
     if output_mode == 'softmax':
-        model.compile(loss=sparse_softmax_cce, metrics=[iou_label(),per_pixel_acc(),accuracy()], optimizer=optimizer)
+        model.compile(loss=sparse_softmax_cce, metrics=[centerline_acc, iou_label(),per_pixel_acc(),accuracy()], optimizer=optimizer)
         
     elif output_mode == 'sigmoid': 
-        model.compile(loss='binary_crossentropy',metrics=[iou_label(),per_pixel_acc(),accuracy()], optimizer=optimizer)
+        model.compile(loss='binary_crossentropy',metrics=[centerline_acc, iou_label(),per_pixel_acc(),accuracy()], optimizer=optimizer)
         
     else:
-        model.compile(loss=L.lovasz_loss, metrics=[iou_label(threshold=0),per_pixel_acc(threshold=0),accuracy(threshold=0)], optimizer=optimizer)
+        model.compile(loss=L.lovasz_loss, metrics=[centerline_acc, iou_label(threshold=0),per_pixel_acc(threshold=0),accuracy(threshold=0)], optimizer=optimizer)
         
     model.summary()
     

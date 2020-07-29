@@ -6,6 +6,16 @@ import skimage.io as io
 import tensorflow as tf
 import cv2
 from itertools import product
+from skimage.morphology import medial_axis
+
+
+def centerline_acc(y_true, y_pred):
+    """
+    acc = ( y_true_center & y_pred ) / y_true_center
+    """
+    smooth = 0.01
+    y_true_center = medial_axis(y_true).astype(np.uint8)
+    return (K.sum(y_true_center & y_pred))/K.sum(y_true_center + smooth)
 
 
 def Mean_IoU_cl(cl=2, shape=128):

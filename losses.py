@@ -6,7 +6,6 @@ import skimage.io as io
 import tensorflow as tf
 from keras.utils import to_categorical
 from itertools import product
-
 from scipy.spatial.distance import cdist
 
 def dissimilarity_loss(y_true, y_pred):
