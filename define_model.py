@@ -8,7 +8,6 @@ from metrics import *
 from util.util import *
 import tensorflow as tf
 from models.models import *
-from models.deeplab import *
 from losses import * 
 import lovasz_losses_tf as L
 
@@ -23,6 +22,28 @@ def get_callbacks(weights_path, model_path, patience_lr):
         return [mcp_save, reduce_lr_loss, tensorboard]
     return [reduce_lr_loss, tensorboard]
 
+def helper_pred(X_true, Y_true):
+    score = model.evaluate(X_true, Y_true)  
+    
+    Y_pred = model.predict(X_true)
+    print('***********TEST RESULTS, write to output.txt*************')
+    message = ''
+    for j in range(len(model.metrics_names)):
+        print("%s: %.2f%%" % (model.metrics_names[j], score[j]*100))
+        message += "%s: %.2f%% \n" % (model.metrics_names[j], score[j]*100)
+    # centerline accuracy
+    message += "centerlineAccuracy: %.2f%% \n" %centerline_acc(Y_true, Y_pred)   
+        
+    with open(opt.model_path+'/output_%s.txt'%opt.epoch, 'wt') as opt_file:
+        opt_file.write(message)
+        opt_file.write('\n')
+            
+    print('********************SAVE RESULTS ************************')
+    result_dir = opt.result_path + '/epoch%s/'%opt.n_epoch
+    mkdir(result_dir)
+    np.save(result_dir + 'pred_labels.npy', Y_pred)  
+    
+    return Y_pred
 
 def define_model(Data, opt):
     dim = 128
@@ -77,24 +98,8 @@ def define_model(Data, opt):
     print('***********FINISH TRAIN & START TESTING******************')
     X_true, Y_true = Data['test'][0], Data['test'][1]
     
-    score = model.evaluate(X_true, Y_true)    
-    print('***********TEST RESULTS, write to output.txt*************')
-    message = ''
-    for j in range(len(model.metrics_names)):
-        print("%s: %.2f%%" % (model.metrics_names[j], score[j]*100))
-        message += "%s: %.2f%% \n" % (model.metrics_names[j], score[j]*100)
-        
-    with open(opt.model_path+'/output.txt', 'wt') as opt_file:
-        opt_file.write(message)
-        opt_file.write('\n')
-            
-    print('********************SAVE RESULTS ************************')
-    Y_preds = model.predict(X_true)
-    result_dir = opt.result_path + '/epoch%s/'%opt.n_epoch
-    mkdir(result_dir)
-    np.save(result_dir + 'pred_labels.npy', Y_preds)    
-    print('==================FINISH WITHOUT ERROR===================')
-    return X_true, Y_true, Y_preds
+    Y_pred = helper_pred(X_true, Y_true)
+    return X_true, Y_true, Y_pred
 
 def find_weight_dir(opt):
     #file_name[8:10] = the epoch
@@ -114,8 +119,7 @@ def test_model(opt):
     
     #load model and weights
     weight_dir = find_weight_dir(opt)
-    print(weight_dir)
-    print(weight_dir)
+    print('load weight from:', weight_dir)
     model = model_from_json(loaded_model_json, custom_objects = 
                     {'MaxPoolingWithArgmax2D': MaxPoolingWithArgmax2D, 'MaxUnpooling2D':MaxUnpooling2D})
     model.load_weights(weight_dir)
@@ -136,24 +140,9 @@ def test_model(opt):
     X_true = np.load(opt.result_path + '/inputs.npy')
     Y_true = np.load(opt.result_path + '/gt_labels.npy') 
     print(X_true.shape, Y_true.shape)
-    score = model.evaluate(X_true, Y_true)    
-    print('***********TEST RESULTS, write to output.txt*************')
-    message = ''
-    for j in range(len(model.metrics_names)):
-        print("%s: %.2f%%" % (model.metrics_names[j], score[j]*100))
-        message += "%s: %.2f%% \n" % (model.metrics_names[j], score[j]*100)
-        
-    with open(opt.model_path+'/output.txt', 'wt') as opt_file:
-        opt_file.write(message)
-        opt_file.write('\n')
-            
-    print('********************SAVE RESULTS ************************')
-    Y_preds = model.predict(X_true)
-    result_dir = opt.result_path + '/epoch%s/'%opt.n_epoch
-    mkdir(result_dir)
-    np.save(result_dir + 'pred_labels.npy', Y_preds)   
-
-    print('==================FINISH WITHOUT ERROR===================')
-    return X_true, Y_true, Y_preds
+    
+    Y_pred = helper_pred(X_true, Y_true)
+    
+    return X_true, Y_true, Y_pred
     
 
