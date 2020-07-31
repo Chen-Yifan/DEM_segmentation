@@ -23,7 +23,7 @@ class BaseOptions():
 
         parser.add_argument("--batch_size", type=int, default=32)
         parser.add_argument("--n_epoch", type=int, default=100)
-        parser.add_argument("--optimizer", type=str, default='Adam', help='1:Adam, 2:Adadelta')
+        parser.add_argument("--optimizer", type=str, default='Adadelta', help='1:Adam, 2:Adadelta')
         parser.add_argument('--input_channel', type=int, default=1)
         parser.add_argument('--input_shape', type=int, default=512, help='input image width/height')
         parser.add_argument('--use_gradient', action='store_true', help='if use gradient as input')

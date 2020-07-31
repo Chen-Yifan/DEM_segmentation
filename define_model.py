@@ -57,14 +57,15 @@ def define_model(Data, opt):
     input_channel = opt.input_channel
     
     # different loss function
-    if opt.loss == 'bce':
-        model = unet(1,(dim,dim,input_channel),'relu','sigmoid')
-#         model = unet_shirui(1, (dim,dim,input_channel), 1e-6, drop, init, num_filters, output_mode='sigmoid')
-        
-    elif opt.loss == 'cce':
-        model = unet(1,(dim,dim,input_channel),'relu','softmax') 
+    if opt.model == 'unet':
+        model = unet()
     else:
-        model = unet(1,(dim,dim,input_channel),'elu',None) 
+        model = unet_shirui(1, (dim,dim,input_channel), 1e-6, drop, init, num_filters, output_mode='sigmoid')
+        
+#     elif opt.loss == 'cce':
+#         model = unet(1,(dim,dim,input_channel),'relu','softmax') 
+#     else:
+#         model = unet(1,(dim,dim,input_channel),'elu',None) 
         
 #     model = DeeplabV2(n_classes=1, input_shape=(dim,dim,input_channel))
 #     model = segnet(1,(dim,dim,input_channel),'sigmoid') 
@@ -93,8 +94,8 @@ def define_model(Data, opt):
     
     if opt.save_model:
         model_json = model.to_json()
-    with open(opt.model_path+"/model.json", "w") as json_file:
-        json_file.write(model_json)
+        with open(opt.model_path+"/model.json", "w") as json_file:
+            json_file.write(model_json)
 
     print('***********FINISH TRAIN & START TESTING******************')
     X_true, Y_true = Data['test'][0], Data['test'][1]

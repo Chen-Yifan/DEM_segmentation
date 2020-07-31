@@ -28,7 +28,6 @@ def train_test_val_split(frame_data,mask_data, name_list, opt):
     with open(opt.result_path+'/test_names.csv', 'w') as myfile:
         wr = csv.writer(myfile, dialect='excel')
         wr.writerow(test_names)
-    exit
     x_train,x_val,x_test = frame_data[:a],frame_data[a:b],frame_data[b:]
     y_train,y_val,y_test = mask_data[:a],mask_data[a:b],mask_data[b:]
     return x_train, x_val, x_test, y_train, y_val, y_test
@@ -44,8 +43,7 @@ def main():
             return:  min, max among all the input images
         '''
 
-        frame_data, mask_data, name_list, minn, maxx = load_feature_data(opt.frame_path, opt.mask_path, 
-                                                              gradient=False,dim=opt.input_shape)
+        frame_data, mask_data, name_list, minn, maxx = load_feature_data(opt.frame_path, opt.mask_path,gradient=False,dim=opt.input_shape)
         print(np.min(frame_data),np.max(frame_data),np.unique(mask_data))
         print('point1, finish loading data')
 
@@ -84,11 +82,14 @@ def main():
         print('===========test==========')
         img, real, pred = test_model(opt)
         
+    # visualize result
+#     img = np.load(opt.result_path + '/inputs.npy')    
+#     real = np.load(opt.result_path + '/gt_labels.npy')    
     
-# 7.30 7:03pm comment
-#     result_dir = opt.result_path + '/epoch%s/'%opt.n_epoch
-#     for i in range(100):
-#         visualize(result_dir,img,real,pred,i,opt.threshold)
+    
+    result_dir = opt.result_path + '/epoch%s/'%opt.n_epoch
+    for i in range(100):
+        visualize(result_dir,img,real,pred,i,opt.threshold)
         
     
 main()    
