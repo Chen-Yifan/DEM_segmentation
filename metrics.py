@@ -6,7 +6,35 @@ import skimage.io as io
 import tensorflow as tf
 import cv2
 from itertools import product
+from skimage.morphology import skeletonize
 
+def centerline_acc(y_true, y_pred):
+    """
+    acc = (#( y_true_center & y_pred ) / #y_true_center + #( y_pred_center & y_true ) / #y_pred_center) / 2
+    Average of ( ratio of right prediction on centerline + ratio of predicted centerline in the groundtruth buffer)
+    """
+    smooth = 0.01
+    y_pred = (y_pred >= 0.5).astype('uint8')
+    y_true = y_true.astype('uint8')
+    n = len(y_true)
+    acc = 0
+    for i in range(n):
+        y_pred_curr = np.squeeze(y_pred[i])
+        y_true_curr = np.squeeze(y_true[i])
+        
+        y_true_center = skeletonize(y_true_curr).astype('uint8')     
+        tmp = np.sum(y_true_center&y_pred_curr)/(np.sum(y_true_center) + smooth)
+
+        y_pred_center = skeletonize(y_pred_curr).astype('uint8')
+        tmp2 = np.sum(y_pred_center&y_true_curr)/(np.sum(y_pred_center) + smooth)
+
+#         if(np.sum(y_true_center)<10 or np.sum(y_pred_center)<10): # if there is too little features in an image, ignore it
+#             n-=1
+#             continue
+            
+        acc += (tmp + tmp2)/2
+
+    return acc/n
 
 def Mean_IoU_cl(cl=2, shape=128):
     

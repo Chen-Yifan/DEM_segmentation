@@ -59,10 +59,10 @@ def load_feature_data(frame_dir, mask_dir, gradient=False, dim=512,resize=False)
             frame_array = np.load(frame_path)[:,:,-1]
             label_array = np.load(mask_path)
         dims = frame_array.shape
-#         if dims[0]!=dim or dims[1]!=dim or (not is_feature_present(label_array)) or (len(np.unique(frame_array))<3):
+        if dims[0]!=dim or dims[1]!=dim or (not is_feature_present(label_array)) or (len(np.unique(frame_array))<3):
 #             os.remove(mask_path)
 #             os.remove(frame_path)
-#             continue
+            continue
         
         if gradient:
             [dx, dy] = np.gradient(frame_array)

@@ -10,6 +10,7 @@ from losses import *
 from keras.regularizers import l2
 import tensorflow as tf
 import lovasz_losses_tf as L
+from tensorflow.keras.metrics import MeanIoU, Precision, Recall
 
 K.set_image_data_format('channels_last')  # TF dimension ordering in this code
 
@@ -147,12 +148,13 @@ def unet_shirui(n_classes=1, input_shape = (128,128,1), lmbda=1e-6, drop=0.45, i
     conv10 = Reshape((128, 128, n_classes))(conv10)
     model = Model(inputs = inputs, outputs = conv10)
     
-    optimizer = Adam(lr=3e-4)
+    optimizer = Adam(lr=1e-4)
+    
     #optimizer = Adadelta()
     if output_mode == 'softmax':
         model.compile(loss=sparse_softmax_cce, metrics=[iou_label,per_pixel_acc,accuracy], optimizer=optimizer)
     elif output_mode == 'sigmoid':
-        model.compile(loss='binary_crossentropy', metrics=[iou_label,per_pixel_acc,accuracy], optimizer=optimizer)
+        model.compile(loss='binary_crossentropy', metrics=[iou_label(),per_pixel_acc(),accuracy()], optimizer=optimizer)
     else:
         model.compile(loss=L.lovasz_loss, metrics=[iou_label(threshold=0),per_pixel_acc(threshold=0),accuracy(threshold=0)], optimizer=optimizer)
         
@@ -162,62 +164,69 @@ def unet_shirui(n_classes=1, input_shape = (128,128,1), lmbda=1e-6, drop=0.45, i
         model.load_weights(pretrained_weights)
     return model
 
-def unet(n_classes=1, input_shape = (128,128,1), activation='elu',output_mode='sigmoid', pretrained_weights = None):
-    inputs = Input(input_shape)
-    conv1 = Conv2D(32, (3, 3), activation=activation, padding='same')(inputs)
-    conv1 = Conv2D(32, (3, 3), activation=activation, padding='same')(conv1)
+
+def unet():
+    inputs = Input((128, 128, 1))
+    conv1 = Conv2D(64, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(inputs)
+    conv1 = Conv2D(64, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(conv1)
     pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
-
-    conv2 = Conv2D(64, (3, 3), activation=activation, padding='same')(pool1)
-    conv2 = Conv2D(64, (3, 3), activation=activation, padding='same')(conv2)
+    conv2 = Conv2D(128, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(pool1)
+    conv2 = Conv2D(128, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(conv2)
     pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
-
-    conv3 = Conv2D(128, (3, 3), activation=activation, padding='same')(pool2)
-    conv3 = Conv2D(128, (3, 3), activation=activation, padding='same')(conv3)
+    conv3 = Conv2D(256, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(pool2)
+    conv3 = Conv2D(256, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(conv3)
     pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
-
-    conv4 = Conv2D(256, (3, 3), activation=activation, padding='same')(pool3)
-    conv4 = Conv2D(256, (3, 3), activation=activation, padding='same')(conv4)
-    pool4 = MaxPooling2D(pool_size=(2, 2))(conv4)
-
-    conv5 = Conv2D(512, (3, 3), activation=activation, padding='same')(pool4)
-    conv5 = Conv2D(512, (3, 3), activation=activation, padding='same')(conv5)
-
-    up6 = concatenate([UpSampling2D(size=(2, 2))(conv5), conv4], axis=3)
-    conv6 = Conv2D(256, (3, 3), activation=activation, padding='same')(up6)
-    conv6 = Conv2D(256, (3, 3), activation=activation, padding='same')(conv6)
-
-    up7 = concatenate([UpSampling2D(size=(2, 2))(conv6), conv3], axis=3)
-    conv7 = Conv2D(128, (3, 3), activation=activation, padding='same')(up7)
-    conv7 = Conv2D(128, (3, 3), activation=activation, padding='same')(conv7)
-
-    up8 = concatenate([UpSampling2D(size=(2, 2))(conv7), conv2], axis=3)
-    conv8 = Conv2D(64, (3, 3), activation=activation, padding='same')(up8)
-    conv8 = Conv2D(64, (3, 3), activation=activation, padding='same')(conv8)
-
-    up9 = concatenate([UpSampling2D(size=(2, 2))(conv8), conv1], axis=3)
-    conv9 = Conv2D(32, (3, 3), activation=activation, padding='same')(up9)
-    conv9 = Conv2D(32, (3, 3), activation=activation, padding='same')(conv9)
-
-    conv10 = Conv2D(n_classes, (1, 1),activation=output_mode)(conv9) # no softmax
-    
-    model = Model(inputs = inputs, outputs = conv10)
-    
-    optimizer = Adam(lr=3e-4)
-#     optimizer = Adadelta()
-    if output_mode == 'softmax':
-        model.compile(loss=sparse_softmax_cce, metrics=[iou_label(),per_pixel_acc(),accuracy()], optimizer=optimizer)
-        
-    elif output_mode == 'sigmoid': 
-        model.compile(loss='binary_crossentropy',metrics=[iou_label(),per_pixel_acc(),accuracy()], optimizer=optimizer)
-        
-    else:
-        model.compile(loss=L.lovasz_loss, metrics=[iou_label(threshold=0),per_pixel_acc(threshold=0),accuracy(threshold=0)], optimizer=optimizer)
-        
+    conv4 = Conv2D(512, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(pool3)
+    conv4 = Conv2D(512, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(conv4)
+    drop4 = Dropout(0.5)(conv4)
+    pool4 = MaxPooling2D(pool_size=(2, 2))(drop4)   
+    conv5 = Conv2D(1024, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(pool4)
+    conv5 = Conv2D(1024, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(conv5)
+    drop5 = Dropout(0.5)(conv5) 
+    up6 = Conv2D(512, 2, activation='relu', padding='same',
+                 kernel_initializer='he_normal')(UpSampling2D(size=(2, 2))(drop5))
+    merge6 = concatenate([drop4, up6], axis=3)
+    conv6 = Conv2D(512, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(merge6)
+    conv6 = Conv2D(512, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(conv6)   
+    up7 = Conv2D(256, 2, activation='relu', padding='same',
+                 kernel_initializer='he_normal')(UpSampling2D(size=(2, 2))(conv6))
+    merge7 = concatenate([conv3, up7], axis=3)
+    conv7 = Conv2D(256, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(merge7)
+    conv7 = Conv2D(256, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(conv7)   
+    up8 = Conv2D(128, 2, activation='relu', padding='same',
+                 kernel_initializer='he_normal')(UpSampling2D(size=(2, 2))(conv7))
+    merge8 = concatenate([conv2, up8], axis=3)
+    conv8 = Conv2D(128, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(merge8)
+    conv8 = Conv2D(128, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(conv8)   
+    up9 = Conv2D(64, 2, activation='relu', padding='same',
+                 kernel_initializer='he_normal')(UpSampling2D(size=(2, 2))(conv8))
+    merge9 = concatenate([conv1, up9], axis=3)
+    conv9 = Conv2D(64, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(merge9)
+    conv9 = Conv2D(64, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(conv9)
+    conv9 = Conv2D(2, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(conv9)
+    conv10 = Conv2D(1, 1, activation='sigmoid')(conv9)  
+    model = Model(inputs, conv10)   
+    model.compile(loss='binary_crossentropy',metrics=[iou_label(),per_pixel_acc(),accuracy()], optimizer=Adam(lr=1e-4))
     model.summary()
-    
-    if(pretrained_weights):
-        model.load_weights(pretrained_weights)
 
     return model
 
