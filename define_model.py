@@ -22,21 +22,20 @@ def get_callbacks(weights_path, model_path, patience_lr):
         return [mcp_save, reduce_lr_loss, tensorboard]
     return [reduce_lr_loss, tensorboard]
 
-def helper_pred(X_true, Y_true):
+def helper_pred(model, X_true, Y_true, opt):
     score = model.evaluate(X_true, Y_true)  
-    
     Y_pred = model.predict(X_true)
+    print('shape for skelentonize',Y_pred.shape, Y_true.shape)
     print('***********TEST RESULTS, write to output.txt*************')
     message = ''
     for j in range(len(model.metrics_names)):
-        print("%s: %.2f%%" % (model.metrics_names[j], score[j]*100))
         message += "%s: %.2f%% \n" % (model.metrics_names[j], score[j]*100)
     # centerline accuracy
-    message += "centerlineAccuracy: %.2f%% \n" %centerline_acc(Y_true, Y_pred)   
-        
-    with open(opt.model_path+'/output_%s.txt'%opt.epoch, 'wt') as opt_file:
+    message += "centerlineAccuracy: %.2f%% \n" %(centerline_acc(Y_true, Y_pred)*100)
+    print(message)
+    
+    with open(opt.model_path+'/output_%s.txt'%opt.n_epoch, 'wt') as opt_file:
         opt_file.write(message)
-        opt_file.write('\n')
             
     print('********************SAVE RESULTS ************************')
     result_dir = opt.result_path + '/epoch%s/'%opt.n_epoch
@@ -60,6 +59,8 @@ def define_model(Data, opt):
     # different loss function
     if opt.loss == 'bce':
         model = unet(1,(dim,dim,input_channel),'relu','sigmoid')
+#         model = unet_shirui(1, (dim,dim,input_channel), 1e-6, drop, init, num_filters, output_mode='sigmoid')
+        
     elif opt.loss == 'cce':
         model = unet(1,(dim,dim,input_channel),'relu','softmax') 
     else:
@@ -98,7 +99,7 @@ def define_model(Data, opt):
     print('***********FINISH TRAIN & START TESTING******************')
     X_true, Y_true = Data['test'][0], Data['test'][1]
     
-    Y_pred = helper_pred(X_true, Y_true)
+    Y_pred = helper_pred(model, X_true, Y_true, opt)
     return X_true, Y_true, Y_pred
 
 def find_weight_dir(opt):
@@ -141,7 +142,7 @@ def test_model(opt):
     Y_true = np.load(opt.result_path + '/gt_labels.npy') 
     print(X_true.shape, Y_true.shape)
     
-    Y_pred = helper_pred(X_true, Y_true)
+    Y_pred = helper_pred(model, X_true, Y_true, opt)
     
     return X_true, Y_true, Y_pred
     

@@ -84,9 +84,6 @@ def main():
         print('===========test==========')
         img, real, pred = test_model(opt)
         
-    # visualize result
-#     img = np.load(opt.result_path + '/inputs.npy')    
-#     real = np.load(opt.result_path + '/gt_labels.npy')    
     
 # 7.30 7:03pm comment
 #     result_dir = opt.result_path + '/epoch%s/'%opt.n_epoch
