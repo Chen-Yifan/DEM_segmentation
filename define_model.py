@@ -27,6 +27,8 @@ def helper_pred(model, X_true, Y_true, opt):
     Y_pred = model.predict(X_true)
     print('shape for skelentonize',Y_pred.shape, Y_true.shape)
     print('***********TEST RESULTS, write to output.txt*************')
+    print('result_path',opt.model_path)
+    
     message = ''
     for j in range(len(model.metrics_names)):
         message += "%s: %.2f%% \n" % (model.metrics_names[j], score[j]*100)
@@ -76,7 +78,11 @@ def define_model(Data, opt):
     weights_path = None 
     if opt.save_model:
         weights_path = opt.model_path +'/weights.{epoch:02d}-{val_loss:.2f}-{val_iou:.2f}.hdf5'
-    
+        
+        model_json = model.to_json()
+        with open(opt.model_path+"/model.json", "w") as json_file:
+            json_file.write(model_json)
+            
     callbacks = get_callbacks(weights_path, opt.model_path, 5)
     
     n_train, n_test, n_val = len(Data['train'][0]), len(Data['test'][0]), len(Data['val'][0])
@@ -92,11 +98,6 @@ def define_model(Data, opt):
             validation_steps= n_val,
             callbacks=callbacks)
     
-    if opt.save_model:
-        model_json = model.to_json()
-        with open(opt.model_path+"/model.json", "w") as json_file:
-            json_file.write(model_json)
-
     print('***********FINISH TRAIN & START TESTING******************')
     X_true, Y_true = Data['test'][0], Data['test'][1]
     

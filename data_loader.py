@@ -56,7 +56,7 @@ def load_feature_data(frame_dir, mask_dir, gradient=False, dim=512,resize=False)
     #npy
         else:
             mask_path = os.path.join(mask_dir, frame_file)
-            frame_array = np.load(frame_path)[:,:,-1]
+            frame_array = np.load(frame_path)[:,:,3]
             label_array = np.load(mask_path)
         dims = frame_array.shape
         if dims[0]!=dim or dims[1]!=dim or (not is_feature_present(label_array)) or (len(np.unique(frame_array))<3):
