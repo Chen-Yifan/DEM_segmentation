@@ -74,7 +74,7 @@ def main():
            -----
            normalize all the data 
         '''
-        preprocess(Data_dict, opt.input_shape)
+        preprocess(Data_dict, opt.dim)
     
         # the actual model
         mkdir(opt.model_path)

@@ -99,7 +99,7 @@ def preprocess(Data, dim=128, low=0.1, hi=1.0):
         Maximum rescale value.
     """
     bands = Data['train'][0].shape[-1]
-    print('#bands, ' bands)
+    print('#bands, ', bands)
     for key in Data:
         print (key)
         # if Data[key][0].ndim != 4:
