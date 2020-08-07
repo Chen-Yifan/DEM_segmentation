@@ -73,7 +73,19 @@ def add_derivatives(batches):
         out_x = np.array(out_x)
         yield (out_x, batch_y) 
 
-def custom_image_generator(data, target, batch_size=32):
+def use_gradient(batches):
+    while True:
+        batch_x, batch_y = next(batches)
+        out_x = []
+        for i in range(batch_x.shape[0]):
+            [dx, dy] = np.gradient(batch_x)
+            out_x.append(np.sqrt((dx*dx)+(dy*dy)))
+        out_x = np.array(out_x)
+        yield (out_x, batch_y)
+
+
+
+def custom_image_generator(data, target, batch_size=32, gradient=False):
     """Custom image generator that manipulates image/target pairs to prevent
     overfitting in the Convolutional Neural Network.
     Parameters
@@ -110,8 +122,10 @@ def custom_image_generator(data, target, batch_size=32):
     img_gen = img_datagen.flow(train_img, seed = seed, batch_size=batch_size, shuffle=True)#shuffling
     mask_gen = mask_datagen.flow(train_mask, seed = seed, batch_size=batch_size, shuffle=True)
     train_gen = zip(img_gen, mask_gen)
-    train_gen = add_derivatives(train_gen) # 8.3
-    
+    if gradient:
+        use_gradient(train_gen)
+    else:
+        train_gen = add_derivatives(train_gen) # 8.3
     return train_gen
 
 def val_datagenerator(data, target):

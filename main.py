@@ -43,7 +43,7 @@ def main():
             return:  min, max among all the input images
         '''
 
-        frame_data, mask_data, name_list = load_feature_data(opt.frame_path, opt.mask_path,gradient=False,dim=opt.dim)
+        frame_data, mask_data, name_list = load_feature_data(opt.frame_path, opt.mask_path,dim=opt.dim)
         print(np.min(frame_data),np.max(frame_data),np.unique(mask_data))
         # minn = [np.min(frame_data[:,:,:,x]) for x in range(frame_data.shape[-1])]
         # maxx = [np.max(frame_data[:,:,:,x]) for x in range(frame_data.shape[-1])]

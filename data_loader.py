@@ -14,7 +14,7 @@ def is_feature_present(input_array):
     return (np.sum(input_array)>50)
 
 
-def load_feature_data(frame_dir, mask_dir, gradient=False, dim=128,resize=False):
+def load_feature_data(frame_dir, mask_dir, dim=128,resize=False):
     
     '''load frames and masks into two numpy array respectively
         -----
@@ -64,9 +64,6 @@ def load_feature_data(frame_dir, mask_dir, gradient=False, dim=128,resize=False)
 #             os.remove(frame_path)
             continue
         
-        if gradient:
-            [dx, dy] = np.gradient(frame_array)
-            frame_array = np.sqrt((dx*dx)+(dy*dy))
         if resize:
             frame_array = np.array(Image.fromarray(frame_array).resize((128,128), Image.BILINEAR))
             label_array = np.array(Image.fromarray(label_array).resize((128,128), Image.NEAREST))
