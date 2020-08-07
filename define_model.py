@@ -47,7 +47,7 @@ def helper_pred(model, X_true, Y_true, opt):
     return Y_pred
 
 def define_model(Data, opt):
-    dim = 128
+    dim = opt.dim
     learn_rate = float(opt.lr)
 #     lmbda = opt.lambda
     drop = opt.dropout

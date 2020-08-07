@@ -24,7 +24,7 @@ class BaseOptions():
         parser.add_argument("--n_epoch", type=int, default=100)
         parser.add_argument("--optimizer", type=str, default='Adam', help='1:Adam, 2:Adadelta')
         parser.add_argument('--input_channel', type=int, default=1)
-        parser.add_argument('--input_shape', type=int, default=512, help='input image width/height')
+        parser.add_argument('--dim', type=int, default=128, help='input image width/height')
         parser.add_argument('--use_gradient', action='store_true', help='if use gradient as input')
         parser.add_argument('--n_classes', type=int, default=2, help='output classes')
         parser.add_argument('--save_model', action='store_true', help='whether or not we save the model to ckpt_dir')
