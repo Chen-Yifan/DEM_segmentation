@@ -2,7 +2,7 @@ import os
 import numpy as np
 from keras.callbacks import ModelCheckpoint,TensorBoard,CSVLogger,EarlyStopping,ReduceLROnPlateau
 from keras.models import model_from_json
-from dataGenerator import custom_image_generator, val_datagenerator
+from dataGenerator import custom_image_generator, val_datagenerator, no_aug_generator
 from keras.optimizers import Adadelta, Adam, SGD
 from metrics import *
 from util.util import *
@@ -90,8 +90,8 @@ def define_model(Data, opt):
     np.save(opt.result_path + '/gt_labels.npy', Data['test'][1])
     
     model.fit_generator(
-#             (Data['train'][0], Data['train'][1]),
-            custom_image_generator(Data['train'][0], Data['train'][1],batch_size=bs),
+            no_aug_generator(Data['train'][0], Data['train'][1],batch_size=bs),
+ #           custom_image_generator(Data['train'][0], Data['train'][1],batch_size=bs),
             steps_per_epoch= n_train//bs, epochs=n_epoch, verbose=1,
             validation_data=val_datagenerator(Data['val'][0],Data['val'][1]), #no gen
             validation_steps= n_val,

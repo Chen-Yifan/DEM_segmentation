@@ -84,6 +84,8 @@ def preprocess(Data, minn, maxx, dim=128, low=0.1, hi=1.0):
     ----------
     Data : hdf5
         Data array.
+    minn : list of minimum of each band
+    maxx : list of maximum of each band
     dim : integer, optional
         Dimensions of images, assumes square.
     low : float, optional
@@ -99,12 +101,13 @@ def preprocess(Data, minn, maxx, dim=128, low=0.1, hi=1.0):
             
         Data[key][1] = Data[key][1].reshape(len(Data[key][1]), 128, 128, 1)
         for i, imgs in enumerate(Data[key][0]):
-            imgs = imgs / 255.
+            # imgs = imgs / 255.
             # img[img > 0.] = 1. - img[img > 0.]      #inv color
             # minn, maxx = np.min(img[img > 0]), np.max(img[img > 0])
             for b in range(bands):
                 img = imgs[:,:,b]
+                print('0',np.max(imgs[:, :, b]), np.min(imgs[:, :, b]))
                 img[img > 0] = low + (img[img > 0] - minn[b]) * (hi - low) / (maxx[b] - minn[b])
-                print(np.max(imgs[:,:,b]),np.min(imgs[:,:,b]))
+                print('1', np.max(imgs[:,:,b]),np.min(imgs[:,:,b]))
             Data[key][0][i] = imgs 
             

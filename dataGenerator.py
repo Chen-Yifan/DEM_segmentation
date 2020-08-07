@@ -118,6 +118,41 @@ def val_datagenerator(data, target):
 #    return (data_out, target)
     
     return(data,target)
+
+
+def no_aug_generator(data, target, batch_size=32):
+    """Custom image generator that manipulates image/target pairs to prevent
+    overfitting in the Convolutional Neural Network.
+    Parameters
+    ----------
+    data : array
+        Input images.
+    target : array
+        Target images.
+    batch_size : int, optional
+        Batch size for image manipulation.
+    Yields
+    ------
+    Manipulated images and targets.
+        
+    """
+    train_img, train_mask = data, target
+    print(train_img.shape, train_mask.shape)
+    
+    data_gen_args = dict()
+    img_datagen = ImageDataGenerator(**data_gen_args)
+    mask_datagen = ImageDataGenerator(**data_gen_args)
+
+    img_datagen.fit(train_img)
+    mask_datagen.fit(train_mask)
+    
+    seed = 2018
+    img_gen = img_datagen.flow(train_img, seed = seed, batch_size=batch_size, shuffle=True)#shuffling
+    mask_gen = mask_datagen.flow(train_mask, seed = seed, batch_size=batch_size, shuffle=True)
+    train_gen = zip(img_gen, mask_gen)
+    
+    return train_gen
+
 def custom_image_generator2(data, target, batch_size=32):
     """Custom image generator that manipulates image/target pairs to prevent
     overfitting in the Convolutional Neural Network.
