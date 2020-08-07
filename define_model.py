@@ -63,6 +63,8 @@ def define_model(Data, opt):
     # different loss function
     if opt.model == 'unet':
         model = unet(input_channel, learn_rate, num_filters)
+    elif opt.model == 'unet_rgl':
+        model = unet_rgl(input_channel, learn_rate, num_filters)
     else:
         model = unet_shirui(input_channel, 1e-6, drop, init, num_filters, 'sigmoid',learn_rate)
         
