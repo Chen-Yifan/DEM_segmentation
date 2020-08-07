@@ -67,7 +67,7 @@ def define_model(Data, opt):
             model = unet(input_channel, learn_rate, num_filters, None)
         else:
             model = unet(input_channel, learn_rate, num_filters)
-            
+
     elif opt.model == 'unet_rgl':
         if opt.loss == 'L':
             model = unet_rgl(input_channel, learn_rate, num_filters, None)
@@ -109,7 +109,7 @@ def define_model(Data, opt):
             # no_aug_generator(Data['train'][0], Data['train'][1],batch_size=bs),
             custom_image_generator(Data['train'][0], Data['train'][1], bs),
             steps_per_epoch= n_train//bs, epochs=n_epoch, verbose=1,
-            validation_data=(Data['val'][0], Data['val'][1]),
+            validation_data=no_aug_generator(Data['val'][0], Data['val'][1]),
             # validation_data=val_datagenerator(Data['val'][0],Data['val'][1]), #no gen
             validation_steps= n_val,
             callbacks=callbacks)
