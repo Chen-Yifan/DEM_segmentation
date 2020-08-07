@@ -106,17 +106,18 @@ def custom_image_generator(data, target, batch_size=32):
     img_gen = img_datagen.flow(train_img, seed = seed, batch_size=batch_size, shuffle=True)#shuffling
     mask_gen = mask_datagen.flow(train_mask, seed = seed, batch_size=batch_size, shuffle=True)
     train_gen = zip(img_gen, mask_gen)
-    train_gen = add_derivatives(train_gen) # 8.3
+#    train_gen = add_derivatives(train_gen) # 8.3
     
     return train_gen
 
 def val_datagenerator(data, target):
-    data_out = []
-    for i in range(len(data)):
-        data_out.append(terrain_analysis(data[i,:,:,0],(1.5,1.5)))
-    data_out = np.array(data_out)
-    return (data_out, target)
+#    data_out = []
+#    for i in range(len(data)):
+#        data_out.append(terrain_analysis(data[i,:,:,0],(1.5,1.5)))
+#    data_out = np.array(data_out)
+#    return (data_out, target)
     
+    return(data,target)
 def custom_image_generator2(data, target, batch_size=32):
     """Custom image generator that manipulates image/target pairs to prevent
     overfitting in the Convolutional Neural Network.

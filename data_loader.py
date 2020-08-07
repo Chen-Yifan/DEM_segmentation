@@ -28,8 +28,6 @@ def load_feature_data(frame_dir, mask_dir, gradient=False, dim=512,resize=False)
     frames = []
     masks = []
     name_list = []
-    minn = float("inf")
-    maxx = 0.0
     frame_names = os.listdir(frame_dir)
     frame_names.sort(key=lambda var:[int(x) if x.isdigit() else x
                                     for x in re.findall(r'[^0-9]|[0-9]+', var)])
@@ -57,8 +55,8 @@ def load_feature_data(frame_dir, mask_dir, gradient=False, dim=512,resize=False)
         else:
             mask_path = os.path.join(mask_dir, frame_file)
             x = np.load(frame_path)
-#             frame_array = np.concatenate((x[:,:,0:2], np.expand_dims(x[:,:,-1], axis=2)),axis=-1)
-            frame_array = x[:,:,-1]
+            frame_array = np.concatenate((x[:,:,0:2], np.expand_dims(x[:,:,-1], axis=2)),axis=-1)
+        #    frame_array = x[:,:,-1]
             label_array = np.load(mask_path)
         dims = frame_array.shape
         if dims[0]!=dim or dims[1]!=dim or (not is_feature_present(label_array)) or (len(np.unique(frame_array))<3):
@@ -78,7 +76,7 @@ def load_feature_data(frame_dir, mask_dir, gradient=False, dim=512,resize=False)
         masks.append(label_array)
             
     print(len(frames), len(masks))
-    return np.array(frames),np.array(masks),name_list, minn, maxx
+    return np.array(frames),np.array(masks),name_list
 
 def preprocess(Data, minn, maxx, dim=128, low=0.1, hi=1.0):
     """Normalize and rescale (and optionally invert) images.
@@ -93,16 +91,20 @@ def preprocess(Data, minn, maxx, dim=128, low=0.1, hi=1.0):
     hi : float, optional
         Maximum rescale value.
     """
+    bands = Data['train'][0].shape[-1]
     for key in Data:
         print (key)
         if Data[key][0].ndim != 4:
             Data[key][0] = Data[key][0].reshape(len(Data[key][0]), 128, 128, 1)
             
         Data[key][1] = Data[key][1].reshape(len(Data[key][1]), 128, 128, 1)
-        for i, img in enumerate(Data[key][0]):
-            img = img / 255.
+        for i, imgs in enumerate(Data[key][0]):
+            imgs = imgs / 255.
             # img[img > 0.] = 1. - img[img > 0.]      #inv color
-            minn, maxx = np.min(img[img > 0]), np.max(img[img > 0])
-            img[img > 0] = low + (img[img > 0] - minn) * (hi - low) / (maxx - minn)
-            Data[key][0][i] = img 
+            # minn, maxx = np.min(img[img > 0]), np.max(img[img > 0])
+            for b in range(bands):
+                img = imgs[:,:,b]
+                img[img > 0] = low + (img[img > 0] - minn[b]) * (hi - low) / (maxx[b] - minn[b])
+                print(np.max(imgs[:,:,b]),np.min(imgs[:,:,b]))
+            Data[key][0][i] = imgs 
             

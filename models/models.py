@@ -145,7 +145,7 @@ def unet_shirui(channels=1, lmbda=1e-6, drop=0.45, init=None, n_filters=32, outp
 
     conv10 = Conv2D(1, (1, 1), kernel_regularizer=l2(lmbda), kernel_initializer=init, activation=output_mode)(conv9) 
     
-    conv10 = Reshape((128, 128, n_classes))(conv10)
+    conv10 = Reshape((128, 128, 1))(conv10)
     model = Model(inputs = inputs, outputs = conv10)
     
     optimizer = Adam(lr=learn_rate)
