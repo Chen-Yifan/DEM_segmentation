@@ -78,7 +78,7 @@ def load_feature_data(frame_dir, mask_dir, gradient=False, dim=512,resize=False)
     print(len(frames), len(masks))
     return np.array(frames),np.array(masks),name_list
 
-def preprocess(Data, minn, maxx, dim=128, low=0.1, hi=1.0):
+def preprocess(Data dim=128, low=0.1, hi=1.0):
     """Normalize and rescale (and optionally invert) images.
     Parameters
     ----------
@@ -103,11 +103,9 @@ def preprocess(Data, minn, maxx, dim=128, low=0.1, hi=1.0):
         for i, imgs in enumerate(Data[key][0]):
             # imgs = imgs / 255.
             # img[img > 0.] = 1. - img[img > 0.]      #inv color
-            # minn, maxx = np.min(img[img > 0]), np.max(img[img > 0])
             for b in range(bands):
                 img = imgs[:,:,b]
-                print('0',np.max(imgs[:, :, b]), np.min(imgs[:, :, b]))
-                img[img > 0] = low + (img[img > 0] - minn[b]) * (hi - low) / (maxx[b] - minn[b])
-                print('1', np.max(imgs[:,:,b]),np.min(imgs[:,:,b]))
+                minn, maxx = np.min(img[img > 0]), np.max(img[img > 0])
+                img[img > 0] = low + (img[img > 0] - minn) * (hi - low) / (maxx - minn)
             Data[key][0][i] = imgs 
             

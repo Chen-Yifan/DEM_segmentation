@@ -45,10 +45,8 @@ def main():
 
         frame_data, mask_data, name_list = load_feature_data(opt.frame_path, opt.mask_path,gradient=False,dim=opt.input_shape)
         print(np.min(frame_data),np.max(frame_data),np.unique(mask_data))
-        minn = [np.min(frame_data[:,:,:,x]) for x in range(frame_data.shape[-1])]
-        maxx = [np.max(frame_data[:,:,:,x]) for x in range(frame_data.shape[-1])]
-
-        print(minn, '\n', maxx)
+        # minn = [np.min(frame_data[:,:,:,x]) for x in range(frame_data.shape[-1])]
+        # maxx = [np.max(frame_data[:,:,:,x]) for x in range(frame_data.shape[-1])]
 
         print('point1, finish loading data')
 
@@ -76,7 +74,7 @@ def main():
            -----
            normalize all the data 
         '''
-        preprocess(Data_dict, minn, maxx, opt.input_shape)
+        preprocess(Data_dict, opt.input_shape)
     
         # the actual model
         mkdir(opt.model_path)
