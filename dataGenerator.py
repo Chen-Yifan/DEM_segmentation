@@ -47,12 +47,12 @@ def terrain_analysis(array, size):
     # fi = signal.convolve2d(array, f, boundary='symm', mode='same')
 
     slope  = np.sqrt(np.power(hi,2)+np.power(gi,2))
-    minn,maxx = np.min(slope),np.max(slope)
+    minn, maxx = np.min(slope[slope > 0]), np.max(slope[slope > 0])
     slope[slope > 0] = low + (slope[slope > 0] - minn) * \
         (hi - low) / (maxx - minn)
 
     aspect = np.arctan(hi/gi)
-    minn, maxx = np.min(aspect), np.max(aspect)
+    minn, maxx = np.min(aspect[aspect > 0]), np.max(aspect[aspect > 0])
     aspect[aspect > 0] = low + (aspect[aspect > 0] - minn) * \
         (hi - low) / (maxx - minn)
 #     planc  = -1*((np.power(hi, 2)*di)-(2*gi*hi*fi)+(np.power(gi,2)*ei)/(np.power((np.power(gi,2)+np.power(hi,2)),1.5)))
