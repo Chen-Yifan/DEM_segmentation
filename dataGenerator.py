@@ -47,6 +47,7 @@ def terrain_analysis(array, size):
     # fi = signal.convolve2d(array, f, boundary='symm', mode='same')
 
     slope  = np.sqrt(np.power(hi,2)+np.power(gi,2))
+    print(array.shape, slope.shape)
     minn, maxx = np.min(slope[slope > 0]), np.max(slope[slope > 0])
     slope[slope > 0] = low + (slope[slope > 0] - minn) * \
         (hi - low) / (maxx - minn)
