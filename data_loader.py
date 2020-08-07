@@ -78,7 +78,7 @@ def load_feature_data(frame_dir, mask_dir, gradient=False, dim=512,resize=False)
     print(len(frames), len(masks))
     return np.array(frames),np.array(masks),name_list
 
-def preprocess(Data dim=128, low=0.1, hi=1.0):
+def preprocess(Data, dim=128, low=0.1, hi=1.0):
     """Normalize and rescale (and optionally invert) images.
     Parameters
     ----------
