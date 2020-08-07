@@ -119,8 +119,6 @@ def val_datagenerator(data, target):
    data_out = np.array(data_out)
    return (data_out, target)
     
-    return(data,target)
-
 
 def no_aug_generator(data, target, batch_size=32):
     """Custom image generator that manipulates image/target pairs to prevent

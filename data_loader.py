@@ -103,6 +103,7 @@ def preprocess(Data, dim=128, low=0.1, hi=1.0):
         for i, imgs in enumerate(Data[key][0]):
             # imgs = imgs / 255.
             # img[img > 0.] = 1. - img[img > 0.]      #inv color
+            print(imgs.shape, bands)
             for b in range(bands):
                 img = imgs[:,:,b]
                 minn, maxx = np.min(img[img > 0]), np.max(img[img > 0])
