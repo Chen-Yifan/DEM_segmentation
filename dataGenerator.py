@@ -108,10 +108,10 @@ def custom_image_generator(data, target, batch_size=32):
     data_gen_args = dict(
                          horizontal_flip = True,
                          vertical_flip = True,
-                        #  width_shift_range=0.05,
-                        #  height_shift_range=0.05,
-                        #  zoom_range=0.05,
-                        #  fill_mode='wrap'
+                         width_shift_range=0.05,
+                         height_shift_range=0.05,
+                         zoom_range=0.05,
+                         fill_mode='wrap'
                         )
     img_datagen = ImageDataGenerator(**data_gen_args)
     mask_datagen = ImageDataGenerator(**data_gen_args)
