@@ -47,17 +47,14 @@ def terrain_analysis(array, size):
     # fi = signal.convolve2d(array, f, boundary='symm', mode='same')
 
     slope  = np.sqrt(np.power(hi,2)+np.power(gi,2))
-    print(array.shape, slope.shape)
-    minn, maxx = np.min(slope[slope > 0]), np.max(slope[slope > 0])
-    print(minn,maxx)
-    slope = slope / np.max(slope)
-    # slope[slope > 0] = low + (slope[slope > 0] - minn) * (hi - low) ./ (maxx - minn)
+    minn, maxx = np.min(slope), np.max(slope)
+    # print(minn,maxx)
+    slope = 0.1 + (slope - minn) * 0.9 ./ (maxx - minn)
 
     aspect = np.arctan(hi/gi)
-    minn, maxx = np.min(aspect[aspect > 0]), np.max(aspect[aspect > 0])
-    print('aspect',minn,maxx)
-    aspect = aspect / np.max(aspect)
-    # aspect[aspect > 0] = low + (aspect[aspect > 0] - minn) * (hi - low) ./ (maxx - minn)
+    minn, maxx = np.min(aspect), np.max(aspect)
+    # print('aspect',minn,maxx)
+    aspect = 0.1 + (aspect - minn) * 0.9 ./ (maxx - minn)
 
 #     planc  = -1*((np.power(hi, 2)*di)-(2*gi*hi*fi)+(np.power(gi,2)*ei)/(np.power((np.power(gi,2)+np.power(hi,2)),1.5)))
 #     profc  = -1*(((np.power(gi,2)*di)+(2*gi*hi*fi) +(np.power(hi,2)*ei))/ ((np.power(gi,2)+np.power(hi,2))*(np.power( (1+np.power(gi,2)+np.power(hi,2)),1.5)) ))
