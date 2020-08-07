@@ -162,7 +162,8 @@ def unet_shirui(channels=1, lmbda=1e-6, drop=0.45, init=None, n_filters=32, outp
 
     return model
 
-def unet_rgl(channels=1, lr=1e-4, n_filters=64):
+
+def unet_rgl(channels=1, lr=1e-4, n_filters=64, lmbda=1e-6):
     inputs = Input((128, 128, channels))
     conv1 = Conv2D(n_filters, 3, activation='relu', padding='same', kernel_regularizer=l2(lmbda),
                    kernel_initializer='he_normal')(inputs)
