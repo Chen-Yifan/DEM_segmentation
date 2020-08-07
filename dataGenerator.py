@@ -1,4 +1,5 @@
 import numpy as np
+import math
 from keras.preprocessing.image import ImageDataGenerator
 
 def squeeze(batches): # change to enable x and y together
@@ -51,7 +52,9 @@ def terrain_analysis(array, size):
     # print(minn,maxx)
     slope = 0.1 + (slope - minn) * 0.9 / (maxx - minn)
 
-    aspect = np.arctan(hi/gi)
+    angle = hi/gi
+    angle[gi==0] = math.pi/2
+    aspect = np.arctan(angle)
     minn, maxx = np.min(aspect), np.max(aspect)
     # print('aspect',minn,maxx)
     aspect = 0.1 + (aspect - minn) * 0.9 / (maxx - minn)
