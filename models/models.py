@@ -355,8 +355,8 @@ def segnet(
 
     model = Model(inputs=inputs, outputs=outputs, name="SegNet")
     
-#     optimizer = Adam(lr=3e-4)
-    optimizer = Adadelta()
+    optimizer = Adam(lr=3e-4)
+    # optimizer = Adadelta()
     if output_mode == 'softmax':
         model.compile(loss=sparse_softmax_cce, metrics=[iou_label,per_pixel_acc,'accuracy'], optimizer=optimizer)
     else:

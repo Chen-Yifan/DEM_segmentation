@@ -1,6 +1,5 @@
 import numpy as np
 from keras.preprocessing.image import ImageDataGenerator
-import richdem as rd
 
 def squeeze(batches): # change to enable x and y together
     while True:
@@ -21,6 +20,7 @@ def terrain_analysis(array, size):
     Returns:
       (ndarray): 3d array with original elevation data and derivatives (dim,dim,bands)
     """
+    hi, low = 1.0, 0.1
 
     px, py = size[0]/array.shape[-1], size[1]/array.shape[-2]
 
@@ -30,34 +30,37 @@ def terrain_analysis(array, size):
     h = [[(1/(6*py)),(1/(6*py)),(1/(6*py))],
          [0,0,0],
          [(-1/(6*py)),(-1/(6*py)),(-1/(6*py))]]
-    d = [[(1/(3*(px**2))),(-2/(3*(px**2))),(1/(3*(px**2)))],
-         [(1/(3*(px**2))),(-2/(3*(px**2))),(1/(3*(px**2)))],
-         [(1/(3*(px**2))),(-2/(3*(px**2))),(1/(3*(px**2)))]]
-    e = [[(1/(3*(py**2))),(1/(3*(py**2))),(1/(3*(py**2)))],
-         [(-2/(3*(py**2))),(-2/(3*(py**2))),(-2/(3*(py**2)))],
-         [(1/(3*(py**2))),(1/(3*(py**2))),(1/(3*(py**2)))]]
-    f = [[(-1/(4*(px*py))),0, (1/(4*(px*py)))],
-         [0,0,0],
-         [(1/(4*(px*py))),0,(-1/(4*(px*py)))]]
+    # d = [[(1/(3*(px**2))),(-2/(3*(px**2))),(1/(3*(px**2)))],
+    #      [(1/(3*(px**2))),(-2/(3*(px**2))),(1/(3*(px**2)))],
+    #      [(1/(3*(px**2))),(-2/(3*(px**2))),(1/(3*(px**2)))]]
+    # e = [[(1/(3*(py**2))),(1/(3*(py**2))),(1/(3*(py**2)))],
+    #      [(-2/(3*(py**2))),(-2/(3*(py**2))),(-2/(3*(py**2)))],
+    #      [(1/(3*(py**2))),(1/(3*(py**2))),(1/(3*(py**2)))]]
+    # f = [[(-1/(4*(px*py))),0, (1/(4*(px*py)))],
+    #      [0,0,0],
+    #      [(1/(4*(px*py))),0,(-1/(4*(px*py)))]]
 
     gi = signal.convolve2d(array, g, boundary='symm', mode='same')
     hi = signal.convolve2d(array, h, boundary='symm', mode='same')
-    di = signal.convolve2d(array, d, boundary='symm', mode='same')
-    ei = signal.convolve2d(array, e, boundary='symm', mode='same')
-    fi = signal.convolve2d(array, f, boundary='symm', mode='same')
+    # di = signal.convolve2d(array, d, boundary='symm', mode='same')
+    # ei = signal.convolve2d(array, e, boundary='symm', mode='same')
+    # fi = signal.convolve2d(array, f, boundary='symm', mode='same')
 
-    slope  = np.sqrt (np.power(hi,2)+np.power(gi,2))
+    slope  = np.sqrt(np.power(hi,2)+np.power(gi,2))
+    minn,maxx = np.min(slope),np.max(slope)
+    slope[slope > 0] = low + (slope[slope > 0] - minn) * \
+        (hi - low) / (maxx - minn)
+
     aspect = np.arctan(hi/gi)
+    minn, maxx = np.min(aspect), np.max(aspect)
+    aspect[aspect > 0] = low + (aspect[aspect > 0] - minn) * \
+        (hi - low) / (maxx - minn)
 #     planc  = -1*((np.power(hi, 2)*di)-(2*gi*hi*fi)+(np.power(gi,2)*ei)/(np.power((np.power(gi,2)+np.power(hi,2)),1.5)))
 #     profc  = -1*(((np.power(gi,2)*di)+(2*gi*hi*fi) +(np.power(hi,2)*ei))/ ((np.power(gi,2)+np.power(hi,2))*(np.power( (1+np.power(gi,2)+np.power(hi,2)),1.5)) ))
 #     meanc  = -1 *( ((1+np.power(hi,2))*di) -(2*gi*hi*fi) +((1+np.power(gi,2))*ei) / (2*np.power( (1+np.power(gi,2)+np.power(hi,2)),1.5)  ))
-
+    
     return np.stack([array, slope, aspect], axis=-1)
 
-def terrain(array, size):
-    dem = rd.rdarray(array,no_data=-1)
-    aspect = np.array(rd.TerrainAttribute(dem, attrib='aspect'))
-    return np.stack([array, aspect], axis=-1)
     
 def add_derivatives(batches):
     while True:
@@ -94,7 +97,6 @@ def custom_image_generator(data, target, batch_size=32):
                          height_shift_range=0.05,
                          zoom_range=0.05,
                          fill_mode='wrap'
-        
                         )
     img_datagen = ImageDataGenerator(**data_gen_args)
     mask_datagen = ImageDataGenerator(**data_gen_args)
@@ -106,16 +108,16 @@ def custom_image_generator(data, target, batch_size=32):
     img_gen = img_datagen.flow(train_img, seed = seed, batch_size=batch_size, shuffle=True)#shuffling
     mask_gen = mask_datagen.flow(train_mask, seed = seed, batch_size=batch_size, shuffle=True)
     train_gen = zip(img_gen, mask_gen)
-#    train_gen = add_derivatives(train_gen) # 8.3
+    train_gen = add_derivatives(train_gen) # 8.3
     
     return train_gen
 
 def val_datagenerator(data, target):
-#    data_out = []
-#    for i in range(len(data)):
-#        data_out.append(terrain_analysis(data[i,:,:,0],(1.5,1.5)))
-#    data_out = np.array(data_out)
-#    return (data_out, target)
+   data_out = []
+   for i in range(len(data)):
+       data_out.append(terrain_analysis(data[i,:,:,0],(1.5,1.5)))
+   data_out = np.array(data_out)
+   return (data_out, target)
     
     return(data,target)
 
