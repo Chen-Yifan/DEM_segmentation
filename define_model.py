@@ -63,11 +63,22 @@ def define_model(Data, opt):
     
     # different loss function
     if opt.model == 'unet':
-        model = unet(input_channel, learn_rate, num_filters)
+        if opt.loss == 'L':
+            model = unet(input_channel, learn_rate, num_filters, None)
+        else:
+            model = unet(input_channel, learn_rate, num_filters)
+            
     elif opt.model == 'unet_rgl':
-        model = unet_rgl(input_channel, learn_rate, num_filters)
+        if opt.loss == 'L':
+            model = unet_rgl(input_channel, learn_rate, num_filters, None)
+        else:
+            model = unet_rgl(input_channel, learn_rate, num_filters)
+        
     else:
-        model = unet_shirui(input_channel, 1e-6, drop, init, num_filters, 'sigmoid',learn_rate)
+        if opt.loss == 'L':
+            model = unet_shirui(input_channel, 1e-6, drop, init, num_filters, None, learn_rate)  # L
+        else:
+            model = unet_shirui(input_channel, 1e-6, drop, init, num_filters, 'sigmoid',learn_rate)
         
 #     elif opt.loss == 'cce':
 #         model = unet(1,(dim,dim,input_channel),'relu','softmax') 
