@@ -86,7 +86,7 @@ def use_gradient(batches):
 
 
 
-def custom_image_generator(data, target, batch_size=32, gradient=False):
+def custom_image_generator(data, target, batch_size=32):
     """Custom image generator that manipulates image/target pairs to prevent
     overfitting in the Convolutional Neural Network.
     Parameters
@@ -123,10 +123,8 @@ def custom_image_generator(data, target, batch_size=32, gradient=False):
     img_gen = img_datagen.flow(train_img, seed = seed, batch_size=batch_size, shuffle=True)#shuffling
     mask_gen = mask_datagen.flow(train_mask, seed = seed, batch_size=batch_size, shuffle=True)
     train_gen = zip(img_gen, mask_gen)
-    if gradient:
-        use_gradient(train_gen)
-    else:
-        train_gen = add_derivatives(train_gen) # 8.3
+
+    # train_gen = add_derivatives(train_gen) # 8.3
     return train_gen
 
 
