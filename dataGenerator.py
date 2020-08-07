@@ -52,8 +52,7 @@ def terrain_analysis(array, size):
     # print(minn,maxx)
     slope = 0.1 + (slope - minn) * 0.9 / (maxx - minn)
 
-    angle = np.where(gi==0, math.pi/2, hi/gi)
-    aspect = np.arctan(angle)
+    aspect = np.where(gi == 0, math.pi/2, arctan(hi/gi))
     minn, maxx = np.min(aspect), np.max(aspect)
     # print('aspect',minn,maxx)
     aspect = 0.1 + (aspect - minn) * 0.9 / (maxx - minn)
