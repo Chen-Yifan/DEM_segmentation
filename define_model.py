@@ -2,7 +2,7 @@ import os
 import numpy as np
 from keras.callbacks import ModelCheckpoint,TensorBoard,CSVLogger,EarlyStopping,ReduceLROnPlateau
 from keras.models import model_from_json
-from dataGenerator import custom_image_generator
+from dataGenerator import custom_image_generator, val_datagenerator
 from keras.optimizers import Adadelta, Adam, SGD
 from metrics import *
 from util.util import *
@@ -48,7 +48,7 @@ def helper_pred(model, X_true, Y_true, opt):
 
 def define_model(Data, opt):
     dim = 128
-    learn_rate = opt.lr
+    learn_rate = float(opt.lr)
 #     lmbda = opt.lambda
     drop = opt.dropout
     FL = opt.filter_length
@@ -60,9 +60,9 @@ def define_model(Data, opt):
     
     # different loss function
     if opt.model == 'unet':
-        model = unet()
+        model = unet(input_channel, learn_rate, num_filters)
     else:
-        model = unet_shirui(1, (dim,dim,input_channel), 1e-6, drop, init, num_filters, output_mode='sigmoid')
+        model = unet_shirui(input_channel, 1e-6, drop, init, num_filters, 'sigmoid',learn_rate)
         
 #     elif opt.loss == 'cce':
 #         model = unet(1,(dim,dim,input_channel),'relu','softmax') 
@@ -91,10 +91,9 @@ def define_model(Data, opt):
     
     model.fit_generator(
 #             (Data['train'][0], Data['train'][1]),
-            custom_image_generator(Data['train'][0], Data['train'][1],
-                                   batch_size=bs),
+            custom_image_generator(Data['train'][0], Data['train'][1],batch_size=bs),
             steps_per_epoch= n_train//bs, epochs=n_epoch, verbose=1,
-            validation_data=(Data['val'][0],Data['val'][1]), #no gen
+            validation_data=val_datagenerator(Data['val'][0],Data['val'][1]), #no gen
             validation_steps= n_val,
             callbacks=callbacks)
     

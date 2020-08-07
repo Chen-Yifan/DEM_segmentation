@@ -1,13 +1,72 @@
 import numpy as np
 from keras.preprocessing.image import ImageDataGenerator
+import richdem as rd
 
 def squeeze(batches): # change to enable x and y together
     while True:
         batch_x, batch_y = next(batches)
-#        batch_y = batch_y[:,:,:,0]
+#         batch_y = batch_y[:,:,:,0]
         print(batch_x.shape, batch_y.shape)       
         yield (batch_x, batch_y) 
         
+
+from scipy import signal
+def terrain_analysis(array, size):
+    """calculate terrain derivatives based on the Evans Young method
+
+    Args:
+      array (ndarray): elevation data array, must be 2D array
+      size (float,float): size of sample in projected coordinates
+
+    Returns:
+      (ndarray): 3d array with original elevation data and derivatives (dim,dim,bands)
+    """
+
+    px, py = size[0]/array.shape[-1], size[1]/array.shape[-2]
+
+    g = [[(-1/(6*px)), 0 , (1/(6*px))],
+         [(-1/(6*px)), 0 , (1/(6*px))],
+         [(-1/(6*px)), 0 , (1/(6*px))]]
+    h = [[(1/(6*py)),(1/(6*py)),(1/(6*py))],
+         [0,0,0],
+         [(-1/(6*py)),(-1/(6*py)),(-1/(6*py))]]
+    d = [[(1/(3*(px**2))),(-2/(3*(px**2))),(1/(3*(px**2)))],
+         [(1/(3*(px**2))),(-2/(3*(px**2))),(1/(3*(px**2)))],
+         [(1/(3*(px**2))),(-2/(3*(px**2))),(1/(3*(px**2)))]]
+    e = [[(1/(3*(py**2))),(1/(3*(py**2))),(1/(3*(py**2)))],
+         [(-2/(3*(py**2))),(-2/(3*(py**2))),(-2/(3*(py**2)))],
+         [(1/(3*(py**2))),(1/(3*(py**2))),(1/(3*(py**2)))]]
+    f = [[(-1/(4*(px*py))),0, (1/(4*(px*py)))],
+         [0,0,0],
+         [(1/(4*(px*py))),0,(-1/(4*(px*py)))]]
+
+    gi = signal.convolve2d(array, g, boundary='symm', mode='same')
+    hi = signal.convolve2d(array, h, boundary='symm', mode='same')
+    di = signal.convolve2d(array, d, boundary='symm', mode='same')
+    ei = signal.convolve2d(array, e, boundary='symm', mode='same')
+    fi = signal.convolve2d(array, f, boundary='symm', mode='same')
+
+    slope  = np.sqrt (np.power(hi,2)+np.power(gi,2))
+    aspect = np.arctan(hi/gi)
+#     planc  = -1*((np.power(hi, 2)*di)-(2*gi*hi*fi)+(np.power(gi,2)*ei)/(np.power((np.power(gi,2)+np.power(hi,2)),1.5)))
+#     profc  = -1*(((np.power(gi,2)*di)+(2*gi*hi*fi) +(np.power(hi,2)*ei))/ ((np.power(gi,2)+np.power(hi,2))*(np.power( (1+np.power(gi,2)+np.power(hi,2)),1.5)) ))
+#     meanc  = -1 *( ((1+np.power(hi,2))*di) -(2*gi*hi*fi) +((1+np.power(gi,2))*ei) / (2*np.power( (1+np.power(gi,2)+np.power(hi,2)),1.5)  ))
+
+    return np.stack([array, slope, aspect], axis=-1)
+
+def terrain(array, size):
+    dem = rd.rdarray(array,no_data=-1)
+    aspect = np.array(rd.TerrainAttribute(dem, attrib='aspect'))
+    return np.stack([array, aspect], axis=-1)
+    
+def add_derivatives(batches):
+    while True:
+        batch_x, batch_y = next(batches)
+        out_x = []
+        for i in range(batch_x.shape[0]):
+            out_x.append(terrain_analysis(batch_x[i,:,:,0],(1.5,1.5)))
+        out_x = np.array(out_x)
+        yield (out_x, batch_y) 
 
 def custom_image_generator(data, target, batch_size=32):
     """Custom image generator that manipulates image/target pairs to prevent
@@ -31,6 +90,11 @@ def custom_image_generator(data, target, batch_size=32):
     data_gen_args = dict(
                          horizontal_flip = True,
                          vertical_flip = True,
+                         width_shift_range=0.05,
+                         height_shift_range=0.05,
+                         zoom_range=0.05,
+                         fill_mode='wrap'
+        
                         )
     img_datagen = ImageDataGenerator(**data_gen_args)
     mask_datagen = ImageDataGenerator(**data_gen_args)
@@ -42,11 +106,17 @@ def custom_image_generator(data, target, batch_size=32):
     img_gen = img_datagen.flow(train_img, seed = seed, batch_size=batch_size, shuffle=True)#shuffling
     mask_gen = mask_datagen.flow(train_mask, seed = seed, batch_size=batch_size, shuffle=True)
     train_gen = zip(img_gen, mask_gen)
-    #train_gen = squeeze(train_gen)
+    train_gen = add_derivatives(train_gen) # 8.3
     
     return train_gen
 
-
+def val_datagenerator(data, target):
+    data_out = []
+    for i in range(len(data)):
+        data_out.append(terrain_analysis(data[i,:,:,0],(1.5,1.5)))
+    data_out = np.array(data_out)
+    return (data_out, target)
+    
 def custom_image_generator2(data, target, batch_size=32):
     """Custom image generator that manipulates image/target pairs to prevent
     overfitting in the Convolutional Neural Network.

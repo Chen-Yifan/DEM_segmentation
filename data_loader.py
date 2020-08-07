@@ -11,7 +11,7 @@ def is_feature_present(input_array):
     # print('********point1***********\n label #1 > #0', num_1>num_0)
     # assert num_1 < num_0, 'label 1 should be label but now is background'
 #     print(np.sum(input_array))
-    return (np.sum(input_array)>100)
+    return (np.sum(input_array)>50)
 
 
 def load_feature_data(frame_dir, mask_dir, gradient=False, dim=512,resize=False):
@@ -56,7 +56,9 @@ def load_feature_data(frame_dir, mask_dir, gradient=False, dim=512,resize=False)
     #npy
         else:
             mask_path = os.path.join(mask_dir, frame_file)
-            frame_array = np.load(frame_path)[:,:,3]
+            x = np.load(frame_path)
+#             frame_array = np.concatenate((x[:,:,0:2], np.expand_dims(x[:,:,-1], axis=2)),axis=-1)
+            frame_array = x[:,:,-1]
             label_array = np.load(mask_path)
         dims = frame_array.shape
         if dims[0]!=dim or dims[1]!=dim or (not is_feature_present(label_array)) or (len(np.unique(frame_array))<3):

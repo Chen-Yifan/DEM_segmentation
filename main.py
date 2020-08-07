@@ -87,9 +87,9 @@ def main():
 #     real = np.load(opt.result_path + '/gt_labels.npy')    
     
     
-    result_dir = opt.result_path + '/epoch%s/'%opt.n_epoch
-    for i in range(100):
-        visualize(result_dir,img,real,pred,i,opt.threshold)
+#     result_dir = opt.result_path + '/epoch%s/'%opt.n_epoch
+#     for i in range(100):
+#         visualize(result_dir,img,real,pred,i,opt.threshold)
         
     
 main()    
