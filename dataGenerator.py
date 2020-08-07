@@ -50,11 +50,15 @@ def terrain_analysis(array, size):
     print(array.shape, slope.shape)
     minn, maxx = np.min(slope[slope > 0]), np.max(slope[slope > 0])
     print(minn,maxx)
-    slope[slope > 0] = low + (slope[slope > 0] - minn) * (hi - low) / (maxx - minn)
+    slope = slope ./ np.max(slope)
+    # slope[slope > 0] = low + (slope[slope > 0] - minn) * (hi - low) ./ (maxx - minn)
 
     aspect = np.arctan(hi/gi)
     minn, maxx = np.min(aspect[aspect > 0]), np.max(aspect[aspect > 0])
-    aspect[aspect > 0] = low + (aspect[aspect > 0] - minn) * (hi - low) / (maxx - minn)
+    print('aspect',minn,maxx)
+    aspect = aspect ./ np.max(aspect)
+    # aspect[aspect > 0] = low + (aspect[aspect > 0] - minn) * (hi - low) ./ (maxx - minn)
+    
 #     planc  = -1*((np.power(hi, 2)*di)-(2*gi*hi*fi)+(np.power(gi,2)*ei)/(np.power((np.power(gi,2)+np.power(hi,2)),1.5)))
 #     profc  = -1*(((np.power(gi,2)*di)+(2*gi*hi*fi) +(np.power(hi,2)*ei))/ ((np.power(gi,2)+np.power(hi,2))*(np.power( (1+np.power(gi,2)+np.power(hi,2)),1.5)) ))
 #     meanc  = -1 *( ((1+np.power(hi,2))*di) -(2*gi*hi*fi) +((1+np.power(gi,2))*ei) / (2*np.power( (1+np.power(gi,2)+np.power(hi,2)),1.5)  ))
