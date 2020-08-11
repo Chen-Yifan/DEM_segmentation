@@ -124,7 +124,7 @@ def custom_image_generator(data, target, batch_size=32):
     mask_gen = mask_datagen.flow(train_mask, seed = seed, batch_size=batch_size, shuffle=True)
     train_gen = zip(img_gen, mask_gen)
 
-    # train_gen = add_derivatives(train_gen) # 8.3
+    train_gen = add_derivatives(train_gen) # 8.3
     return train_gen
 
 
