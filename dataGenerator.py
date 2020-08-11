@@ -161,7 +161,8 @@ def no_aug_generator(data, target, batch_size=32):
     train_img, train_mask = data, target
     print(train_img.shape, train_mask.shape)
     
-    data_gen_args = dict()
+    data_gen_args = dict(horizontal_flip=True,
+                         vertical_flip=True)
     img_datagen = ImageDataGenerator(**data_gen_args)
     mask_datagen = ImageDataGenerator(**data_gen_args)
 
