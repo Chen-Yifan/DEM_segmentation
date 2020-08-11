@@ -63,10 +63,10 @@ def load_feature_data(frame_dir, mask_dir, dim=128, gradient=False, resize=False
 #             os.remove(mask_path)
 #             os.remove(frame_path)
             continue
-        
-        if gradient:
-            [dx, dy] = np.gradient(frame_array)
-            frame_array = np.sqrt((dx*dx)+(dy*dy))
+
+        # if gradient:
+        #     [dx, dy] = np.gradient(frame_array)
+        #     frame_array = np.sqrt((dx*dx)+(dy*dy))
 
         if resize:
             frame_array = np.array(Image.fromarray(frame_array).resize((128,128), Image.BILINEAR))

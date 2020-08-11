@@ -124,19 +124,20 @@ def custom_image_generator(data, target, batch_size=32):
     mask_gen = mask_datagen.flow(train_mask, seed = seed, batch_size=batch_size, shuffle=True)
     train_gen = zip(img_gen, mask_gen)
 
-    train_gen = add_derivatives(train_gen) # 8.3
+    # train_gen = add_derivatives(train_gen) # 8.3
+    train_gen = use_gradient(train_gen)
     return train_gen
 
 
 def val_datagenerator(data, target, gradient=False):
    data_out = []
    for i in range(len(data)):
-        # if gradient:
-            # [dx, dy] = np.gradient(data[i,:,:,0])
-            # out = np.sqrt((dx*dx)+(dy*dy))
-            # data_out.append(np.expand_dims(out,axis=2))
-        # else:
-        data_out.append(terrain_analysis(data[i,:,:,0],(1.5,1.5)))
+        if gradient:
+            [dx, dy] = np.gradient(data[i,:,:,0])
+            out = np.sqrt((dx*dx)+(dy*dy))
+            data_out.append(np.expand_dims(out,axis=2))
+        else:
+            data_out.append(terrain_analysis(data[i,:,:,0],(1.5,1.5)))
    data_out = np.array(data_out)
    return (data_out, target)
     
