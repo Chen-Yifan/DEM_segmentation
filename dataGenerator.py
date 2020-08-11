@@ -80,6 +80,9 @@ def use_gradient(batches):
         for i in range(batch_x.shape[0]):
             [dx, dy] = np.gradient(batch_x[i,:,:,0])
             out = np.sqrt((dx*dx)+(dy*dy))
+            # normalize 
+            minn, maxx = np.min(out), np.max(out)
+            out = 0.1 + (out - minn) * 0.9 / (maxx - minn)
             out_x.append(np.expand_dims(out, axis=2))
         out_x = np.array(out_x)
         yield (out_x, batch_y)
@@ -135,6 +138,9 @@ def val_datagenerator(data, target, gradient=False):
         if gradient:
             [dx, dy] = np.gradient(data[i,:,:,0])
             out = np.sqrt((dx*dx)+(dy*dy))
+            # normalize
+            minn, maxx = np.min(out), np.max(out)
+            out = 0.1 + (out - minn) * 0.9 / (maxx - minn)
             data_out.append(np.expand_dims(out,axis=2))
         else:
             data_out.append(terrain_analysis(data[i,:,:,0],(1.5,1.5)))
@@ -161,8 +167,7 @@ def no_aug_generator(data, target, batch_size=32):
     train_img, train_mask = data, target
     print(train_img.shape, train_mask.shape)
     
-    data_gen_args = dict(horizontal_flip=True,
-                         vertical_flip=True)
+    data_gen_args = dict()
     img_datagen = ImageDataGenerator(**data_gen_args)
     mask_datagen = ImageDataGenerator(**data_gen_args)
 
