@@ -24,7 +24,7 @@ def get_callbacks(weights_path, model_path, patience_lr):
 
 def helper_pred(model, X_true, Y_true, opt):
     # multi-band
-    # (X_true, Y_true) = val_datagenerator(X_true, Y_true, opt.use_gradient)
+    (X_true, Y_true) = val_datagenerator(X_true, Y_true, opt.use_gradient)
     score = model.evaluate(X_true, Y_true)  
     Y_pred = model.predict(X_true)
     print('shape for skelentonize',Y_pred.shape, Y_true.shape)
