@@ -111,10 +111,10 @@ def custom_image_generator(data, target, batch_size=32):
     data_gen_args = dict(
                          horizontal_flip = True,
                          vertical_flip = True,
-                         rotation_range = 90,
-                         width_shift_range=0.1,
-                         height_shift_range=0.1,
-                        #  zoom_range=0.05,
+                        #  rotation_range = 90,
+                        #  width_shift_range=0.1,
+                        #  height_shift_range=0.1,
+                         zoom_range=0.05,
                          fill_mode='constant'
                         )
     img_datagen = ImageDataGenerator(**data_gen_args)
@@ -149,7 +149,7 @@ def val_datagenerator(data, target, gradient=False):
    return (data_out, target)
     
 
-def no_aug_generator(data, target, batch_size=32):
+def no_aug_generator(data, target, batch_size=32, gradient=False):
     """Custom image generator that manipulates image/target pairs to prevent
     overfitting in the Convolutional Neural Network.
     Parameters
@@ -179,7 +179,8 @@ def no_aug_generator(data, target, batch_size=32):
     img_gen = img_datagen.flow(train_img, seed = seed, batch_size=batch_size, shuffle=True)#shuffling
     mask_gen = mask_datagen.flow(train_mask, seed = seed, batch_size=batch_size, shuffle=True)
     train_gen = zip(img_gen, mask_gen)
-    
+    if(gradient):
+        train_gen = use_gradient(train_gen)
     return train_gen
 
 def custom_image_generator2(data, target, batch_size=32):
