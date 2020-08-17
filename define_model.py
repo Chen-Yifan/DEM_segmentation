@@ -93,7 +93,7 @@ def define_model(Data, opt):
     
     weights_path = None 
     if opt.save_model:
-        weights_path = opt.model_path +'/weights.{epoch:02d}-{val_loss:.2f}-{val_iou:.2f}.hdf5'
+        weights_path = opt.model_path +'/weights.{epoch:02d}-{val_loss:.4f}-{val_iou:.4f}.hdf5'
         
         model_json = model.to_json()
         with open(opt.model_path+"/model.json", "w") as json_file:
