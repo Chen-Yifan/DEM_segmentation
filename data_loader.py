@@ -39,7 +39,7 @@ def load_feature_data(frame_dir, mask_dir, dim=128, gradient=False, resize=False
     
     for i in range(len(frame_names)):
         frame_file = frame_names[i]
-        #if len(frames)>30:
+        #if len(frames)>1000:
         #    break
         frame_path = os.path.join(frame_dir, frame_file)
         mask_path = os.path.join(mask_dir, frame_file.replace('fillnodata','building_label'))

@@ -1,7 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name='yifanDL1'
-#SBATCH --output='output/building3baug_unet.%j.%N.out'
-#SBATCH --error='output/building3baug_unet.%j.%N.err'
+#SBATCH --output='output/128over_unet64_bce_3b.%j.%N.out'
+#SBATCH --error='output/%j.%N.err'
 #SBATCH --partition=gpux1
+#SBATCH --time=7
 module load wmlce/1.6.1-py3.6
 ./scripts/train_building.sh
