@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name='yifanDL1'
-#SBATCH --output='output/128over_unet64_bce_slope.%j.%N.out'
+#SBATCH --output='output/128over_unet64_bce_DEM.%j.%N.out'
 #SBATCH --error='output/%j.%N.err'
 #SBATCH --partition=gpux1
 #SBATCH --time=7
@@ -13,10 +13,10 @@ python main.py \
 --threshold 1 \
 --loss bce \
 --model unet \
---ckpt_name 128over_unet64_bce_slope \
+--ckpt_name 128over_unet64_bce_DEM \
 --num_filters 64 \
 --input_channel 1 \
---n_epoch 100 \
+--n_epoch 70 \
 --dim 128 \
 --batch_size 16 \
 --save_model \

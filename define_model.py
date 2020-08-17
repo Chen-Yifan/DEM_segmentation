@@ -24,7 +24,7 @@ def get_callbacks(weights_path, model_path, patience_lr):
 
 def helper_pred(model, X_true, Y_true, opt):
     # multi-band
-    (X_true, Y_true) = val_datagenerator(X_true, Y_true, opt.use_gradient)
+    #(X_true, Y_true) = val_datagenerator(X_true, Y_true, opt.use_gradient)
     score = model.evaluate(X_true, Y_true)  
     Y_pred = model.predict(X_true)
     print('shape for skelentonize',Y_pred.shape, Y_true.shape)
@@ -106,7 +106,7 @@ def define_model(Data, opt):
     np.save(opt.result_path + '/gt_labels.npy', Data['test'][1])
     
     model.fit_generator(
-            # no_aug_generator(Data['train'][0], Data['train'][1],bs, use_gradient),
+            #no_aug_generator(Data['train'][0], Data['train'][1],bs, use_gradient),
             custom_image_generator(Data['train'][0], Data['train'][1], bs, use_gradient),
             steps_per_epoch= n_train//bs, epochs=n_epoch, verbose=1,
             validation_data=(Data['val'][0], Data['val'][1]),
