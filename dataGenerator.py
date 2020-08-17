@@ -61,7 +61,8 @@ def terrain_analysis(array, size):
 #     profc  = -1*(((np.power(gi,2)*di)+(2*gi*hi*fi) +(np.power(hi,2)*ei))/ ((np.power(gi,2)+np.power(hi,2))*(np.power( (1+np.power(gi,2)+np.power(hi,2)),1.5)) ))
 #     meanc  = -1 *( ((1+np.power(hi,2))*di) -(2*gi*hi*fi) +((1+np.power(gi,2))*ei) / (2*np.power( (1+np.power(gi,2)+np.power(hi,2)),1.5)  ))
     
-    return np.stack([array, slope, aspect], axis=-1)
+    # return np.stack([array, slope, aspect], axis=-1)
+    return np.expand_dims(aspect,axis=2)
 
     
 def add_derivatives(batches):
