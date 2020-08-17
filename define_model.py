@@ -109,8 +109,8 @@ def define_model(Data, opt):
             # no_aug_generator(Data['train'][0], Data['train'][1],bs, use_gradient),
             custom_image_generator(Data['train'][0], Data['train'][1], bs, use_gradient),
             steps_per_epoch= n_train//bs, epochs=n_epoch, verbose=1,
-            #validation_data=(Data['val'][0], Data['val'][1]),
-            validation_data=val_datagenerator(Data['val'][0], Data['val'][1], use_gradient),  # no gen
+            validation_data=(Data['val'][0], Data['val'][1]),
+            # validation_data=val_datagenerator(Data['val'][0], Data['val'][1], use_gradient),  # no gen
             validation_steps= n_val,
             callbacks=callbacks)
     
