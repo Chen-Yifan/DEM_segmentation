@@ -182,8 +182,8 @@ def no_aug_generator(data, target, batch_size=32, gradient=False):
     img_gen = img_datagen.flow(train_img, seed = seed, batch_size=batch_size, shuffle=True)#shuffling
     mask_gen = mask_datagen.flow(train_mask, seed = seed, batch_size=batch_size, shuffle=True)
     train_gen = zip(img_gen, mask_gen)
-    if(gradient):
-        train_gen = use_gradient(train_gen)
+    # if(gradient):
+        # train_gen = use_gradient(train_gen)
     return train_gen
 
 def custom_image_generator2(data, target, batch_size=32):
