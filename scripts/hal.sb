@@ -12,9 +12,9 @@ python main.py \
 --isTrain \
 --threshold 1 \
 --loss bce \
---model unet \
---ckpt_name 128over_unet64_bce_DEM \
---num_filters 64 \
+--model ourunet \
+--ckpt_name 128over_ourunet112_bce_DEM \
+--num_filters 112 \
 --input_channel 1 \
 --n_epoch 70 \
 --dim 128 \
