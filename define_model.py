@@ -148,7 +148,7 @@ def test_model(opt):
     optimizer = Adam(lr=learn_rate)
     
     if opt.loss=='bce':
-        model.compile(loss='binary_crossentropy', metrics=[iou_label(),per_pixel_acc(),accuracy(),BinaryAccuracy()], optimizer=optimizer)
+        model.compile(loss='binary_crossentropy', metrics=[iou_label(),per_pixel_acc(),accuracy()], optimizer=optimizer)
     elif opt.loss=='cce':
         model.compile(loss=sparse_softmax_cce, metrics=[iou_label(),per_pixel_acc(),accuracy()], optimizer=optimizer)
     else:
