@@ -11,7 +11,7 @@ def is_feature_present(input_array):
     # print('********point1***********\n label #1 > #0', num_1>num_0)
     # assert num_1 < num_0, 'label 1 should be label but now is background'
 #     print(np.sum(input_array))
-    return (np.sum(input_array)>50)
+    return (np.sum(input_array)>1600)
 
 
 def load_feature_data(frame_dir, mask_dir, dim=128, gradient=False, resize=False):
