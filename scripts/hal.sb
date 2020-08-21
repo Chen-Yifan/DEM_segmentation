@@ -1,24 +1,24 @@
 #!/bin/bash
 #SBATCH --job-name='yifanDL1'
-#SBATCH --output='output/128over_unet64_bce_DEM.%j.%N.out'
+#SBATCH --output='output/unetrgl_bce_3b_112.%j.%N.out'
 #SBATCH --error='output/%j.%N.err'
 #SBATCH --partition=gpux1
 #SBATCH --time=7
 module load wmlce/1.6.1-py3.6
 #!/bin/bash
 python main.py \
---dataroot /home/shared/dem/building_data/128_50p_over \
---date 20building_aug \
+--dataroot /home/shared/dem/erosion_data/filtered_128_over \
+--date flip_aug \
 --isTrain \
---threshold 1 \
 --loss bce \
---model ourunet \
---ckpt_name 128over_ourunet112_bce_DEM \
---num_filters 112 \
---input_channel 1 \
+--threshold 1 \
+--input_channel 3 \
+--ckpt_name unetrgl_bce_3b_32 \
+--num_filters 32 \
+--model unet_rgl \
 --n_epoch 70 \
 --dim 128 \
 --batch_size 16 \
+--frame_name all_frames_5m6b/ \
+--mask_name all_masks_5m6b/ \
 --save_model \
---frame_name DEM_retile/ \
---mask_name labels_retile/ \

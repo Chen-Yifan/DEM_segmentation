@@ -20,7 +20,6 @@ class TestOptions(BaseOptions):
 #         opt.frame_path = os.path.join(opt.dataroot, opt.frame_name)
 #         opt.mask_path = os.path.join(opt.dataroot, opt.mask_name)
         
-        self.print_options(opt)
         
         self.opt = opt
         return self.opt
