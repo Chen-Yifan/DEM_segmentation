@@ -10,6 +10,7 @@ import tensorflow as tf
 from models.models import *
 from losses import * 
 import lovasz_losses_tf as L
+from tensorflow.keras.metrics import MeanIoU, Precision, Recall, BinaryAccuracy
 
 def get_callbacks(weights_path, model_path, patience_lr):
 
@@ -147,7 +148,7 @@ def test_model(opt):
     optimizer = Adam(lr=learn_rate)
     
     if opt.loss=='bce':
-        model.compile(loss='binary_crossentropy', metrics=[iou_label(),per_pixel_acc(),accuracy()], optimizer=optimizer)
+        model.compile(loss='binary_crossentropy', metrics=[iou_label(),per_pixel_acc(),accuracy(),BinaryAccuracy()], optimizer=optimizer)
     elif opt.loss=='cce':
         model.compile(loss=sparse_softmax_cce, metrics=[iou_label(),per_pixel_acc(),accuracy()], optimizer=optimizer)
     else:
