@@ -12,11 +12,11 @@ python main.py \
 --isTrain \
 --loss bce \
 --threshold 1 \
---input_channel 3 \
---ckpt_name unetrgl_bce_3b_32 \
---num_filters 32 \
---model unet_rgl \
---n_epoch 70 \
+--input_channel 1 \
+--ckpt_name unet_bce_DEM_16_v2 \
+--num_filters 16 \
+--model unet \
+--n_epoch 300 \
 --dim 128 \
 --batch_size 16 \
 --frame_name all_frames_5m6b/ \

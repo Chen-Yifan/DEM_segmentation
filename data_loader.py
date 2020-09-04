@@ -11,7 +11,7 @@ def is_feature_present(input_array):
     # print('********point1***********\n label #1 > #0', num_1>num_0)
     # assert num_1 < num_0, 'label 1 should be label but now is background'
 #     print(np.sum(input_array))
-    return (np.sum(input_array)>1600)
+    return (np.sum(input_array)>50)
 
 
 def load_feature_data(frame_dir, mask_dir, dim=128, gradient=False, resize=False):
@@ -103,11 +103,6 @@ def preprocess(Data, dim=128, low=0.1, hi=1.0):
     print('#bands, ', bands)
     for key in Data:
         print (key)
-        # if Data[key][0].ndim != 4:
-            # Data[key][0] = Data[key][0].reshape(len(Data[key][0]), 128, 128, 1)
-            
-        # Data[key][1] = Data[key][1].reshape(len(Data[key][1]), 128, 128, 1)
-
         for i, imgs in enumerate(Data[key][0]):
             # imgs = imgs / 255.
             # img[img > 0.] = 1. - img[img > 0.]      #inv color

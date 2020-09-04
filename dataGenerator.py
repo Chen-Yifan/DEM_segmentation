@@ -129,10 +129,10 @@ def custom_image_generator(data, target, batch_size=32, gradient=False):
     mask_gen = mask_datagen.flow(train_mask, seed = seed, batch_size=batch_size, shuffle=True)
     train_gen = zip(img_gen, mask_gen)
 
-    if(gradient):
-        train_gen = use_gradient(train_gen)
-    else:
-        train_gen = add_derivatives(train_gen)  # 8.3
+    #if(gradient):
+    #    train_gen = use_gradient(train_gen)
+    #else:
+    #    train_gen = add_derivatives(train_gen)  # 8.3
     return train_gen
 
 

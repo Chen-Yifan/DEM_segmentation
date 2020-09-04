@@ -25,7 +25,7 @@ def get_callbacks(weights_path, model_path, patience_lr):
 
 def helper_pred(model, X_true, Y_true, opt):
     # multi-band
-    (X_true, Y_true) = val_datagenerator(X_true, Y_true, opt.use_gradient)
+    #(X_true, Y_true) = val_datagenerator(X_true, Y_true, opt.use_gradient)
     score = model.evaluate(X_true, Y_true)  
     Y_pred = model.predict(X_true)
     print('shape for skelentonize',Y_pred.shape, Y_true.shape)
@@ -110,8 +110,8 @@ def define_model(Data, opt):
             # no_aug_generator(Data['train'][0], Data['train'][1],bs, use_gradient),
             custom_image_generator(Data['train'][0], Data['train'][1], bs, use_gradient),
             steps_per_epoch= n_train//bs, epochs=n_epoch, verbose=1,
-            #validation_data=(Data['val'][0], Data['val'][1]),
-            validation_data=val_datagenerator(Data['val'][0], Data['val'][1], use_gradient),  # no gen
+            validation_data=(Data['val'][0], Data['val'][1]),
+            #validation_data=val_datagenerator(Data['val'][0], Data['val'][1], use_gradient),  # no gen
             validation_steps= n_val,
             callbacks=callbacks)
     
@@ -139,6 +139,7 @@ def test_model(opt):
     
     #load model and weights
     weight_dir = find_weight_dir(opt)
+    # weight_dir = os.path.join(opt.model_path,'weights.111-0.0828-0.2607.hdf5')
     print('load weight from:', weight_dir)
     model = model_from_json(loaded_model_json, custom_objects = 
                     {'MaxPoolingWithArgmax2D': MaxPoolingWithArgmax2D, 'MaxUnpooling2D':MaxUnpooling2D})
