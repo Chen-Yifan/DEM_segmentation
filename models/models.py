@@ -4,137 +4,326 @@ from keras import backend as K
 from skimage.io import imsave
 from keras.models import *
 from keras.layers import *
-from keras import backend as keras
-from keras.optimizers import Adam
-from metrics import iou_label
+from keras.optimizers import *
+from metrics import *
+from losses import *
 from keras.regularizers import l2
-# from layers import MaxPoolingWithArgmax2D, MaxUnpooling2D
+import tensorflow as tf
+import lovasz_losses_tf as L
+from tensorflow.keras.metrics import MeanIoU, Precision, Recall, BinaryAccuracy
 
 K.set_image_data_format('channels_last')  # TF dimension ordering in this code
 
-def unet(n_classes=1, input_shape = (128,128,1), lmbda=1e-6, output_mode='sigmoid', pretrained_weights = None):
-    inputs = Input(input_shape)
-    conv1 = Conv2D(32, (3, 3), W_regularizer=l2(lmbda), activation='relu', padding='same')(inputs)
-#     conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv1)
+class MaxPoolingWithArgmax2D(Layer):
+
+    def __init__(
+            self,
+            pool_size=(2, 2),
+            strides=(2, 2),
+            padding='same',
+            **kwargs):
+        super(MaxPoolingWithArgmax2D, self).__init__(**kwargs)
+        self.padding = padding
+        self.pool_size = pool_size
+        self.strides = strides
+
+    def call(self, inputs, **kwargs):
+        padding = self.padding
+        pool_size = self.pool_size
+        strides = self.strides
+        if K.backend() == 'tensorflow':
+            ksize = [1, pool_size[0], pool_size[1], 1]
+            padding = padding.upper()
+            strides = [1, strides[0], strides[1], 1]
+            output, argmax = K.tf.nn.max_pool_with_argmax(
+                    inputs,
+                    ksize=ksize,
+                    strides=strides,
+                    padding=padding)
+        else:
+            errmsg = '{} backend is not supported for layer {}'.format(
+                    K.backend(), type(self).__name__)
+            raise NotImplementedError(errmsg)
+        argmax = K.cast(argmax, K.floatx())
+        return [output, argmax]
+
+    def compute_output_shape(self, input_shape):
+        ratio = (1, 2, 2, 1)
+        output_shape = [
+                dim//ratio[idx]
+                if dim is not None else None
+                for idx, dim in enumerate(input_shape)]
+        output_shape = tuple(output_shape)
+        return [output_shape, output_shape]
+
+    def compute_mask(self, inputs, mask=None):
+        return 2 * [None]
+
+
+class MaxUnpooling2D(Layer):
+    def __init__(self, size=(2, 2), **kwargs):
+        super(MaxUnpooling2D, self).__init__(**kwargs)
+        self.size = size
+
+    def call(self, inputs, output_shape=None):
+        updates, mask = inputs[0], inputs[1]
+        with K.tf.variable_scope(self.name):
+            mask = K.cast(mask, 'int32')
+            input_shape = K.tf.shape(updates, out_type='int32')
+            #  calculation new shape
+            if output_shape is None:
+                output_shape = (
+                        input_shape[0],
+                        input_shape[1]*self.size[0],
+                        input_shape[2]*self.size[1],
+                        input_shape[3])
+            self.output_shape1 = output_shape
+
+            # calculation indices for batch, height, width and feature maps
+            one_like_mask = K.ones_like(mask, dtype='int32')
+            batch_shape = K.concatenate(
+                    [[input_shape[0]], [1], [1], [1]],
+                    axis=0)
+            batch_range = K.reshape(
+                    K.tf.range(output_shape[0], dtype='int32'),
+                    shape=batch_shape)
+            b = one_like_mask * batch_range
+            y = mask // (output_shape[2] * output_shape[3])
+            x = (mask // output_shape[3]) % output_shape[2]
+            feature_range = K.tf.range(output_shape[3], dtype='int32')
+            f = one_like_mask * feature_range
+
+            # transpose indices & reshape update values to one dimension
+            updates_size = K.tf.size(updates)
+            indices = K.transpose(K.reshape(
+                K.stack([b, y, x, f]),
+                [4, updates_size]))
+            values = K.reshape(updates, [updates_size])
+            ret = K.tf.scatter_nd(indices, values, output_shape)
+            return ret
+
+    def compute_output_shape(self, input_shape):
+        mask_shape = input_shape[1]
+        return (
+                mask_shape[0],
+                mask_shape[1]*self.size[0],
+                mask_shape[2]*self.size[1],
+                mask_shape[3]
+                )
+
+def unet_shirui(channels=1, lmbda=1e-6, drop=0.45, init=None, n_filters=32, output_mode='sigmoid', 
+                learn_rate=1e-4):
+    
+    inputs = Input((128,128,channels))
+    conv1 = Conv2D(n_filters, (3, 3), kernel_regularizer=l2(lmbda), kernel_initializer=init, activation='relu', padding='same')(inputs)
     pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
 
-    conv2 = Conv2D(64, (3, 3), W_regularizer=l2(lmbda), activation='relu', padding='same')(pool1)
-#     conv2 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv2)
+    conv2 = Conv2D(n_filters*2, (3, 3), kernel_regularizer=l2(lmbda), kernel_initializer=init, activation='relu', padding='same')(pool1)
     pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
-
-    conv3 = Conv2D(128, (3, 3), W_regularizer=l2(lmbda), activation='relu', padding='same')(pool2)
-#     conv3 = Conv2D(128, (3, 3), activation='relu', padding='same')(conv3)
-    pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
-
-    conv4 = Conv2D(256, (3, 3), W_regularizer=l2(lmbda), activation='relu', padding='same')(pool3)
-#     conv4 = Conv2D(256, (3, 3), activation='relu', padding='same')(conv4)
+    pool2 = BatchNormalization()(pool2)
+    
+    conv3 = Conv2D(n_filters*4, (3, 3), kernel_regularizer=l2(lmbda), kernel_initializer=init, activation='relu', padding='same')(pool2)
+    batch3 = BatchNormalization()(conv3)
+    conv4 = Conv2D(n_filters*4, (3, 3),kernel_regularizer=l2(lmbda), kernel_initializer=init, activation='relu', padding='same')(batch3)
     pool4 = MaxPooling2D(pool_size=(2, 2))(conv4)
-
-    conv5 = Conv2D(512, (3, 3), W_regularizer=l2(lmbda), activation='relu', padding='same')(pool4)
-#     conv5 = Conv2D(512, (3, 3), activation='relu', padding='same')(conv5)
+    pool4 = BatchNormalization()(pool4)
+    
+    conv5 = Conv2D(n_filters*4, (3, 3), kernel_regularizer=l2(lmbda), kernel_initializer=init, activation='relu', padding='same')(pool4)
 
     up6 = concatenate([UpSampling2D(size=(2, 2))(conv5), conv4], axis=3)
-    conv6 = Conv2D(256, (3, 3), W_regularizer=l2(lmbda), activation='relu', padding='same')(up6)
-#     conv6 = Conv2D(256, (3, 3), activation='relu', padding='same')(conv6)
+    up6 = Dropout(drop)(up6)
+    conv6 = Conv2D(n_filters*2, (3, 3), kernel_regularizer=l2(lmbda), kernel_initializer=init, activation='relu', padding='same')(up6)
 
-    up7 = concatenate([UpSampling2D(size=(2, 2))(conv6), conv3], axis=3)
-    conv7 = Conv2D(128, (3, 3), W_regularizer=l2(lmbda), activation='relu', padding='same')(up7)
-#     conv7 = Conv2D(128, (3, 3), activation='relu', padding='same')(conv7)
+    up7 = concatenate([UpSampling2D(size=(2, 2))(conv6), conv2], axis=3)
+    up7 = Dropout(drop)(up7)
+    conv7 = Conv2D(n_filters, (3, 3), kernel_regularizer=l2(lmbda), kernel_initializer=init, activation='relu', padding='same')(up7)
 
-    up8 = concatenate([UpSampling2D(size=(2, 2))(conv7), conv2], axis=3)
-    conv8 = Conv2D(64, (3, 3), W_regularizer=l2(lmbda), activation='relu', padding='same')(up8)
-#     conv8 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv8)
+    up8 = concatenate([UpSampling2D(size=(2, 2))(conv7), conv1], axis=3)
+    up8 = Dropout(drop)(up8)
+    conv8 = Conv2D(n_filters, (3, 3), kernel_regularizer=l2(lmbda), kernel_initializer=init,activation='relu', padding='same')(up8)
+    conv9 = Conv2D(n_filters, (3, 3), kernel_regularizer=l2(lmbda), kernel_initializer=init,activation='relu', padding='same')(conv8)
 
-    up9 = concatenate([UpSampling2D(size=(2, 2))(conv8), conv1], axis=3)
-    conv9 = Conv2D(32, (3, 3), W_regularizer=l2(lmbda), activation='relu', padding='same')(up9)
-#     conv9 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv9)
-
-    conv10 = Conv2D(n_classes, (1, 1),W_regularizer=l2(lmbda), activation=output_mode)(conv9) # no softmax
+    conv10 = Conv2D(1, (1, 1), kernel_regularizer=l2(lmbda), kernel_initializer=init, activation=output_mode)(conv9) 
     
-    conv10 = Reshape((128, 128))(conv10)
+    conv10 = Reshape((128, 128, 1))(conv10)
     model = Model(inputs = inputs, outputs = conv10)
     
-    optimizer = Adam(lr=3e-4)
-    model.compile(loss='binary_crossentropy', metrics=['accuracy',iou_label], optimizer=optimizer)
+    optimizer = Adam(lr=learn_rate)
     
+    #optimizer = Adadelta()
+    if output_mode == 'softmax':
+        model.compile(loss=sparse_softmax_cce, metrics=[iou_label(threshold=0), per_pixel_acc(threshold=0), accuracy(threshold=0)], optimizer=optimizer)
+    elif output_mode == 'sigmoid':
+        model.compile(loss='binary_crossentropy', metrics=[iou_label(),per_pixel_acc(),accuracy()], optimizer=optimizer)
+    else:
+        model.compile(loss=L.lovasz_loss, metrics=[iou_label(threshold=0),per_pixel_acc(threshold=0),accuracy(threshold=0)], optimizer=optimizer)
+        
     model.summary()
-    
-    if(pretrained_weights):
-        model.load_weights(pretrained_weights)
-
 
     return model
 
-def get_unet_multitask(n_classes=2, dist_cl=5, input_shape = (128,128,6), output_mode = 'softmax',pretrained_weights = None):
-    inputs = Input(input_shape)
-    conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(inputs)
-    conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv1)
+
+def unet_rgl(channels=1, lr=1e-4, n_filters=64, output_mode='sigmoid', lmbda=1e-6):
+    inputs = Input((128, 128, channels))
+    conv1 = Conv2D(n_filters, 3, activation='relu', padding='same', kernel_regularizer=l2(lmbda),
+                   kernel_initializer='he_normal')(inputs)
+    conv1 = Conv2D(n_filters, 3, activation='relu', padding='same', kernel_regularizer=l2(lmbda),
+                   kernel_initializer='he_normal')(conv1)
     pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
-
-    conv2 = Conv2D(64, (3, 3), activation='relu', padding='same')(pool1)
-    conv2 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv2)
+    conv2 = Conv2D(n_filters*2, 3, activation='relu', padding='same', kernel_regularizer=l2(lmbda),
+                   kernel_initializer='he_normal')(pool1)
+    conv2 = Conv2D(n_filters*2, 3, activation='relu', padding='same', kernel_regularizer=l2(lmbda),
+                   kernel_initializer='he_normal')(conv2)
     pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
-
-    conv3 = Conv2D(128, (3, 3), activation='relu', padding='same')(pool2)
-    conv3 = Conv2D(128, (3, 3), activation='relu', padding='same')(conv3)
+    conv3 = Conv2D(n_filters*4, 3, activation='relu', padding='same', kernel_regularizer=l2(lmbda),
+                   kernel_initializer='he_normal')(pool2)
+    conv3 = Conv2D(n_filters*4, 3, activation='relu', padding='same', kernel_regularizer=l2(lmbda),
+                   kernel_initializer='he_normal')(conv3)
     pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
+    conv4 = Conv2D(n_filters*8, 3, activation='relu', padding='same', kernel_regularizer=l2(lmbda),
+                   kernel_initializer='he_normal')(pool3)
+    conv4 = Conv2D(n_filters*8, 3, activation='relu', padding='same', kernel_regularizer=l2(lmbda),
+                   kernel_initializer='he_normal')(conv4)
+    drop4 = Dropout(0.5)(conv4)
+    pool4 = MaxPooling2D(pool_size=(2, 2))(drop4)   
+    conv5 = Conv2D(n_filters*16, 3, activation='relu', padding='same', kernel_regularizer=l2(lmbda),
+                   kernel_initializer='he_normal')(pool4)
+    conv5 = Conv2D(n_filters*16, 3, activation='relu', padding='same', kernel_regularizer=l2(lmbda),
+                   kernel_initializer='he_normal')(conv5)
+    drop5 = Dropout(0.5)(conv5) 
+    up6 = Conv2D(n_filters*8, 2, activation='relu', padding='same', kernel_regularizer=l2(lmbda),
+                 kernel_initializer='he_normal')(UpSampling2D(size=(2, 2))(drop5))
+    merge6 = concatenate([drop4, up6], axis=3)
+    conv6 = Conv2D(n_filters*8, 3, activation='relu', padding='same', kernel_regularizer=l2(lmbda),
+                   kernel_initializer='he_normal')(merge6)
+    conv6 = Conv2D(n_filters*8, 3, activation='relu', padding='same', kernel_regularizer=l2(lmbda),
+                   kernel_initializer='he_normal')(conv6)   
+    up7 = Conv2D(n_filters*4, 2, activation='relu', padding='same', kernel_regularizer=l2(lmbda),
+                 kernel_initializer='he_normal')(UpSampling2D(size=(2, 2))(conv6))
+    merge7 = concatenate([conv3, up7], axis=3)
+    conv7 = Conv2D(n_filters*4, 3, activation='relu', padding='same', kernel_regularizer=l2(lmbda),
+                   kernel_initializer='he_normal')(merge7)
+    conv7 = Conv2D(n_filters*4, 3, activation='relu', padding='same', kernel_regularizer=l2(lmbda),
+                   kernel_initializer='he_normal')(conv7)   
+    up8 = Conv2D(n_filters*2, 2, activation='relu', padding='same', kernel_regularizer=l2(lmbda),
+                 kernel_initializer='he_normal')(UpSampling2D(size=(2, 2))(conv7))
+    merge8 = concatenate([conv2, up8], axis=3)
+    conv8 = Conv2D(n_filters*2, 3, activation='relu', padding='same', kernel_regularizer=l2(lmbda),
+                   kernel_initializer='he_normal')(merge8)
+    conv8 = Conv2D(n_filters*2, 3, activation='relu', padding='same', kernel_regularizer=l2(lmbda),
+                   kernel_initializer='he_normal')(conv8)   
+    up9 = Conv2D(n_filters, 2, activation='relu', padding='same', kernel_regularizer=l2(lmbda),
+                 kernel_initializer='he_normal')(UpSampling2D(size=(2, 2))(conv8))
+    merge9 = concatenate([conv1, up9], axis=3)
+    conv9 = Conv2D(n_filters, 3, activation='relu', padding='same', kernel_regularizer=l2(lmbda),
+                   kernel_initializer='he_normal')(merge9)
+    conv9 = Conv2D(n_filters, 3, activation='relu', padding='same', kernel_regularizer=l2(lmbda),
+                   kernel_initializer='he_normal')(conv9)
+    conv9 = Conv2D(2, 3, activation='relu', padding='same', kernel_regularizer=l2(lmbda),
+                   kernel_initializer='he_normal')(conv9)
+    conv10 = Conv2D(1, 1, activation='sigmoid')(conv9)  
+    model = Model(inputs, conv10)  
+    optimizer = Adam(lr=1e-4)
 
-    conv4 = Conv2D(256, (3, 3), activation='relu', padding='same')(pool3)
-    conv4 = Conv2D(256, (3, 3), activation='relu', padding='same')(conv4)
-    pool4 = MaxPooling2D(pool_size=(2, 2))(conv4)
+    if output_mode == 'softmax':
+        model.compile(loss=sparse_softmax_cce, metrics=[iou_label(threshold=0), per_pixel_acc(
+            threshold=0), accuracy(threshold=0)], optimizer=optimizer)
+    elif output_mode == 'sigmoid':
+        model.compile(loss='binary_crossentropy', metrics=[
+                      iou_label(), per_pixel_acc(), accuracy()], optimizer=optimizer)
+    else: # None
+        model.compile(loss=L.lovasz_loss, metrics=[iou_label(threshold=0), per_pixel_acc(
+            threshold=0), accuracy(threshold=0)], optimizer=optimizer)
 
-    conv5 = Conv2D(512, (3, 3), activation='relu', padding='same')(pool4)
-    conv5 = Conv2D(512, (3, 3), activation='relu', padding='same')(conv5)
-    
-    #classificaiton
-    flatten = Flatten()(conv5)
-    fc = Dense(4096, activation='relu', name='fc1')(flatten)
-    fc = Dense(128, activation='relu', name='fc2')(fc)
 
-    up6 = concatenate([UpSampling2D(size=(2, 2))(conv5), conv4], axis=3)
-    conv6 = Conv2D(256, (3, 3), activation='relu', padding='same')(up6)
-    conv6 = Conv2D(256, (3, 3), activation='relu', padding='same')(conv6)
-
-    up7 = concatenate([UpSampling2D(size=(2, 2))(conv6), conv3], axis=3)
-    conv7 = Conv2D(128, (3, 3), activation='relu', padding='same')(up7)
-    conv7 = Conv2D(128, (3, 3), activation='relu', padding='same')(conv7)
-
-    up8 = concatenate([UpSampling2D(size=(2, 2))(conv7), conv2], axis=3)
-    conv8 = Conv2D(64, (3, 3), activation='relu', padding='same')(up8)
-    conv8 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv8)
-
-    up9 = concatenate([UpSampling2D(size=(2, 2))(conv8), conv1], axis=3)
-    conv9 = Conv2D(32, (3, 3), activation='relu', padding='same')(up9)
-    conv9 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv9)
-    
-    # dist
-    conv10 = Conv2D(dist_cl, (1, 1), padding='same', name='distance2')(conv9)
-    dist_map = Softmax(axis=-1, name='distance')(conv10)
-    
-    conv10 = ReLU(max_value=None, negative_slope=0.0, threshold=0.0)(dist_map)
-
-    concat = concatenate([conv9, conv10], axis=3)
-    binary_mask = Conv2D(2, (1, 1), activation=output_mode, padding='same',name='binary')(concat)
-    classification = Dense(n_classes, activation='softmax', name='classification')(fc)
-    
-    model = Model(inputs = inputs, outputs = [binary_mask, dist_map, classification])
-    
+    # model.compile(loss='binary_crossentropy',metrics=[iou_label(),per_pixel_acc(),accuracy()], optimizer=Adam(lr=1e-4))
     model.summary()
-    
-    if(pretrained_weights):
-        model.load_weights(pretrained_weights)    
 
     return model
 
-'''
+def unet(channels=1, lr=1e-4, n_filters=64, output_mode='sigmoid'):
+    inputs = Input((128, 128, channels))
+    conv1 = Conv2D(n_filters, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(inputs)
+    conv1 = Conv2D(n_filters, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(conv1)
+    pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
+    conv2 = Conv2D(n_filters*2, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(pool1)
+    conv2 = Conv2D(n_filters*2, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(conv2)
+    pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
+    conv3 = Conv2D(n_filters*4, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(pool2)
+    conv3 = Conv2D(n_filters*4, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(conv3)
+    pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
+    conv4 = Conv2D(n_filters*8, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(pool3)
+    conv4 = Conv2D(n_filters*8, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(conv4)
+    drop4 = Dropout(0.5)(conv4)
+    pool4 = MaxPooling2D(pool_size=(2, 2))(drop4)   
+    conv5 = Conv2D(n_filters*16, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(pool4)
+    conv5 = Conv2D(n_filters*16, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(conv5)
+    drop5 = Dropout(0.5)(conv5) 
+    up6 = Conv2D(n_filters*8, 2, activation='relu', padding='same',
+                 kernel_initializer='he_normal')(UpSampling2D(size=(2, 2))(drop5))
+    merge6 = concatenate([drop4, up6], axis=3)
+    conv6 = Conv2D(n_filters*8, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(merge6)
+    conv6 = Conv2D(n_filters*8, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(conv6)   
+    up7 = Conv2D(n_filters*4, 2, activation='relu', padding='same',
+                 kernel_initializer='he_normal')(UpSampling2D(size=(2, 2))(conv6))
+    merge7 = concatenate([conv3, up7], axis=3)
+    conv7 = Conv2D(n_filters*4, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(merge7)
+    conv7 = Conv2D(n_filters*4, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(conv7)   
+    up8 = Conv2D(n_filters*2, 2, activation='relu', padding='same',
+                 kernel_initializer='he_normal')(UpSampling2D(size=(2, 2))(conv7))
+    merge8 = concatenate([conv2, up8], axis=3)
+    conv8 = Conv2D(n_filters*2, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(merge8)
+    conv8 = Conv2D(n_filters*2, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(conv8)   
+    up9 = Conv2D(n_filters, 2, activation='relu', padding='same',
+                 kernel_initializer='he_normal')(UpSampling2D(size=(2, 2))(conv8))
+    merge9 = concatenate([conv1, up9], axis=3)
+    conv9 = Conv2D(n_filters, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(merge9)
+    conv9 = Conv2D(n_filters, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(conv9)
+    conv9 = Conv2D(2, 3, activation='relu', padding='same',
+                   kernel_initializer='he_normal')(conv9)
+    conv10 = Conv2D(1, 1, activation='sigmoid')(conv9)  
+    model = Model(inputs, conv10)   
+    optimizer = Adam(lr=1e-4)
+
+    if output_mode == 'softmax':
+        model.compile(loss=sparse_softmax_cce, metrics=[iou_label(threshold=0), per_pixel_acc(
+            threshold=0), accuracy(threshold=0)], optimizer=optimizer)
+    elif output_mode == 'sigmoid':
+        model.compile(loss='binary_crossentropy', metrics=[
+                      iou_label(), per_pixel_acc(), accuracy()], optimizer=optimizer)
+    else:  # None
+        model.compile(loss=L.lovasz_loss, metrics=[iou_label(threshold=0), per_pixel_acc(
+            threshold=0), accuracy(threshold=0)], optimizer=optimizer)
+
+    model.summary()
+
+    return model
+
+
 def segnet(
-        n_labels = 2,
-        input_shape = (128,128,5),
-        dist_cl = 5,
+        n_classes,
+        input_shape=(128,128,1),
+        output_mode="sigmoid",
         kernel=3,
-        pool_size=(2, 2),
-        output_mode='softmax', 
-        multi_task = False,):
+        pool_size=(2, 2)):
     # encoder
     inputs = Input(shape=input_shape)
 
@@ -191,12 +380,6 @@ def segnet(
     conv_13 = Activation("relu")(conv_13)
 
     pool_5, mask_5 = MaxPoolingWithArgmax2D(pool_size)(conv_13)
-    
-    #classificaiton
-    flatten = Flatten()(pool_5)
-    fc = Dense(4096, activation='relu', name='fc1')(flatten)
-    fc = Dense(128, activation='relu', name='fc2')(fc)
-    
     print("Build enceder done..")
 
     # decoder
@@ -251,182 +434,23 @@ def segnet(
     conv_25 = Convolution2D(64, (kernel, kernel), padding="same")(unpool_5)
     conv_25 = BatchNormalization()(conv_25)
     conv_25 = Activation("relu")(conv_25)
+
+    conv_26 = Convolution2D(n_classes, (1, 1), padding="valid")(conv_25)
+    conv_26 = BatchNormalization()(conv_26)
+
+    conv_26 = Reshape((128, 128, n_classes))(conv_26)
+    outputs = Activation(output_mode)(conv_26)
+    print("Build decoder done..")
+
+    model = Model(inputs=inputs, outputs=outputs, name="SegNet")
     
-     #Branch 1 : 5band distance
-    if(multi_task):
-        conv_25_2 = Convolution2D(dist_cl, (1,1), padding='same', name='distance1')(conv_25)
-        dist_map = Softmax(axis = -1 , name = 'distance')(conv_25_2)
-        
-        conv_26 = Activation("relu")(conv_25_2)
-        concat = concatenate([conv_25, conv_26], axis=3)
-        binary_mask = Convolution2D(n_labels, (1, 1), padding="valid", activation = output_mode, name='binary')(concat)
-
-#         flatten2 =  Flatten()(conv_25)
-#         fc2 = Dense(128, activation='relu')(flatten2)
-#         fc = concatenate([fc1,fc2], axis=1)
-        classification = Dense(n_labels, activation='sigmoid', name='classification')(fc)
-        print("Build decoder done..")
-        
-        model = Model(inputs=inputs, outputs=[binary_mask, dist_map, classification], name="SegNet")
-        
+    optimizer = Adam(lr=3e-4)
+    # optimizer = Adadelta()
+    if output_mode == 'softmax':
+        model.compile(loss=sparse_softmax_cce, metrics=[iou_label,per_pixel_acc,'accuracy'], optimizer=optimizer)
     else:
-        
-        conv_26 = Convolution2D(n_labels, (1, 1), padding="valid")(conv_25)
-        conv_26 = BatchNormalization()(conv_26)
-    #     conv_26 = Reshape(
-    #             (input_shape[0]*input_shape[1], n_labels),
-    #    outputs = Activation(output_mode, name = 'binary')(conv_26)
-        print("Build decoder done..")
-        model = Model(inputs=inputs, outputs=[conv_26], name="SegNet")
+        model.compile(loss='binary_crossentropy',metrics=[iou_label,per_pixel_acc,'accuracy'], optimizer=optimizer)
         
     model.summary()
 
     return model
-
-
-def identity_block(input_tensor, kernel_size, filters, stage, block):
-    filters1, filters2, filters3 = filters
-    if K.image_data_format() == 'channels_last':
-        bn_axis = 3
-    else:
-        bn_axis = 1
-    conv_name_base = 'res' + str(stage) + block + '_branch'
-    bn_name_base = 'bn' + str(stage) + block + '_branch'
-
-    x = Conv2D(filters1, (1, 1), name=conv_name_base + '2a')(input_tensor)
-    x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2a')(x)
-    x = Activation('relu')(x)
-
-    x = Conv2D(filters2, kernel_size, padding='same', name=conv_name_base + '2b')(x)
-    x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2b')(x)
-    x = Activation('relu')(x)
-
-    x = Conv2D(filters3, (1, 1), name=conv_name_base + '2c')(x)
-    x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2c')(x)
-
-    x = layers.add([x, input_tensor])
-    x = Activation('relu')(x)
-    return x
-
-
-def conv_block(input_tensor, kernel_size, filters, stage, block, strides=(2, 2)):
-    filters1, filters2, filters3 = filters
-    if K.image_data_format() == 'channels_last':
-        bn_axis = 3
-    else:
-        bn_axis = 1
-    conv_name_base = 'res' + str(stage) + block + '_branch'
-    bn_name_base = 'bn' + str(stage) + block + '_branch'
-
-    x = Conv2D(filters1, (1, 1), strides=strides, name=conv_name_base + '2a')(input_tensor)
-    x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2a')(x)
-    x = Activation('relu')(x)
-
-    x = Conv2D(filters2, kernel_size, padding='same', name=conv_name_base + '2b')(x)
-    x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2b')(x)
-    x = Activation('relu')(x)
-
-    x = Conv2D(filters3, (1, 1), name=conv_name_base + '2c')(x)
-    x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2c')(x)
-
-    shortcut = Conv2D(filters3, (1, 1), strides=strides, name=conv_name_base + '1')(input_tensor)
-    shortcut = BatchNormalization(axis=bn_axis, name=bn_name_base + '1')(shortcut)
-
-    x = layers.add([x, shortcut])
-    x = Activation('relu')(x)
-    return x
-
-
-def up_conv_block(input_tensor, kernel_size, filters, stage, block, strides=(1, 1)):
-    filters1, filters2, filters3 = filters
-    if K.image_data_format() == 'channels_last':
-        bn_axis = 3
-    else:
-        bn_axis = 1
-    up_conv_name_base = 'up' + str(stage) + block + '_branch'
-    conv_name_base = 'res' + str(stage) + block + '_branch'
-    bn_name_base = 'bn' + str(stage) + block + '_branch'
-
-    x = UpSampling2D(size=(2, 2), name=up_conv_name_base + '2a')(input_tensor)
-
-    x = Conv2D(filters1, (1, 1), strides=strides, name=conv_name_base + '2a')(x)
-
-    x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2a')(x)
-    x = Activation('relu')(x)
-
-    x = Conv2D(filters2, kernel_size, padding='same', name=conv_name_base + '2b')(x)
-    x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2b')(x)
-    x = Activation('relu')(x)
-
-    x = Conv2D(filters3, (1, 1), name=conv_name_base + '2c')(x)
-    x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2c')(x)
-
-    shortcut = UpSampling2D(size=(2, 2), name=up_conv_name_base + '1')(input_tensor)
-    shortcut = Conv2D(filters3, (1, 1), strides=strides, name=conv_name_base + '1')(shortcut)
-    shortcut = BatchNormalization(axis=bn_axis, name=bn_name_base + '1')(shortcut)
-
-    x = layers.add([x, shortcut])
-    x = Activation('relu')(x)
-    return x
-
-from keras import layers
-def resnet(classes=2, input_shape=(128,128,5), output_mode='softmax', f=16, bn_axis=3):
-        
-        
-    input = Input(shape=input_shape)
-    x = ZeroPadding2D((4, 4))(input)
-    x = Conv2D(f, (7, 7), strides=(2, 2), name='conv1')(x)
-    x = BatchNormalization(axis=bn_axis, name='bn_conv1')(x)
-    x = Activation('relu')(x)
-    x = MaxPooling2D((3, 3), strides=(2, 2))(x)
-
-    x = conv_block(x, 3, [f, f, f * 2], stage=2, block='a', strides=(1, 1))
-    x = identity_block(x, 3, [f, f, f * 2], stage=2, block='b')
-    x2 = identity_block(x, 3, [f, f, f * 2], stage=2, block='c')
-
-    x = conv_block(x2, 3, [f * 2, f * 2, f * 4], stage=3, block='a')
-    x = identity_block(x, 3, [f * 2, f * 2, f * 4], stage=3, block='b')
-    x3 = identity_block(x, 3, [f * 2, f * 2, f * 4], stage=3, block='d')
-
-    x = conv_block(x3, 3, [f * 4, f * 4, f * 8], stage=4, block='a')
-    x = identity_block(x, 3, [f * 4, f * 4, f * 8], stage=4, block='b')
-    x4 = identity_block(x, 3, [f * 4, f * 4, f * 8], stage=4, block='f')
-
-    x = conv_block(x4, 3, [f * 8, f * 8, f * 16], stage=5, block='a')
-    x = identity_block(x, 3, [f * 8, f * 8, f * 16], stage=5, block='b')
-    x = identity_block(x, 3, [f * 8, f * 8, f * 16], stage=5, block='c')
-
-    x = up_conv_block(x, 3, [f * 16, f * 8, f * 8], stage=6, block='a')
-    x = identity_block(x, 3, [f * 16, f * 8, f * 8], stage=6, block='b')
-    x = identity_block(x, 3, [f * 16, f * 8, f * 8], stage=6, block='c')
-
-    x = concatenate([x, x4], axis=bn_axis)
-
-    x = up_conv_block(x, 3, [f * 16, f * 4, f * 4], stage=7, block='a')
-    x = identity_block(x, 3, [f * 16, f * 4, f * 4], stage=7, block='b')
-
-    x = identity_block(x, 3, [f * 16, f * 4, f * 4], stage=7, block='f')
-
-    x = concatenate([x, x3], axis=bn_axis)
-
-    x = up_conv_block(x, 3, [f * 8, f * 2, f * 2], stage=8, block='a')
-    x = identity_block(x, 3, [f * 8, f * 2, f * 2], stage=8, block='b')
-    x = identity_block(x, 3, [f * 8, f * 2, f * 2], stage=8, block='d')
-
-    x = concatenate([x, x2], axis=bn_axis)
-
-    x = up_conv_block(x, 3, [f * 4, f, f], stage=10, block='a', strides=(1, 1))
-    x = identity_block(x, 3, [f * 4, f, f], stage=10, block='b')
-    x = identity_block(x, 3, [f * 4, f, f], stage=10, block='c')
-
-    x = UpSampling2D(size=(2, 2))(x)
-    x = Conv2D(classes, (3, 3), padding='same', activation=output_mode, name='convLast')(x)
-
-    model = Model(input, x, name='resnetUnet')
-#     model.compile(optimizer=Adam(lr=3e-4), loss=dice_coef_loss,
-#                   metrics=[dice_coef, 'accuracy', precision, recall, f1score])
-
-    model.summary()
-
-    return model
-'''

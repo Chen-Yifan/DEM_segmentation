@@ -11,83 +11,88 @@ import os
 import numpy as np
 from options.train_options import TrainOptions
 from data_loader import load_feature_data, preprocess
-from sklearn.model_selection import train_test_split
 from define_model import define_model, test_model
 from visualize import visualize
 from util.util import *
 import sys
+import csv
 
+
+def train_test_val_split(frame_data,mask_data, name_list, opt):
+    n = len(frame_data)
+    a = int(n*0.75)
+    b = int(n*0.85)
+    # record test_names list in a csv
+    test_names = name_list[b:]
+    print('len test_files', len(test_names))
+    with open(opt.result_path+'/test_names.csv', 'w') as myfile:
+        wr = csv.writer(myfile, dialect='excel')
+        wr.writerow(test_names)
+    x_train,x_val,x_test = frame_data[:a],frame_data[a:b],frame_data[b:]
+    y_train,y_val,y_test = mask_data[:a],mask_data[a:b],mask_data[b:]
+    return x_train, x_val, x_test, y_train, y_val, y_test
 
 def main():
 
     opt = TrainOptions().parse()
     print('point0, option parser finished')
-
-    ''' 1. load_data, only select feature images, 
-        default: load the gradient of DEM
-        return:  min, max among all the input images
-    '''
-    frame_data, mask_data, minn, maxx = load_feature_data(opt.frame_path, opt.mask_path, gradient=False,dim=opt.input_shape)
     
-    print('point1, finished load data')
-    
-    print('point2, shape frame mask', frame_data.shape, mask_data.shape)
-    '''2. split train_val_test:
-            input_train/val/test
-            label_train/val/test  '''
-    input_train, input_test, label_train, label_test = train_test_split(
-                frame_data, mask_data, test_size=0.15, shuffle=False)
-
-    input_train, input_val, label_train, label_val = train_test_split(
-                frame_data, mask_data, test_size=0.1, shuffle=False)
-    print('point3, shape frame mask', input_train.shape, label_train.shape)
-
-    n_train, n_test, n_val = len(input_train), len(input_test), len(input_val)
-    print('***** #train: #test: #val = %d : %d :%d ******'%(n_train, n_test, n_val))
-    
-    Data_dict = {
-        'train':[input_train.astype('float32'),
-                 label_train.astype('float32')],
-        'val':[input_val.astype('float32'),
-                label_val.astype('float32')],
-        'test':[input_test.astype('float32'),
-                label_test.astype('float32')]
-        }
-    
-    '''3. preprocess_data
-       -----
-       normalize all the data 
-    '''
-    preprocess(Data_dict, minn, maxx, opt.input_shape)
-    
-    mkdir(opt.result_path)
     if opt.isTrain:
+        ''' 1. load_data, only select feature images, 
+            default: load the gradient of DEM
+            return:  min, max among all the input images
+        '''
+
+        frame_data, mask_data, name_list = load_feature_data(opt.frame_path, opt.mask_path, opt.dim, opt.use_gradient)
+        print(np.min(frame_data),np.max(frame_data),np.unique(mask_data))
+        # minn = [np.min(frame_data[:,:,:,x]) for x in range(frame_data.shape[-1])]
+        # maxx = [np.max(frame_data[:,:,:,x]) for x in range(frame_data.shape[-1])]
+
+        print('point1, finish loading data')
+
+        print('point2, shape frame mask', frame_data.shape, mask_data.shape)
+        '''2. split train_val_test:
+                input_train/val/test
+                label_train/val/test  '''
+        
+        input_train, input_val, input_test, label_train, label_val, label_test = train_test_val_split(frame_data,mask_data,name_list, opt)
+        print('point3, shape frame mask', input_train.shape, label_train.shape)
+
+        n_train, n_test, n_val = len(input_train), len(input_test), len(input_val)
+        print('***** #train: #test: #val = %d : %d :%d ******'%(n_train, n_test, n_val))
+
+        Data_dict = {
+            'train':[input_train.astype('float32'),
+                     label_train.astype('float32')],
+            'val':[input_val.astype('float32'),
+                    label_val.astype('float32')],
+            'test':[input_test.astype('float32'),
+                    label_test.astype('float32')]
+            }
+
+        '''3. preprocess_data
+           -----
+           normalize all the data 
+        '''
+        preprocess(Data_dict, opt.dim)
+    
         # the actual model
         mkdir(opt.model_path)
-        define_model(Data_dict, opt)
-    
+        img, real, pred = define_model(Data_dict, opt)
+        
     else:
         # test/ prediction
         print('===========test==========')
-        test_model(Data_dict, opt)
+        img, real, pred = test_model(opt)
         
     # visualize result
-    img = Data_dict['test'][0][:,:,:,0]
-    real = np.load(opt.result_path + '/gt_labels.npy')
-    pred = np.load(opt.result_path + '/pred_labels.npy') 
+#     img = np.load(opt.result_path + '/inputs.npy')    
+#     real = np.load(opt.result_path + '/gt_labels.npy')    
     
     
-    predicted_data = np.zeros(pred.shape)
-    for i in range(pred.shape[0]):
-        for j in range(pred.shape[1]):
-            for k in range(pred.shape[2]):
-                if (pred[i,j,k]>=0.5):
-                    predicted_data[i,j,k] =1
-                else:
-                    predicted_data[i,j,k] =0
-	
-    for i in range(100):
-        visualize(opt.result_path,img,real,pred,predicted_data,i)
+#     result_dir = opt.result_path + '/epoch%s/'%opt.n_epoch
+#     for i in range(100):
+#         visualize(result_dir,img,real,pred,i,opt.threshold)
         
     
 main()    
