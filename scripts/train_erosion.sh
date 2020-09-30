@@ -1,12 +1,4 @@
 #!/bin/bash
-#SBATCH --job-name='yifanDL1'
-#SBATCH --output='output/unet32_hillshade_erosion.%j.%N.out'
-#SBATCH --error='output/%j.%N.err'
-#SBATCH --partition=gpux1
-#SBATCH --time=7
-module load wmlce/1.6.1-py3.6
-#!/bin/bash
-#!/bin/bash
 python main.py \
 --dataroot /home/shared/dem/erosion_data/filtered_128_over \
 --date aug \

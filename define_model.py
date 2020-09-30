@@ -2,14 +2,16 @@ import os
 import numpy as np
 from keras.callbacks import ModelCheckpoint,TensorBoard,CSVLogger,EarlyStopping,ReduceLROnPlateau
 from keras.models import model_from_json
-from dataGenerator import custom_image_generator
+from dataGenerator import custom_image_generator, val_datagenerator, no_aug_generator
 from keras.optimizers import Adadelta, Adam, SGD
 from metrics import *
+from losses import * 
 from util.util import *
 import tensorflow as tf
 from models.models import *
-from losses import * 
 import lovasz_losses_tf as L
+import segmentation_models as sm
+# from tensorflow.keras.metrics import MeanIoU, Precision, Recall, BinaryAccuracy
 
 def get_callbacks(weights_path, model_path, patience_lr):
 
@@ -23,15 +25,20 @@ def get_callbacks(weights_path, model_path, patience_lr):
     return [reduce_lr_loss, tensorboard]
 
 def helper_pred(model, X_true, Y_true, opt):
+    model.compile(loss='binary_crossentropy', metrics=[iou_label(),per_pixel_acc(),accuracy(),recall_m, precision_m, f1_m], optimizer=Adam(1e-4))
+    # multi-band
+    #(X_true, Y_true) = val_datagenerator(X_true, Y_true, opt.use_gradient)
     score = model.evaluate(X_true, Y_true)  
     Y_pred = model.predict(X_true)
     print('shape for skelentonize',Y_pred.shape, Y_true.shape)
     print('***********TEST RESULTS, write to output.txt*************')
+    print('result_path',opt.model_path)
+    
     message = ''
     for j in range(len(model.metrics_names)):
         message += "%s: %.2f%% \n" % (model.metrics_names[j], score[j]*100)
     # centerline accuracy
-    message += "centerlineAccuracy: %.2f%% \n" %(centerline_acc(Y_true, Y_pred)*100)
+    # message += "centerlineAccuracy: %.2f%% \n" %(centerline_acc(Y_true, Y_pred)*100)
     print(message)
     
     with open(opt.model_path+'/output_%s.txt'%opt.n_epoch, 'wt') as opt_file:
@@ -45,8 +52,8 @@ def helper_pred(model, X_true, Y_true, opt):
     return Y_pred
 
 def define_model(Data, opt):
-    dim = 128
-    learn_rate = opt.lr
+    dim = opt.dim
+    learn_rate = float(opt.lr)
 #     lmbda = opt.lambda
     drop = opt.dropout
     FL = opt.filter_length
@@ -55,12 +62,30 @@ def define_model(Data, opt):
     bs = opt.batch_size
     init = opt.weight_init
     input_channel = opt.input_channel
+    use_gradient = opt.use_gradient
     
     # different loss function
     if opt.model == 'unet':
-        model = unet()
+        if opt.loss == 'L':
+            model = unet(input_channel, learn_rate, num_filters, None)
+        else:
+            model = unet(input_channel, learn_rate, num_filters)
+
+    elif opt.model == 'unet_rgl':
+        if opt.loss == 'L':
+            model = unet_rgl(input_channel, learn_rate, num_filters, None)
+        else:
+            model = unet_rgl(input_channel, learn_rate, num_filters)
+        
+    elif opt.model == 'resnet':
+        model = sm.Unet('resnet34', input_shape=(128, 128, 1), encoder_weights=None, classes=1, activation='sigmoid')
+        model.compile(loss='binary_crossentropy', metrics=[
+                      iou_label(), per_pixel_acc(), accuracy()], optimizer=Adam(1e-4))
     else:
-        model = unet_shirui(1, (dim,dim,input_channel), 1e-6, drop, init, num_filters, output_mode='sigmoid')
+        if opt.loss == 'L':
+            model = unet_shirui(input_channel, 1e-6, drop, init, num_filters, None, learn_rate)  # L
+        else:
+            model = unet_shirui(input_channel, 1e-6, drop, init, num_filters, 'sigmoid',learn_rate)
         
 #     elif opt.loss == 'cce':
 #         model = unet(1,(dim,dim,input_channel),'relu','softmax') 
@@ -75,8 +100,12 @@ def define_model(Data, opt):
     
     weights_path = None 
     if opt.save_model:
-        weights_path = opt.model_path +'/weights.{epoch:02d}-{val_loss:.2f}-{val_iou:.2f}.hdf5'
-    
+        weights_path = opt.model_path +'/weights.{epoch:02d}-{val_loss:.4f}-{val_iou:.4f}.hdf5'
+        
+        model_json = model.to_json()
+        with open(opt.model_path+"/model.json", "w") as json_file:
+            json_file.write(model_json)
+            
     callbacks = get_callbacks(weights_path, opt.model_path, 5)
     
     n_train, n_test, n_val = len(Data['train'][0]), len(Data['test'][0]), len(Data['val'][0])
@@ -84,19 +113,14 @@ def define_model(Data, opt):
     np.save(opt.result_path + '/gt_labels.npy', Data['test'][1])
     
     model.fit_generator(
-#             (Data['train'][0], Data['train'][1]),
-            custom_image_generator(Data['train'][0], Data['train'][1],
-                                   batch_size=bs),
+            # no_aug_generator(Data['train'][0], Data['train'][1],bs, use_gradient),
+            custom_image_generator(Data['train'][0], Data['train'][1], bs, use_gradient),
             steps_per_epoch= n_train//bs, epochs=n_epoch, verbose=1,
-            validation_data=(Data['val'][0],Data['val'][1]), #no gen
+            validation_data=(Data['val'][0], Data['val'][1]),
+            # validation_data=val_datagenerator(Data['val'][0], Data['val'][1], use_gradient),  # no gen
             validation_steps= n_val,
             callbacks=callbacks)
     
-    if opt.save_model:
-        model_json = model.to_json()
-        with open(opt.model_path+"/model.json", "w") as json_file:
-            json_file.write(model_json)
-
     print('***********FINISH TRAIN & START TESTING******************')
     X_true, Y_true = Data['test'][0], Data['test'][1]
     
@@ -121,6 +145,7 @@ def test_model(opt):
     
     #load model and weights
     weight_dir = find_weight_dir(opt)
+    # weight_dir = os.path.join(opt.model_path,'weights.111-0.0828-0.2607.hdf5')
     print('load weight from:', weight_dir)
     model = model_from_json(loaded_model_json, custom_objects = 
                     {'MaxPoolingWithArgmax2D': MaxPoolingWithArgmax2D, 'MaxUnpooling2D':MaxUnpooling2D})
@@ -130,7 +155,7 @@ def test_model(opt):
     optimizer = Adam(lr=learn_rate)
     
     if opt.loss=='bce':
-        model.compile(loss='binary_crossentropy', metrics=[iou_label(),per_pixel_acc(),accuracy()], optimizer=optimizer)
+        model.compile(loss='binary_crossentropy', metrics=[iou_label(),per_pixel_acc(),accuracy(),recall_m, precision_m, f1_m], optimizer=optimizer)
     elif opt.loss=='cce':
         model.compile(loss=sparse_softmax_cce, metrics=[iou_label(),per_pixel_acc(),accuracy()], optimizer=optimizer)
     else:

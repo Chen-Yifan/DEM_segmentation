@@ -43,8 +43,11 @@ def main():
             return:  min, max among all the input images
         '''
 
-        frame_data, mask_data, name_list, minn, maxx = load_feature_data(opt.frame_path, opt.mask_path,gradient=False,dim=opt.input_shape)
+        frame_data, mask_data, name_list = load_feature_data(opt.frame_path, opt.mask_path, opt.dim, opt.use_gradient)
         print(np.min(frame_data),np.max(frame_data),np.unique(mask_data))
+        # minn = [np.min(frame_data[:,:,:,x]) for x in range(frame_data.shape[-1])]
+        # maxx = [np.max(frame_data[:,:,:,x]) for x in range(frame_data.shape[-1])]
+
         print('point1, finish loading data')
 
         print('point2, shape frame mask', frame_data.shape, mask_data.shape)
@@ -71,7 +74,7 @@ def main():
            -----
            normalize all the data 
         '''
-        preprocess(Data_dict, minn, maxx, opt.input_shape)
+        preprocess(Data_dict, opt.dim)
     
         # the actual model
         mkdir(opt.model_path)
@@ -87,9 +90,9 @@ def main():
 #     real = np.load(opt.result_path + '/gt_labels.npy')    
     
     
-    result_dir = opt.result_path + '/epoch%s/'%opt.n_epoch
-    for i in range(100):
-        visualize(result_dir,img,real,pred,i,opt.threshold)
+#     result_dir = opt.result_path + '/epoch%s/'%opt.n_epoch
+#     for i in range(100):
+#         visualize(result_dir,img,real,pred,i,opt.threshold)
         
     
 main()    
