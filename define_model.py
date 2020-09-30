@@ -5,12 +5,13 @@ from keras.models import model_from_json
 from dataGenerator import custom_image_generator, val_datagenerator, no_aug_generator
 from keras.optimizers import Adadelta, Adam, SGD
 from metrics import *
+from losses import * 
 from util.util import *
 import tensorflow as tf
 from models.models import *
-from losses import * 
 import lovasz_losses_tf as L
-from tensorflow.keras.metrics import MeanIoU, Precision, Recall, BinaryAccuracy
+import segmentation_models as sm
+# from tensorflow.keras.metrics import MeanIoU, Precision, Recall, BinaryAccuracy
 
 def get_callbacks(weights_path, model_path, patience_lr):
 
@@ -24,6 +25,7 @@ def get_callbacks(weights_path, model_path, patience_lr):
     return [reduce_lr_loss, tensorboard]
 
 def helper_pred(model, X_true, Y_true, opt):
+    model.compile(loss='binary_crossentropy', metrics=[iou_label(),per_pixel_acc(),accuracy(),recall_m, precision_m, f1_m], optimizer=Adam(1e-4))
     # multi-band
     #(X_true, Y_true) = val_datagenerator(X_true, Y_true, opt.use_gradient)
     score = model.evaluate(X_true, Y_true)  
@@ -36,7 +38,7 @@ def helper_pred(model, X_true, Y_true, opt):
     for j in range(len(model.metrics_names)):
         message += "%s: %.2f%% \n" % (model.metrics_names[j], score[j]*100)
     # centerline accuracy
-    message += "centerlineAccuracy: %.2f%% \n" %(centerline_acc(Y_true, Y_pred)*100)
+    # message += "centerlineAccuracy: %.2f%% \n" %(centerline_acc(Y_true, Y_pred)*100)
     print(message)
     
     with open(opt.model_path+'/output_%s.txt'%opt.n_epoch, 'wt') as opt_file:
@@ -75,6 +77,10 @@ def define_model(Data, opt):
         else:
             model = unet_rgl(input_channel, learn_rate, num_filters)
         
+    elif opt.model == 'resnet':
+        model = sm.Unet('resnet34', input_shape=(128, 128, 1), encoder_weights=None, classes=1, activation='sigmoid')
+        model.compile(loss='binary_crossentropy', metrics=[
+                      iou_label(), per_pixel_acc(), accuracy()], optimizer=Adam(1e-4))
     else:
         if opt.loss == 'L':
             model = unet_shirui(input_channel, 1e-6, drop, init, num_filters, None, learn_rate)  # L
@@ -111,7 +117,7 @@ def define_model(Data, opt):
             custom_image_generator(Data['train'][0], Data['train'][1], bs, use_gradient),
             steps_per_epoch= n_train//bs, epochs=n_epoch, verbose=1,
             validation_data=(Data['val'][0], Data['val'][1]),
-            #validation_data=val_datagenerator(Data['val'][0], Data['val'][1], use_gradient),  # no gen
+            # validation_data=val_datagenerator(Data['val'][0], Data['val'][1], use_gradient),  # no gen
             validation_steps= n_val,
             callbacks=callbacks)
     
@@ -149,7 +155,7 @@ def test_model(opt):
     optimizer = Adam(lr=learn_rate)
     
     if opt.loss=='bce':
-        model.compile(loss='binary_crossentropy', metrics=[iou_label(),per_pixel_acc(),accuracy()], optimizer=optimizer)
+        model.compile(loss='binary_crossentropy', metrics=[iou_label(),per_pixel_acc(),accuracy(),recall_m, precision_m, f1_m], optimizer=optimizer)
     elif opt.loss=='cce':
         model.compile(loss=sparse_softmax_cce, metrics=[iou_label(),per_pixel_acc(),accuracy()], optimizer=optimizer)
     else:

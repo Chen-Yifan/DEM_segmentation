@@ -39,16 +39,18 @@ def load_feature_data(frame_dir, mask_dir, dim=128, gradient=False, resize=False
     
     for i in range(len(frame_names)):
         frame_file = frame_names[i]
-        #if len(frames)>1000:
-        #    break
+        # if len(frames)>1000:
+            # break
         frame_path = os.path.join(frame_dir, frame_file)
         mask_path = os.path.join(mask_dir, frame_file.replace('fillnodata','building_label'))
+        #### for 128_0ver
+        # mask_path = os.path.join(mask_dir, frame_file.replace('DEM','label'))
     #tif
         if(frame_file[-3:]=='tif'):
-#             if not os.path.exists(mask_path):
-#                 os.remove(frame_path)
-#                 print('remove', frame_file)
-#                 continue
+            if not os.path.exists(mask_path):
+                os.remove(frame_path)
+                print('remove', frame_file)
+                continue
             frame_array = np.array(Image.open(frame_path))
             label_array = np.array(Image.open(mask_path))    
     #npy
@@ -59,11 +61,13 @@ def load_feature_data(frame_dir, mask_dir, dim=128, gradient=False, resize=False
             frame_array = x[:,:,-1]
             label_array = np.load(mask_path)
         dims = frame_array.shape
-        if dims[0]!=dim or dims[1]!=dim or (not is_feature_present(label_array)) or (len(np.unique(frame_array))<3):
-#             os.remove(mask_path)
-#             os.remove(frame_path)
+        if dims[0]!=dim or dims[1]!=dim or (len(np.unique(frame_array))<3): # or  (not is_feature_present(label_array)) 
+            os.remove(mask_path)
+            os.remove(frame_path)
             continue
 
+        if  (not is_feature_present(label_array)):
+            continue
         # if gradient:
         #     [dx, dy] = np.gradient(frame_array)
         #     frame_array = np.sqrt((dx*dx)+(dy*dy))
@@ -72,6 +76,7 @@ def load_feature_data(frame_dir, mask_dir, dim=128, gradient=False, resize=False
             frame_array = np.array(Image.fromarray(frame_array).resize((128,128), Image.BILINEAR))
             label_array = np.array(Image.fromarray(label_array).resize((128,128), Image.NEAREST))
             
+        print(frame_names[i])
         name_list.append(frame_names[i])
         frames.append(frame_array)
         masks.append(label_array)

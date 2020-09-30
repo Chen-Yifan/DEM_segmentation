@@ -11,6 +11,26 @@ def squeeze(batches): # change to enable x and y together
         
 
 from scipy import signal
+
+def hillshade(array,azimuth,angle_altitude):
+    azimuth = 360.0 - azimuth 
+
+    x, y = np.gradient(array)
+    slope = np.pi/2. - np.arctan(np.sqrt(x*x + y*y))
+    aspect = np.arctan2(-x, y)
+    azimuthrad = azimuth*np.pi/180.
+    altituderad = angle_altitude*np.pi/180.
+
+    shaded = np.sin(altituderad)*np.sin(slope) + np.cos(altituderad)*np.cos(slope)*np.cos((azimuthrad - np.pi/2.) - aspect)
+    shaded = (255*(shaded + 1)/2).reshape((128,128,1))
+    
+
+    minn, maxx = np.min(shaded), np.max(shaded)
+    # print('aspect',minn,maxx)
+    shaded = 0.1 + (shaded - minn) * 0.9 / (maxx - minn)
+    return shaded
+    
+    
 def terrain_analysis(array, size):
     """calculate terrain derivatives based on the Evans Young method
 
@@ -65,12 +85,15 @@ def terrain_analysis(array, size):
     # return np.expand_dims(slope,axis=2)
 
     
-def add_derivatives(batches):
+def add_derivatives(batches, option):
     while True:
         batch_x, batch_y = next(batches)
         out_x = []
         for i in range(batch_x.shape[0]):
-            out_x.append(terrain_analysis(batch_x[i,:,:,0],(1.5,1.5)))
+            if(option=='hillshade'):
+                out_x.append(hillshade(batch_x[i,:,:,0], 30, 30))
+            elif(option=='terrain'):
+                out_x.append(terrain_analysis(batch_x[i,:,:,0],(1.5,1.5)))
         out_x = np.array(out_x)
         yield (out_x, batch_y) 
 
@@ -132,7 +155,8 @@ def custom_image_generator(data, target, batch_size=32, gradient=False):
     #if(gradient):
     #    train_gen = use_gradient(train_gen)
     #else:
-    #    train_gen = add_derivatives(train_gen)  # 8.3
+    #    train_gen = add_derivatives(train_gen,'terrain')  # 8.3
+    # train_gen = add_derivatives(train_gen, 'hillshade')
     return train_gen
 
 
@@ -147,7 +171,8 @@ def val_datagenerator(data, target, gradient=False):
             out = 0.1 + (out - minn) * 0.9 / (maxx - minn)
             data_out.append(np.expand_dims(out,axis=2))
         else:
-            data_out.append(terrain_analysis(data[i,:,:,0],(1.5,1.5)))
+            # data_out.append(terrain_analysis(data[i,:,:,0],(1.5,1.5)))
+            data_out.append(hillshade(data[i,:,:,0], 30, 30))
    data_out = np.array(data_out)
    return (data_out, target)
     
