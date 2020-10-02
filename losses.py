@@ -9,6 +9,13 @@ from itertools import product
 
 from scipy.spatial.distance import cdist
 
+
+def wbce( y_true, y_pred, weight1=0.9, weight0=0.1) :
+    y_true = K.clip(y_true, K.epsilon(), 1-K.epsilon())
+    y_pred = K.clip(y_pred, K.epsilon(), 1-K.epsilon())
+    logloss = -(y_true * K.log(y_pred) * weight1 + (1 - y_true) * K.log(1 - y_pred) * weight0 )
+    return K.mean( logloss, axis=-1)
+    
 def dissimilarity_loss(y_true, y_pred):
     '''
     args:

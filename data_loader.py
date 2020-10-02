@@ -76,7 +76,6 @@ def load_feature_data(frame_dir, mask_dir, dim=128, gradient=False, resize=False
             frame_array = np.array(Image.fromarray(frame_array).resize((128,128), Image.BILINEAR))
             label_array = np.array(Image.fromarray(label_array).resize((128,128), Image.NEAREST))
             
-        print(frame_names[i])
         name_list.append(frame_names[i])
         frames.append(frame_array)
         masks.append(label_array)

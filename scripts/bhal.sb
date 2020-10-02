@@ -13,7 +13,7 @@ python main.py \
 --threshold 1 \
 --loss bce \
 --model unet \
---ckpt_name unet32_bce_DEM_50p \
+--ckpt_name unet32_wbce_DEM_whole0over \
 --num_filters 32 \
 --input_channel 1 \
 --n_epoch 80 \

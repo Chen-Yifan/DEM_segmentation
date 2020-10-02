@@ -18,7 +18,7 @@ def get_callbacks(weights_path, model_path, patience_lr):
     logdir = os.path.join(model_path,'log')
     tensorboard = TensorBoard(log_dir=logdir, histogram_freq=0,
                             write_graph=True, write_images=True)
-    reduce_lr_loss = ReduceLROnPlateau(factor=0.9)
+    reduce_lr_loss = ReduceLROnPlateau(factor=0.5)
     if weights_path:
         mcp_save = ModelCheckpoint(weights_path, save_best_only=False)
         return [mcp_save, reduce_lr_loss, tensorboard]
@@ -111,7 +111,7 @@ def define_model(Data, opt):
     n_train, n_test, n_val = len(Data['train'][0]), len(Data['test'][0]), len(Data['val'][0])
     np.save(opt.result_path + '/inputs.npy', Data['test'][0])
     np.save(opt.result_path + '/gt_labels.npy', Data['test'][1])
-    
+
     model.fit_generator(
             # no_aug_generator(Data['train'][0], Data['train'][1],bs, use_gradient),
             custom_image_generator(Data['train'][0], Data['train'][1], bs, use_gradient),

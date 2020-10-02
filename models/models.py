@@ -229,7 +229,7 @@ def unet_rgl(channels=1, lr=1e-4, n_filters=64, output_mode='sigmoid', lmbda=1e-
         model.compile(loss=sparse_softmax_cce, metrics=[iou_label(threshold=0), per_pixel_acc(
             threshold=0), accuracy(threshold=0)], optimizer=optimizer)
     elif output_mode == 'sigmoid':
-        model.compile(loss='binary_crossentropy', metrics=[
+        model.compile(loss=wbce, metrics=[
                       iou_label(), per_pixel_acc(), accuracy()], optimizer=optimizer)
     else: # None
         model.compile(loss=L.lovasz_loss, metrics=[iou_label(threshold=0), per_pixel_acc(
@@ -307,7 +307,7 @@ def unet(channels=1, lr=1e-4, n_filters=64, output_mode='sigmoid'):
         model.compile(loss=sparse_softmax_cce, metrics=[iou_label(threshold=0), per_pixel_acc(
             threshold=0), accuracy(threshold=0)], optimizer=optimizer)
     elif output_mode == 'sigmoid':
-        model.compile(loss='binary_crossentropy', metrics=[
+        model.compile(loss=wbce, metrics=[
                       iou_label(), per_pixel_acc(), accuracy()], optimizer=optimizer)
     else:  # None
         model.compile(loss=L.lovasz_loss, metrics=[iou_label(threshold=0), per_pixel_acc(

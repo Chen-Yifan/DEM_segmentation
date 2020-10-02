@@ -14,7 +14,7 @@ python main.py \
 --loss bce \
 --threshold 1 \
 --input_channel 1 \
---ckpt_name unet32_hillshade \
+--ckpt_name unet32_DEM_wbce_lr \
 --num_filters 32 \
 --model unet \
 --n_epoch 300 \
@@ -22,4 +22,4 @@ python main.py \
 --batch_size 16 \
 --frame_name all_frames_5m6b/ \
 --mask_name all_masks_5m6b/ \
---save_model \
+--save_model 
