@@ -28,6 +28,7 @@ def map_comparr_color(arr):
     
     Arguments:
         arr: 3-class numpy array (n, dim, dim, 1), where TP=1, FP=2, FN=3, TN=0.
+        green for TP=1, Red for FP=2, yellow for FN=3, TN are transparent
         
     Return:
         rgb colorful array in (n, dim, dim, 3) type is uint8.
@@ -39,6 +40,9 @@ def map_comparr_color(arr):
     arr_3channel[np.where(arr==1)]= g
     arr_3channel[np.where(arr==2)]= r
     arr_3channel[np.where(arr==3)]= y
+    
+    #TODO: add background layer as transparent
+    
     return arr_3channel.astype('uint8')
 
 def fourplot(img1, img2, img3, img4, idx, save_path):

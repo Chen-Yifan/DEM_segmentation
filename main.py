@@ -2,86 +2,39 @@
 """
 Created on Fri Sep 20 16:38:59 2019
 
-@author: Shiru
-
-modified by Yifan
+@author: Shiru, Yifan
 """
 
 import os
 import numpy as np
 from options.train_options import TrainOptions
-from data_loader import load_feature_data, preprocess
-from define_model import define_model, test_model
+from data_loader import load_data
+from define_model import train_model, test_model
 from visualize import save_visualization
 from util.util import *
 import sys
 import csv
 
 
-def train_test_val_split(frame_data,mask_data, name_list, opt):
-    n = len(frame_data)
-    a = int(n*0.75)
-    b = int(n*0.85)
-    # record test_names list in a csv
-    test_names = name_list[b:]
-    print('len test_files', len(test_names))
-    with open(opt.result_path+'/test_names.csv', 'w') as myfile:
-        wr = csv.writer(myfile, dialect='excel')
-        wr.writerow(test_names)
-    x_train,x_val,x_test = frame_data[:a],frame_data[a:b],frame_data[b:]
-    y_train,y_val,y_test = mask_data[:a],mask_data[a:b],mask_data[b:]
-    return x_train, x_val, x_test, y_train, y_val, y_test
-
 def main():
 
     opt = TrainOptions().parse()
-    print('point0, option parser finished')
     
     if opt.isTrain:
-        ''' 1. load_data, only select feature images, 
-            default: load the gradient of DEM
-            return:  min, max among all the input images
+        ''' Load_data
+            Function:   only select feature images, 
+                        Default: load DEM, do all the calculation (gradient/aspect/hillshade) on the fly
+                        Normalize:  min, max among the single image
         '''
-
-        frame_data, mask_data, name_list = load_feature_data(opt.frame_path, opt.mask_path, opt.dim, opt.use_gradient)
-        print(np.min(frame_data),np.max(frame_data),np.unique(mask_data))
-        # minn = [np.min(frame_data[:,:,:,x]) for x in range(frame_data.shape[-1])]
-        # maxx = [np.max(frame_data[:,:,:,x]) for x in range(frame_data.shape[-1])]
-
-        print('point1, finish loading data')
-
-        print('point2, shape frame mask', frame_data.shape, mask_data.shape)
-        '''2. split train_val_test:
-                input_train/val/test
-                label_train/val/test  '''
+        print('Start loading data ...')
+        Data_dict = load_data(opt)
         
-        input_train, input_val, input_test, label_train, label_val, label_test = train_test_val_split(frame_data,mask_data,name_list, opt)
-        print('point3, shape frame mask', input_train.shape, label_train.shape)
-
-        n_train, n_test, n_val = len(input_train), len(input_test), len(input_val)
-        print('***** #train: #test: #val = %d : %d :%d ******'%(n_train, n_test, n_val))
-
-        Data_dict = {
-            'train':[input_train.astype('float32'),
-                     label_train.astype('float32')],
-            'val':[input_val.astype('float32'),
-                    label_val.astype('float32')],
-            'test':[input_test.astype('float32'),
-                    label_test.astype('float32')]
-            }
-
-        '''3. preprocess_data
-           -----
-           normalize all the data 
-        '''
-        preprocess(Data_dict, opt.dim)
-    
+        
         # the actual model
         mkdir(opt.model_path)
-        img, real, pred = define_model(Data_dict, opt)
+        img, real, pred = train_model(Data_dict, opt)
         
-    else:
-        # test/ prediction
+    else: # test/ prediction
         print('===========test==========')
         img, real, pred = test_model(opt)
         

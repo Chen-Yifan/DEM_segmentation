@@ -1,12 +1,14 @@
-#!/bin/bash
 python main.py \
---dataroot /home/shared/dem/building_data/128_50p_over \
+--dataroot /home/yifanc3/dataset/building_data/128_0over_whole/ \
 --date 20building_aug \
---threshold 1 \
---loss bce \
---ckpt_name unet16_bce_DEM \
---n_epoch 68 \
+--loss wbce \
+--model unet \
+--ckpt_name unet112_wbce7_lr6_whole0over \
+--num_filters 112 \
+--input_channel 1 \
+--n_epoch 100 \
 --dim 128 \
 --batch_size 16 \
 --frame_name DEM_retile/ \
 --mask_name labels_retile/ \
+--visualize

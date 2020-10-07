@@ -2,12 +2,13 @@
 python main.py \
 --dataroot /home/shared/dem/building_data/128_0over \
 --date 20building_aug \
+--dataset building \
 --isTrain \
---threshold 1 \
+--augmentation \
 --loss wbce \
 --model unet \
 --ckpt_name unet64_wbce7_lr6_clip0over \
---lr 0.001 \
+--lr 0.0001 \
 --num_filters 64 \
 --input_channel 1 \
 --n_epoch 100 \

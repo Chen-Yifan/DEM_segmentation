@@ -19,8 +19,7 @@ class BaseOptions():
         parser.add_argument("--results_dir", type=str, default='./results/', help='results are saved here')
         parser.add_argument('--ckpt_name', type=str, default='experiment', help='name of the experiment. It decides where to store samples and models')
         parser.add_argument('--ckpt_dir', type=str, default='./checkpoints/', help='models are saved here')
-        parser.add_argument('--augmentation', type=int, default=0, help='do augmentation or not')
-        parser.add_argument("--batch_size", type=int, default=32)
+        parser.add_argument('--augmentation', action='store_true', help='do augmentation or not')
         parser.add_argument("--n_epoch", type=int, default=100)
         parser.add_argument("--optimizer", type=str, default='Adam', help='1:Adam, 2:Adadelta')
         parser.add_argument('--input_channel', type=int, default=1)
@@ -31,6 +30,8 @@ class BaseOptions():
         parser.add_argument('--threshold', type=float, default=0.5)
         parser.add_argument('--loss', type=str, default='bce', help='which loss function to use')
         parser.add_argument('--visualize',action='store_true', help='if save visualization results')
+        parser.add_argument('--dataset', type=str, default='erosion', help='erosion/building')
+        
 
         self.initialized = True
         return parser
