@@ -18,7 +18,7 @@ def get_callbacks(weights_path, model_path, patience_lr):
     logdir = os.path.join(model_path,'log')
     tensorboard = TensorBoard(log_dir=logdir, histogram_freq=0,
                             write_graph=True, write_images=True)
-    reduce_lr_loss = ReduceLROnPlateau(factor=0.5)
+    reduce_lr_loss = ReduceLROnPlateau(factor=0.6)
     if weights_path:
         mcp_save = ModelCheckpoint(weights_path, save_best_only=False)
         return [mcp_save, reduce_lr_loss, tensorboard]

@@ -4,13 +4,13 @@ python main.py \
 --date 20building_aug \
 --isTrain \
 --threshold 1 \
---loss bce \
---model resnet \
+--loss wbce \
+--model unet \
 --use_gradient \
---ckpt_name building_resnet34_bce_gradient \
+--ckpt_name building_unet_wbce_gradient \
 --num_filters 112 \
 --input_channel 1 \
---n_epoch 60 \
+--n_epoch 90 \
 --dim 128 \
 --batch_size 16 \
 --save_model \

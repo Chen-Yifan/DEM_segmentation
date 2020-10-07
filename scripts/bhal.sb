@@ -13,12 +13,12 @@ python main.py \
 --threshold 1 \
 --loss bce \
 --model unet \
---ckpt_name unet32_wbce_DEM_whole0over \
+--ckpt_name unet32_wbce7_lr6_DEM_whole0over \
 --num_filters 32 \
 --input_channel 1 \
 --n_epoch 80 \
 --dim 128 \
---batch_size 16 \
+--batch_size 32 \
 --frame_name DEM_retile/ \
 --mask_name labels_retile/ \
 --save_model 

@@ -6,20 +6,16 @@
 #SBATCH --time=7
 module load wmlce/1.6.1-py3.6
 #!/bin/bash
-#!/bin/bash
 python main.py \
 --dataroot /home/shared/dem/erosion_data/filtered_128_over \
 --date aug \
---isTrain \
---loss bce \
 --threshold 1 \
+--loss bce \
+--ckpt_name unet32_DEM_wbce0.7_lr0.6_v2 \
 --input_channel 1 \
---ckpt_name unet32_DEM_wbce_lr \
---num_filters 32 \
---model unet \
---n_epoch 300 \
+--n_epoch 57 \
 --dim 128 \
 --batch_size 16 \
 --frame_name all_frames_5m6b/ \
---mask_name all_masks_5m6b/ \
---save_model 
+--mask_name all_masks_5m6b/ 
+
