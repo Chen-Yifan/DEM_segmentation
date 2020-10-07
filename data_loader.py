@@ -42,9 +42,9 @@ def load_feature_data(frame_dir, mask_dir, dim=128, gradient=False, resize=False
         # if len(frames)>1000:
             # break
         frame_path = os.path.join(frame_dir, frame_file)
-        mask_path = os.path.join(mask_dir, frame_file.replace('fillnodata','building_label'))
+        # mask_path = os.path.join(mask_dir, frame_file.replace('fillnodata','building_label'))
         #### for 128_0ver
-        # mask_path = os.path.join(mask_dir, frame_file.replace('DEM','label'))
+        mask_path = os.path.join(mask_dir, frame_file.replace('DEM','label'))
     #tif
         if(frame_file[-3:]=='tif'):
             if not os.path.exists(mask_path):

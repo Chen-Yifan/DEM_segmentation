@@ -223,7 +223,7 @@ def unet_rgl(channels=1, lr=1e-4, n_filters=64, output_mode='sigmoid', lmbda=1e-
                    kernel_initializer='he_normal')(conv9)
     conv10 = Conv2D(1, 1, activation='sigmoid')(conv9)  
     model = Model(inputs, conv10)  
-    optimizer = Adam(lr=1e-4)
+    optimizer = Adam(lr)
 
     if output_mode == 'softmax':
         model.compile(loss=sparse_softmax_cce, metrics=[iou_label(threshold=0), per_pixel_acc(
@@ -301,7 +301,7 @@ def unet(channels=1, lr=1e-4, n_filters=64, output_mode='sigmoid'):
                    kernel_initializer='he_normal')(conv9)
     conv10 = Conv2D(1, 1, activation='sigmoid')(conv9)  
     model = Model(inputs, conv10)   
-    optimizer = Adam(lr=1e-4)
+    optimizer = Adam(lr)
 
     if output_mode == 'softmax':
         model.compile(loss=sparse_softmax_cce, metrics=[iou_label(threshold=0), per_pixel_acc(

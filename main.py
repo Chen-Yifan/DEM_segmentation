@@ -12,7 +12,7 @@ import numpy as np
 from options.train_options import TrainOptions
 from data_loader import load_feature_data, preprocess
 from define_model import define_model, test_model
-from visualize import visualize
+from visualize import save_visualization
 from util.util import *
 import sys
 import csv
@@ -85,14 +85,9 @@ def main():
         print('===========test==========')
         img, real, pred = test_model(opt)
         
-    # visualize result
-#     img = np.load(opt.result_path + '/inputs.npy')    
-#     real = np.load(opt.result_path + '/gt_labels.npy')    
-    
-    
-#     result_dir = opt.result_path + '/epoch%s/'%opt.n_epoch
-#     for i in range(100):
-#         visualize(result_dir,img,real,pred,i,opt.threshold)
+        # visualize result
+        if(opt.visualize):
+            print('=============Save Visualization 100 Images ===================')
+            save_visualization(opt.result_path, opt.n_epoch, opt.threshold)
         
-    
 main()    

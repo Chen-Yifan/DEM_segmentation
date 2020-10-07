@@ -28,8 +28,9 @@ class BaseOptions():
         parser.add_argument('--use_gradient', action='store_true', help='if use gradient as input')
         parser.add_argument('--n_classes', type=int, default=2, help='output classes')
         parser.add_argument('--save_model', action='store_true', help='whether or not we save the model to ckpt_dir')
-        parser.add_argument('--threshold', type=int, default=0, help='if 0: threshold=0, if 1, threshold=0.5')
+        parser.add_argument('--threshold', type=float, default=0.5)
         parser.add_argument('--loss', type=str, default='bce', help='which loss function to use')
+        parser.add_argument('--visualize',action='store_true', help='if save visualization results')
 
         self.initialized = True
         return parser

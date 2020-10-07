@@ -27,7 +27,9 @@ def get_callbacks(weights_path, model_path, patience_lr):
 def helper_pred(model, X_true, Y_true, opt):
     model.compile(loss='binary_crossentropy', metrics=[iou_label(),per_pixel_acc(),accuracy(),recall_m, precision_m, f1_m], optimizer=Adam(1e-4))
     # multi-band
-    #(X_true, Y_true) = val_datagenerator(X_true, Y_true, opt.use_gradient)
+    if '3b' in opt.ckpt_name or opt.use_gradient==1:
+        print('use_gradient==True')
+        (X_true, Y_true) = val_datagenerator(X_true, Y_true, opt.use_gradient)
     score = model.evaluate(X_true, Y_true)  
     Y_pred = model.predict(X_true)
     print('shape for skelentonize',Y_pred.shape, Y_true.shape)
@@ -54,6 +56,7 @@ def helper_pred(model, X_true, Y_true, opt):
 def define_model(Data, opt):
     dim = opt.dim
     learn_rate = float(opt.lr)
+    print("______learn_rate________________", learn_rate)
 #     lmbda = opt.lambda
     drop = opt.dropout
     FL = opt.filter_length
@@ -80,7 +83,7 @@ def define_model(Data, opt):
     elif opt.model == 'resnet':
         model = sm.Unet('resnet34', input_shape=(128, 128, 1), encoder_weights=None, classes=1, activation='sigmoid')
         model.compile(loss='binary_crossentropy', metrics=[
-                      iou_label(), per_pixel_acc(), accuracy()], optimizer=Adam(1e-4))
+                      iou_label(), per_pixel_acc(), accuracy()], optimizer=Adam(learn_rate))
     else:
         if opt.loss == 'L':
             model = unet_shirui(input_channel, 1e-6, drop, init, num_filters, None, learn_rate)  # L

@@ -10,10 +10,9 @@ python main.py \
 --dataroot /home/yifanc3/dataset/building_data/128_0over_whole/ \
 --date 20building_aug \
 --isTrain \
---threshold 1 \
 --loss bce \
 --model unet \
---ckpt_name unet32_wbce7_lr6_DEM_whole0over \
+--ckpt_name unet32_wbce7_lr6_whole0over \
 --num_filters 32 \
 --input_channel 1 \
 --n_epoch 80 \
@@ -23,3 +22,20 @@ python main.py \
 --mask_name labels_retile/ \
 --save_model 
 
+
+# test_building
+
+python main.py \
+--dataroot /home/shared/dem/building_data/128_50p_over \
+--date 20building_aug \
+--loss wbce \
+--model unet \
+--ckpt_name building_unet112_wbce7_lr6 \
+--num_filters 112 \
+--input_channel 1 \
+--n_epoch 20 \
+--dim 128 \
+--batch_size 16 \
+--frame_name DEM_retile/ \
+--mask_name labels_retile/ \
+--visualize
