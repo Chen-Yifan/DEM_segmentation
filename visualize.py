@@ -108,8 +108,27 @@ def save_visualization(result_path, epoch, threshold):
     for i in range(len(X)):
         fourplot(X[i], color_arr[i], Y_gt[i], Y_pred[i], i, epoch_path)         # save plot
         
-        color_im = Image.fromarray(color_arr[i]) 
-        color_im.save(epoch_path+"/comp%d.png"%(i))                             # save color image
+
+        comp_a = comp_arr[i]
+        color_a = color_arr[i]
+        # foreground to RGBA
+        alph = ((comp_a>0).astype('uint8')*255).reshape(128,128,1)
+        color_a = np.concatenate((color_a, alph),axis=-1)
+        foreground = Image.fromarray(color_a)
+        background = Image.fromarray((X[i]*255).astype('uint8'))
+        
+        # paste two layer image
+        text_img = Image.new('RGBA', (128,128), (0, 0, 0, 0))
+        text_img.paste(background, (0,0))
+        text_img.paste(foreground, (0,0),mask=foreground)
+        
+        text_img.save(epoch_path+"/comp%d.png"%(i))                             # save color image
         
         if i>100:
             break
+
+    
+if __name__ == "__main__":
+    save_visualization('results/20building_aug/128over_unet112_bce_DEM_0over_cp_fillnodata',33,0.5)
+    
+    
