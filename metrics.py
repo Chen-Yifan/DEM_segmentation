@@ -36,69 +36,6 @@ def centerline_acc(y_true, y_pred):
 
     return acc/n
 
-def Mean_IoU_cl(cl=2, shape=128):
-    
-    def Mean_IOU(y_true, y_pred):
-        s = K.shape(y_true)
-
-        # reshape such that w and h dim are multiplied together
-        #revise
-        y_true_reshaped = tf.reshape(tensor=y_true, shape=(-1, shape*shape, cl))
-        y_pred_reshaped = tf.reshape(tensor=y_pred, shape=(-1, shape*shape, cl))
-        # correctly classified
-        clf_pred = K.one_hot( K.argmax(y_pred_reshaped), num_classes = s[-1])
-        print(y_true_reshaped.dtype, y_pred_reshaped.dtype, clf_pred.dtype)
-        print(np.shape(clf_pred), np.shape(y_true_reshaped), np.shape(y_pred_reshaped))
-        equal_entries = K.cast(K.equal(clf_pred,y_true_reshaped), dtype='float32') * y_true_reshaped
-
-        # IoU for labeled class
-    #     y_true_reshaped = tf.reshape(tensor=y_true, shape=(-1, 128*128, 2))
-    #     y_pred_reshaped = tf.reshape(tensor=y_pred, shape=(-1, 128*128, 2))
-    #     y_true_reshaped = K.cast(K.argmax(y_true_reshaped),dtype='float32')
-    #     clf_pred = K.cast(K.argmax(y_pred_reshaped),dtype='float32')
-    #     equal_entries = K.cast(K.equal(clf_pred,y_true_reshaped), dtype='float32') * y_true_reshaped
-
-        intersection = K.sum(equal_entries, axis=1)
-        union_per_class = K.sum(y_true_reshaped,axis=1) + K.sum(clf_pred,axis=1)
-        iou = intersection / (union_per_class - intersection)
-        iou_mask = tf.is_finite(iou)
-        iou_masked = tf.boolean_mask(iou,iou_mask)
-
-        return K.mean( iou_masked )
-    
-    return Mean_IOU
-
-    
-    
-def Mean_IOU_label(y_true, y_pred, shape=128):
-    s = K.shape(y_true)
-
-    # reshape such that w and h dim are multiplied together
-    #MeanIoU all classes
-#     y_true_reshaped = tf.reshape(tensor=y_true, shape=(-1, shape*shape, 2))
-#     y_pred_reshaped = tf.reshape(tensor=y_pred, shape=(-1, shape*shape, 2))
-#     # correctly classified
-#     clf_pred = K.one_hot( K.argmax(y_pred_reshaped), num_classes = s[-1])
-#     print(y_true_reshaped.dtype, y_pred_reshaped.dtype, clf_pred.dtype)
-#     print(np.shape(clf_pred), np.shape(y_true_reshaped), np.shape(y_pred_reshaped))
-#     equal_entries = K.cast(K.equal(clf_pred,y_true_reshaped), dtype='float32') * y_true_reshaped
-
-    # IoU for labeled class
-    y_true_reshaped = tf.reshape(tensor=y_true, shape=(-1, 128*128, 2))
-    y_pred_reshaped = tf.reshape(tensor=y_pred, shape=(-1, 128*128, 2))
-    y_true_reshaped = K.cast(K.argmax(y_true_reshaped),dtype='float32')
-    clf_pred = K.cast(K.argmax(y_pred_reshaped),dtype='float32')
-    equal_entries = K.cast(K.equal(clf_pred,y_true_reshaped), dtype='float32') * y_true_reshaped
-
-    intersection = K.sum(equal_entries, axis=1)
-    union_per_class = K.sum(y_true_reshaped,axis=1) + K.sum(clf_pred,axis=1)
-    iou = intersection / (union_per_class - intersection)
-    iou_mask = tf.is_finite(iou)
-    iou_masked = tf.boolean_mask(iou,iou_mask)
-
-    return K.mean( iou_masked )
-
-
 
 def precision_1(y_true, y_pred):
     """Precision metric.
@@ -112,7 +49,7 @@ def precision_1(y_true, y_pred):
    # TP = tf.compat.v2.math.count_nonzero(y_pred * y_true)
     TP = tf.math.count_nonzero(y_pred * y_true)
     FP = tf.math.count_nonzero(y_pred*(1-y_true))
-    return TP/(TP + FP)
+    return TP/(TP + FP + K.epsilon())
 
 def precision_0(y_true, y_pred):
     """Precision metric.
@@ -126,7 +63,7 @@ def precision_0(y_true, y_pred):
    # TP = tf.compat.v2.math.count_nonzero(y_pred * y_true)
     TP = tf.math.count_nonzero(y_pred * y_true)
     FP = tf.math.count_nonzero(y_pred*(1-y_true))
-    return TP/(TP + FP)
+    return TP/(TP + FP + K.epsilon())
 
 
 def recall_1(y_true, y_pred):
@@ -141,7 +78,7 @@ def recall_1(y_true, y_pred):
    # TP = tf.compat.v2.math.count_nonzero(y_pred * y_true)
     TP = tf.math.count_nonzero(y_pred * y_true)
     FN = tf.math.count_nonzero((1-y_pred)*y_true)
-    return TP/(TP + FN)
+    return TP/(TP + FN + K.epsilon())
 
 def recall_0(y_true, y_pred):
     """Recall metric.
@@ -155,7 +92,7 @@ def recall_0(y_true, y_pred):
    # TP = tf.compat.v2.math.count_nonzero(y_pred * y_true)
     TP = tf.math.count_nonzero(y_pred * y_true)
     FN = tf.math.count_nonzero((1-y_pred)*y_true)
-    return TP/(TP + FN)
+    return TP/(TP + FN + K.epsilon())
 
 
 def f1score_1(y_true, y_pred):
@@ -207,7 +144,7 @@ def per_pixel_acc(threshold=0.5): # class1 and class0 actually the same
         TN = tf.math.count_nonzero((1-y_pred)*(1-y_true))
         FP = tf.math.count_nonzero(y_pred*(1-y_true))
         FN = tf.math.count_nonzero((1-y_pred)*y_true)
-        acc1 = (TP)/(TP+FN)
+        acc1 = (TP)/(TP+FN+K.epsilon())
         return acc1
     return per_pixel_accuracy
                   
@@ -228,7 +165,7 @@ def iou_label(threshold=0.5):
         TN = tf.math.count_nonzero((1-y_pred)*(1-y_true))
         FP = tf.math.count_nonzero(y_pred*(1-y_true))
         FN = tf.math.count_nonzero((1-y_pred)*y_true)
-        return TP/(TP+FP+FN)
+        return TP/(TP+FP+FN+K.epsilon())
     return iou
 
 
@@ -244,7 +181,7 @@ def iou_back(y_true, y_pred):
     TN = tf.math.count_nonzero((1-y_pred)*(1-y_true))
     FP = tf.math.count_nonzero(y_pred*(1-y_true))
     FN = tf.math.count_nonzero((1-y_pred)*y_true)
-    return TP/(TP+FP+FN)
+    return TP/(TP+FP+FN+K.epsilon())
 
 def accuracy(threshold=0.5):
     def acc(y_true, y_pred):
