@@ -47,8 +47,8 @@ def precision_1(y_true, y_pred):
     y_pred = K.argmax(y_pred)
     y_true = K.argmax(y_true)
    # TP = tf.compat.v2.math.count_nonzero(y_pred * y_true)
-    TP = tf.math.count_nonzero(y_pred * y_true)
-    FP = tf.math.count_nonzero(y_pred*(1-y_true))
+    TP = K.cast(tf.math.count_nonzero(y_pred * y_true),'float32')
+    FP =  K.cast(tf.math.count_nonzero(y_pred*(1-y_true)),'float32')
     return TP/(TP + FP + K.epsilon())
 
 def precision_0(y_true, y_pred):
@@ -61,8 +61,8 @@ def precision_0(y_true, y_pred):
     y_pred = 1-K.argmax(y_pred)
     y_true = 1-K.argmax(y_true)
    # TP = tf.compat.v2.math.count_nonzero(y_pred * y_true)
-    TP = tf.math.count_nonzero(y_pred * y_true)
-    FP = tf.math.count_nonzero(y_pred*(1-y_true))
+    TP = K.cast(tf.math.count_nonzero(y_pred * y_true),'float32')
+    FP =  K.cast(tf.math.count_nonzero(y_pred*(1-y_true)),'float32')
     return TP/(TP + FP + K.epsilon())
 
 
@@ -76,8 +76,8 @@ def recall_1(y_true, y_pred):
     y_pred = K.argmax(y_pred)
     y_true = K.argmax(y_true)
    # TP = tf.compat.v2.math.count_nonzero(y_pred * y_true)
-    TP = tf.math.count_nonzero(y_pred * y_true)
-    FN = tf.math.count_nonzero((1-y_pred)*y_true)
+    TP = K.cast(tf.math.count_nonzero(y_pred * y_true),'float32')
+    FN =  K.cast(tf.math.count_nonzero((1-y_pred)*y_true),'float32')
     return TP/(TP + FN + K.epsilon())
 
 def recall_0(y_true, y_pred):
@@ -90,8 +90,8 @@ def recall_0(y_true, y_pred):
     y_pred = 1-K.argmax(y_pred)
     y_true = 1-K.argmax(y_true)
    # TP = tf.compat.v2.math.count_nonzero(y_pred * y_true)
-    TP = tf.math.count_nonzero(y_pred * y_true)
-    FN = tf.math.count_nonzero((1-y_pred)*y_true)
+    TP = K.cast(tf.math.count_nonzero(y_pred * y_true),'float32')
+    FN =  K.cast(tf.math.count_nonzero((1-y_pred)*y_true),'float32')
     return TP/(TP + FN + K.epsilon())
 
 
@@ -140,10 +140,10 @@ def per_pixel_acc(threshold=0.5): # class1 and class0 actually the same
             y_pred = K.cast(K.greater(K.squeeze(y_pred,axis=-1),threshold),'uint8')
         y_true = K.cast(K.squeeze(y_true,axis=-1),'uint8')
 
-        TP = tf.math.count_nonzero(y_pred * y_true)
-        TN = tf.math.count_nonzero((1-y_pred)*(1-y_true))
-        FP = tf.math.count_nonzero(y_pred*(1-y_true))
-        FN = tf.math.count_nonzero((1-y_pred)*y_true)
+        TP = K.cast(tf.math.count_nonzero(y_pred * y_true),'float32')
+        TN = K.cast(tf.math.count_nonzero((1-y_pred)*(1-y_true)),'float32')
+        FP =  K.cast(tf.math.count_nonzero(y_pred*(1-y_true)),'float32')
+        FN =  K.cast(tf.math.count_nonzero((1-y_pred)*y_true),'float32')
         acc1 = (TP)/(TP+FN+K.epsilon())
         return acc1
     return per_pixel_accuracy
@@ -161,10 +161,10 @@ def iou_label(threshold=0.5):
         elif(y_pred.shape[-1]==1):
             y_pred = K.cast(K.greater(K.squeeze(y_pred,axis=-1),threshold),'uint8')
         y_true = K.cast(K.squeeze(y_true,axis=-1),'uint8')
-        TP = tf.math.count_nonzero(y_pred * y_true)
-        TN = tf.math.count_nonzero((1-y_pred)*(1-y_true))
-        FP = tf.math.count_nonzero(y_pred*(1-y_true))
-        FN = tf.math.count_nonzero((1-y_pred)*y_true)
+        TP = K.cast(tf.math.count_nonzero(y_pred * y_true),'float32')
+        TN = K.cast(tf.math.count_nonzero((1-y_pred)*(1-y_true)),'float32')
+        FP =  K.cast(tf.math.count_nonzero(y_pred*(1-y_true)),'float32')
+        FN =  K.cast(tf.math.count_nonzero((1-y_pred)*y_true),'float32')
         return TP/(TP+FP+FN+K.epsilon())
     return iou
 
@@ -177,10 +177,10 @@ def iou_back(y_true, y_pred):
     y_pred = 1-K.argmax(y_pred)
     y_true = 1-K.argmax(y_true)
    # TP = tf.compat.v2.math.count_nonzero(y_pred * y_true)
-    TP = tf.math.count_nonzero(y_pred * y_true)
-    TN = tf.math.count_nonzero((1-y_pred)*(1-y_true))
-    FP = tf.math.count_nonzero(y_pred*(1-y_true))
-    FN = tf.math.count_nonzero((1-y_pred)*y_true)
+    TP = K.cast(tf.math.count_nonzero(y_pred * y_true),'float32')
+    TN = K.cast(tf.math.count_nonzero((1-y_pred)*(1-y_true)),'float32')
+    FP =  K.cast(tf.math.count_nonzero(y_pred*(1-y_true)),'float32')
+    FN =  K.cast(tf.math.count_nonzero((1-y_pred)*y_true),'float32')
     return TP/(TP+FP+FN+K.epsilon())
 
 def accuracy(threshold=0.5):
