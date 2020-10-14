@@ -49,6 +49,8 @@ def precision_1(y_true, y_pred):
    # TP = tf.compat.v2.math.count_nonzero(y_pred * y_true)
     TP = K.cast(tf.math.count_nonzero(y_pred * y_true),'float32')
     FP =  K.cast(tf.math.count_nonzero(y_pred*(1-y_true)),'float32')
+    if TP + FP==0:
+        return 1
     return TP/(TP + FP + K.epsilon())
 
 def precision_0(y_true, y_pred):
@@ -63,6 +65,8 @@ def precision_0(y_true, y_pred):
    # TP = tf.compat.v2.math.count_nonzero(y_pred * y_true)
     TP = K.cast(tf.math.count_nonzero(y_pred * y_true),'float32')
     FP =  K.cast(tf.math.count_nonzero(y_pred*(1-y_true)),'float32')
+    if TP + FP==0:
+        return 1
     return TP/(TP + FP + K.epsilon())
 
 
@@ -78,6 +82,8 @@ def recall_1(y_true, y_pred):
    # TP = tf.compat.v2.math.count_nonzero(y_pred * y_true)
     TP = K.cast(tf.math.count_nonzero(y_pred * y_true),'float32')
     FN =  K.cast(tf.math.count_nonzero((1-y_pred)*y_true),'float32')
+    if TP + FN==0:
+        return 1
     return TP/(TP + FN + K.epsilon())
 
 def recall_0(y_true, y_pred):
@@ -92,6 +98,8 @@ def recall_0(y_true, y_pred):
    # TP = tf.compat.v2.math.count_nonzero(y_pred * y_true)
     TP = K.cast(tf.math.count_nonzero(y_pred * y_true),'float32')
     FN =  K.cast(tf.math.count_nonzero((1-y_pred)*y_true),'float32')
+    if TP + FN==0:
+        return 1
     return TP/(TP + FN + K.epsilon())
 
 
@@ -117,7 +125,7 @@ def FP(y_true, y_pred):
     FP = tf.math.count_nonzero(y_pred*(1-y_true))
     FN = tf.math.count_nonzero((1-y_pred)*y_true)
     if(FP+FN == 0):
-        return 0
+        return 1
     return FP/(FP+FN)
     
 def FN(y_true, y_pred):
@@ -126,7 +134,7 @@ def FN(y_true, y_pred):
     FP = tf.math.count_nonzero(y_pred*(1-y_true))
     FN = tf.math.count_nonzero((1-y_pred)*y_true)
     if(FP+FN == 0):
-        return 0
+        return 1
     return FN/(FP + FN)
 
 
@@ -144,6 +152,8 @@ def per_pixel_acc(threshold=0.5): # class1 and class0 actually the same
         TN = K.cast(tf.math.count_nonzero((1-y_pred)*(1-y_true)),'float32')
         FP =  K.cast(tf.math.count_nonzero(y_pred*(1-y_true)),'float32')
         FN =  K.cast(tf.math.count_nonzero((1-y_pred)*y_true),'float32')
+        if TP+FN==0:
+            return 1
         acc1 = (TP)/(TP+FN+K.epsilon())
         return acc1
     return per_pixel_accuracy
@@ -165,7 +175,10 @@ def iou_label(threshold=0.5):
         TN = K.cast(tf.math.count_nonzero((1-y_pred)*(1-y_true)),'float32')
         FP =  K.cast(tf.math.count_nonzero(y_pred*(1-y_true)),'float32')
         FN =  K.cast(tf.math.count_nonzero((1-y_pred)*y_true),'float32')
-        return TP/(TP+FP+FN+K.epsilon())
+        if TP+FP+FN==0:
+            return 1
+        else:
+            return TP/(TP+FP+FN+K.epsilon())
     return iou
 
 
