@@ -13,7 +13,7 @@ In this repo, we implement a Unet model with data preprocessing for segmenting g
 
 - Clone this repo:
 ```bash
-git clone git@github.com:fffibonacci/DEM_segmentation.git
+git clone git@github.com:Chen-Yifan/DEM_segmentation.git
 cd DEM_segmentation
 ```
 

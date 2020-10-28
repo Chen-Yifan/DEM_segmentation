@@ -26,7 +26,7 @@ def is_feature_present(input_array):
     return (np.sum(input_array)>50)     # select the image with more than 50 pixel label
 
     
-def load_feature_data(frame_dir, mask_dir, feature_type='erosion', dim=128):
+def load_feature_data(frame_dir, mask_dir, feature_type='erosion', dim=128,  first_time=False):
     
     '''load frames and masks into two numpy array respectively
         -----
@@ -48,7 +48,7 @@ def load_feature_data(frame_dir, mask_dir, feature_type='erosion', dim=128):
     frame_names = os.listdir(frame_dir)
     frame_names.sort(key=lambda var:[int(x) if x.isdigit() else x
                                     for x in re.findall(r'[^0-9]|[0-9]+', var)])    # sort frame_names
-
+    poly_dir  = mask_dir.replace('labels_retile','mask_retile')
     print("** load image from directory loop starts:")
     for i in range(len(frame_names)):
         frame_file = frame_names[i]
@@ -69,28 +69,45 @@ def load_feature_data(frame_dir, mask_dir, feature_type='erosion', dim=128):
         
         else:
             mask_path = os.path.join(mask_dir, frame_file.replace('fillnodata','building_label'))
+            poly_path = os.path.join(poly_dir, frame_file.replace('mclean_fillnodata','mask'))
+            # print(poly_path)
             #### for 128_0ver
             # mask_path = os.path.join(mask_dir, frame_file.replace('DEM','label'))
-            if(frame_file[-3:]=='tif'):
-                if not os.path.exists(mask_path):
-                    # os.remove(frame_path)
+            if(first_time):
+                if(frame_file[-3:]=='tif'):
+                    if not os.path.exists(mask_path):
+                        # os.remove(frame_path)
+                        continue
+                    poly_array = np.array(Image.open(poly_path))
+                    if (0 in poly_array): # if there is a 0 in the polygon indicator file
+                        os.remove(frame_path)
+                        os.remove(mask_path)
+                        os.remove(poly_path)
+                        print('remove 3files',frame_file)
+                        continue
+                    
+                    frame_array = np.array(Image.open(frame_path))
+                    label_array = np.array(Image.open(mask_path))
+                    
+                else:
+                    os.remove(frame_path)
+                    if os.path.exists(mask_path):
+                        os.remove(mask_path)
+                        print('remove2',frame_file)
                     continue
-                frame_array = np.array(Image.open(frame_path))
-                label_array = np.array(Image.open(mask_path))    
-            else:
-                os.remove(frame_path)
-                if os.path.exists(mask_path):
-                    os.remove(mask_path)
-                    print('remove1',frame_file)
-                continue
                 
-            # check the dimension, if dimension wrong, remove
-            dims = frame_array.shape
-            if dims[0]!=dim or dims[1]!=dim or (len(np.unique(frame_array))<3): # remove the file if the frame has less than 3 unique data
-                # os.remove(mask_path)
-                # os.remove(frame_path)
-                print('remove2',frame_file)
-                continue
+                # check the dimension, if dimension wrong, remove
+                dims = frame_array.shape
+                if dims[0]!=dim or dims[1]!=dim: # remove the file if the frame has less than 3 unique data
+                    os.remove(mask_path)
+                    os.remove(frame_path)
+                    print('remove3 dimension',frame_file)
+                    continue
+            else: # not first time
+                frame_array = np.array(Image.open(frame_path))
+                label_array = np.array(Image.open(mask_path))
+                
+           
             
         # both erosion and builiding, we check if feature is present
         if not is_feature_present(label_array):

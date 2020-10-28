@@ -7,12 +7,12 @@
 module load wmlce/1.6.1-py3.6
 #!/bin/bash
 python main.py \
---dataroot /home/yifanc3/dataset/building_data/128_0over_whole/ \
---date 20building_aug \
+--dataroot /home/shared/dem/building_data/128_0over_whole/ \
+--date 20building_poly \
 --dataset building \
 --augmentation \
 --isTrain \
---loss bce \
+--loss wbce \
 --model unet \
 --ckpt_name unet112_wbce7_lr6_whole0over \
 --num_filters 112 \
@@ -28,8 +28,25 @@ python main.py \
 
 # test building whole over dataset
 python main.py \
---dataroot /home/yifanc3/dataset/building_data/128_0over_whole/ \
+--dataroot /home/shared/dem/building_data/128_0over_whole/ \
 --date 20building_aug \
+--dataset building \
+--loss wbce \
+--model unet \
+--ckpt_name 128over_unet112_bce_DEM_0over_cp_fillnodata \
+--num_filters 32 \
+--input_channel 1 \
+--n_epoch 33 \
+--dim 128 \
+--batch_size 16 \
+--frame_name DEM_retile/ \
+--mask_name labels_retile/ 
+
+
+python main.py \
+--dataroot /home/shared/dem/building_data/128_0over_whole/ \
+--date 20building_aug \
+--dataset building \
 --loss wbce \
 --model unet \
 --ckpt_name 128over_unet112_bce_DEM_0over_cp_fillnodata \
