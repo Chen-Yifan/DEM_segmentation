@@ -17,6 +17,7 @@ from visualize import visualize
 from util.util import *
 import sys
 from ksGen import dataGen
+import time
 
 
 def main():
@@ -29,8 +30,11 @@ def main():
         return:  min, max among all the input images
     '''
     print('point1, finished load data')
+    prev_t = time.time()
     frame_data, mask_data = dataGen(opt.batch_size)
-    
+    after_t = time.time()
+    print('time for loading data is', after_t - prev_t)
+
     print('point2, shape frame mask', frame_data.shape, mask_data.shape)
     '''2. split train_val_test:
             input_train/val/test
