@@ -17,27 +17,13 @@ git clone git@github.com:Chen-Yifan/DEM_segmentation.git
 cd DEM_segmentation
 ```
 
-## Generate dataset from a DEM 
-skip this if you have a dataset ready
+## Generate Dataset from DEM 
+
 ###  Original TIFF files: 
 
   DEM:
-  
     mclearn_roi.tif
-
-  Derivatives:
   
-    mclean_roi_slope.tif 
-    mclean_roi_aspect.tif 
-    mclean_roi_rough.tif 
-    mclean_roi_tpi.tif 
-    mclean_roi_tri.tif
-  
-
-  Merge To Generate:
-  
-    mclean_roi_merge.tif 
-
   Annotated Mask:
   
     annotated_mask.tif where 1 indicates annotated, 0 not

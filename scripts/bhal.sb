@@ -29,18 +29,19 @@ python main.py \
 # test building whole over dataset
 python main.py \
 --dataroot /home/shared/dem/building_data/128_0over_whole/ \
---date 20building_aug \
+--date 20building_poly \
 --dataset building \
 --loss wbce \
 --model unet \
---ckpt_name 128over_unet112_bce_DEM_0over_cp_fillnodata \
---num_filters 32 \
+--ckpt_name unet112_wbce7_lr6_whole0over \
+--num_filters 112 \
 --input_channel 1 \
---n_epoch 33 \
+--n_epoch 61 \
 --dim 128 \
 --batch_size 16 \
 --frame_name DEM_retile/ \
---mask_name labels_retile/ 
+--mask_name labels_retile/ \
+--visualize
 
 
 python main.py \

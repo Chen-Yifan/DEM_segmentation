@@ -14,6 +14,7 @@ from visualize import save_visualization
 from util.util import *
 import sys
 import csv
+import time
 
 
 def main():
@@ -27,7 +28,11 @@ def main():
                         Normalize:  min, max among the single image
         '''
         print('Start loading data ...')
+        prev_t = time.time()
+        print("time started", prev_t)
         Data_dict = load_data(opt)
+        after_t = time.time()
+        print("time needed for laoding data", after_t - prev_t)
         
         
         # the actual model
