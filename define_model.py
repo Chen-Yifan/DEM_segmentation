@@ -13,6 +13,8 @@ import lovasz_losses_tf as L
 import segmentation_models as sm
 # from tensorflow.keras.metrics import MeanIoU, Precision, Recall, BinaryAccuracy
 
+########################### Helper functions ###############################################
+
 def get_callbacks(weights_path, model_path, patience_lr):
 
     logdir = os.path.join(model_path,'log')
@@ -25,14 +27,17 @@ def get_callbacks(weights_path, model_path, patience_lr):
     return [reduce_lr_loss, tensorboard]
 
 def helper_pred(model, X_true, Y_true, opt):
-    model.compile(loss='binary_crossentropy', metrics=[iou_label(),per_pixel_acc(),accuracy(),recall_m, precision_m, f1_m], optimizer=Adam(1e-4))
+    # model.compile(loss='binary_crossentropy', metrics=[iou_label(),per_pixel_acc(),accuracy(),recall_m, precision_m, f1_m], optimizer=Adam(1e-4))
     # multi-band
-    #(X_true, Y_true) = val_datagenerator(X_true, Y_true, opt.use_gradient)
+    if '3b' in opt.ckpt_name or opt.use_gradient==1:
+        print('use_gradient==True')
+        (X_true, Y_true) = val_datagenerator(X_true, Y_true, opt.use_gradient)
     score = model.evaluate(X_true, Y_true)  
     Y_pred = model.predict(X_true)
     print('shape for skelentonize',Y_pred.shape, Y_true.shape)
     print('***********TEST RESULTS, write to output.txt*************')
     print('result_path',opt.model_path)
+    print('epoch: %d'%opt.n_epoch)
     
     message = ''
     for j in range(len(model.metrics_names)):
@@ -51,25 +56,19 @@ def helper_pred(model, X_true, Y_true, opt):
     
     return Y_pred
 
-def define_model(Data, opt):
+def choose_model(opt):
     dim = opt.dim
-    learn_rate = float(opt.lr)
-#     lmbda = opt.lambda
+    learn_rate = opt.lr
+    lmbda = opt.lmbda
     drop = opt.dropout
     FL = opt.filter_length
     num_filters = opt.num_filters
-    n_epoch = opt.n_epoch
-    bs = opt.batch_size
     init = opt.weight_init
     input_channel = opt.input_channel
-    use_gradient = opt.use_gradient
     
-    # different loss function
+    # different model and loss function
     if opt.model == 'unet':
-        if opt.loss == 'L':
-            model = unet(input_channel, learn_rate, num_filters, None)
-        else:
-            model = unet(input_channel, learn_rate, num_filters)
+        model = unet(input_channel, learn_rate, num_filters,'relu', opt.loss)
 
     elif opt.model == 'unet_rgl':
         if opt.loss == 'L':
@@ -80,24 +79,41 @@ def define_model(Data, opt):
     elif opt.model == 'resnet':
         model = sm.Unet('resnet34', input_shape=(128, 128, 1), encoder_weights=None, classes=1, activation='sigmoid')
         model.compile(loss='binary_crossentropy', metrics=[
-                      iou_label(), per_pixel_acc(), accuracy()], optimizer=Adam(1e-4))
+                      iou_label(), per_pixel_acc(), accuracy()], optimizer=Adam(learn_rate))
     else:
         if opt.loss == 'L':
-            model = unet_shirui(input_channel, 1e-6, drop, init, num_filters, None, learn_rate)  # L
+            model = unet_shirui(input_channel, lmbda, drop, init, num_filters, None, learn_rate)  # L
         else:
-            model = unet_shirui(input_channel, 1e-6, drop, init, num_filters, 'sigmoid',learn_rate)
+            model = unet_shirui(input_channel, lmbda, drop, init, num_filters, 'sigmoid',learn_rate)
         
 #     elif opt.loss == 'cce':
 #         model = unet(1,(dim,dim,input_channel),'relu','softmax') 
 #     else:
 #         model = unet(1,(dim,dim,input_channel),'elu',None) 
-        
-#     model = DeeplabV2(n_classes=1, input_shape=(dim,dim,input_channel))
-#     model = segnet(1,(dim,dim,input_channel),'sigmoid') 
-#     model = unet(1,(dim,dim,input_channel),'relu','sigmoid') #lovasz 'elu' None threshold 0 
-#     model = unet_shirui(1, (dim,dim,input_channel), 1e-6, drop, init, num_filters, output_mode='sigmoid')
+
+    return model
+
+def find_weight_dir(opt):
+    weights = os.listdir(opt.model_path)
+    for name in weights:
+        if 'weights' in name:
+            epoch = name.split('.')[1].split('-')[0]
+            if int(epoch) == opt.n_epoch:
+                print(epoch,name)
+                return os.path.join(opt.model_path,name)
+                continue
+            
+##############################################################################################################
+
+def train_model(Data, opt):
+    dim = opt.dim
+    n_epoch = opt.n_epoch
+    bs = opt.batch_size
+    use_gradient = opt.use_gradient
     
+    model = choose_model(opt)   # choose model based on options
     
+    """ save model: model.json """
     weights_path = None 
     if opt.save_model:
         weights_path = opt.model_path +'/weights.{epoch:02d}-{val_loss:.4f}-{val_iou:.4f}.hdf5'
@@ -108,9 +124,12 @@ def define_model(Data, opt):
             
     callbacks = get_callbacks(weights_path, opt.model_path, 5)
     
-    n_train, n_test, n_val = len(Data['train'][0]), len(Data['test'][0]), len(Data['val'][0])
+    """save data to disk as npy"""
     np.save(opt.result_path + '/inputs.npy', Data['test'][0])
     np.save(opt.result_path + '/gt_labels.npy', Data['test'][1])
+    
+    """Fit data/generator to model"""
+    n_train, n_test, n_val = len(Data['train'][0]), len(Data['test'][0]), len(Data['val'][0])
     
     model.fit_generator(
             # no_aug_generator(Data['train'][0], Data['train'][1],bs, use_gradient),
@@ -120,21 +139,13 @@ def define_model(Data, opt):
             # validation_data=val_datagenerator(Data['val'][0], Data['val'][1], use_gradient),  # no gen
             validation_steps= n_val,
             callbacks=callbacks)
+            
     
     print('***********FINISH TRAIN & START TESTING******************')
     X_true, Y_true = Data['test'][0], Data['test'][1]
     
     Y_pred = helper_pred(model, X_true, Y_true, opt)
     return X_true, Y_true, Y_pred
-
-def find_weight_dir(opt):
-    #file_name[8:10] = the epoch
-    weights = os.listdir(opt.model_path)
-    print('model_path',opt.model_path)
-    for i in weights:
-        print(i)
-        if 'weights'in i and int(i[8:10]) == opt.n_epoch:
-            return os.path.join(opt.model_path,i)
 
 def test_model(opt):
     
@@ -147,8 +158,7 @@ def test_model(opt):
     weight_dir = find_weight_dir(opt)
     # weight_dir = os.path.join(opt.model_path,'weights.111-0.0828-0.2607.hdf5')
     print('load weight from:', weight_dir)
-    model = model_from_json(loaded_model_json, custom_objects = 
-                    {'MaxPoolingWithArgmax2D': MaxPoolingWithArgmax2D, 'MaxUnpooling2D':MaxUnpooling2D})
+    model = model_from_json(loaded_model_json)  # for segnet: custom_objects = {'MaxPoolingWithArgmax2D': MaxPoolingWithArgmax2D, 'MaxUnpooling2D':MaxUnpooling2D})
     model.load_weights(weight_dir)
     
     learn_rate = opt.lr
@@ -159,7 +169,7 @@ def test_model(opt):
     elif opt.loss=='cce':
         model.compile(loss=sparse_softmax_cce, metrics=[iou_label(),per_pixel_acc(),accuracy()], optimizer=optimizer)
     else:
-        model.compile(loss=L.lovasz_loss, metrics=[iou_label(threshold=0),per_pixel_acc(threshold=0),accuracy(threshold=0)], optimizer=optimizer)
+        model.compile(loss=L.lovasz_loss, metrics=[iou_label(),per_pixel_acc(),accuracy()], optimizer=optimizer)
         
     model.summary()
     

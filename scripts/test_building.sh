@@ -1,12 +1,9 @@
 #!/bin/bash
 python main.py \
---dataroot /home/shared/dem/building_data/128_50p_over \
---date 20building_aug \
+--date 20building_clip \
 --threshold 1 \
 --loss bce \
---ckpt_name unet16_bce_DEM \
---n_epoch 68 \
+--ckpt_name unet64_bce_DEM_v2_whole \
+--n_epoch 100 \
 --dim 128 \
 --batch_size 16 \
---frame_name DEM_retile/ \
---mask_name labels_retile/ \

@@ -1,25 +1,25 @@
 #!/bin/bash
 #SBATCH --job-name='yifanDL1'
-#SBATCH --output='output/unet32_50p_over.%j.%N.out'
+#SBATCH --output='output/unet64_0p_over.%j.%N.out'
 #SBATCH --error='output/%j.%N.err'
 #SBATCH --partition=gpux1
 #SBATCH --time=7
 module load wmlce/1.6.1-py3.6
 #!/bin/bash
 python main.py \
---dataroot /home/yifanc3/dataset/building_data/128_0over_whole/ \
---date 20building_aug \
+--dataroot /home/shared/dem/building_data/128_0over_clip \
+--date 20building_clip \
+--dataset building \
 --isTrain \
---threshold 1 \
---loss bce \
+--threshold 0.5 \
+--loss wbce \
 --model unet \
---ckpt_name unet32_bce_DEM_50p \
---num_filters 32 \
+--ckpt_name unet64_wbce_DEM \
+--num_filters 64 \
 --input_channel 1 \
---n_epoch 80 \
+--n_epoch 100 \
 --dim 128 \
 --batch_size 16 \
 --frame_name DEM_retile/ \
 --mask_name labels_retile/ \
---save_model 
-
+--save_model
