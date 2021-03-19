@@ -20,7 +20,8 @@ def get_callbacks(weights_path, model_path, patience_lr):
     logdir = os.path.join(model_path,'log')
     tensorboard = TensorBoard(log_dir=logdir, histogram_freq=0,
                             write_graph=True, write_images=True)
-    reduce_lr_loss = ReduceLROnPlateau(factor=0.9)
+    reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.9,
+                              patience=5, verbose=1)
     if weights_path:
         mcp_save = ModelCheckpoint(weights_path, save_best_only=False)
         return [mcp_save, reduce_lr_loss, tensorboard]
@@ -65,16 +66,25 @@ def choose_model(opt):
     num_filters = opt.num_filters
     init = opt.weight_init
     input_channel = opt.input_channel
+    if opt.pretrained_weights!= '':
+        pretrained_weights = opt.pretrained_weights
+    else: 
+        pretrained_weights = None
     
     # different model and loss function
     if opt.model == 'unet':
-        model = unet(input_channel, learn_rate, num_filters,'relu', opt.loss)
+        if opt.loss=='L':
+            # model = unet(input_channel, learn_rate, num_filters,'elu', opt.loss, None, pretrained_weights)
+            model = lovasz_unet(1,(dim,dim,input_channel),'elu',None) 
+        else:
+            model = unet(input_channel, learn_rate, num_filters,'relu', opt.loss, 'sigmoid', pretrained_weights)
 
     elif opt.model == 'unet_rgl':
         if opt.loss == 'L':
-            model = unet_rgl(input_channel, learn_rate, num_filters, None)
+            print("=====unet_rgl Lovasz")
+            model = unet_rgl(input_channel, learn_rate, num_filters, pretrained_weights, None)
         else:
-            model = unet_rgl(input_channel, learn_rate, num_filters)
+            model = unet_rgl(input_channel, learn_rate, num_filters, pretrained_weights)
         
     elif opt.model == 'resnet':
         model = sm.Unet('resnet34', input_shape=(128, 128, 1), encoder_weights=None, classes=1, activation='sigmoid')
@@ -82,14 +92,9 @@ def choose_model(opt):
                       iou_label(), per_pixel_acc(), accuracy()], optimizer=Adam(learn_rate))
     else:
         if opt.loss == 'L':
-            model = unet_shirui(input_channel, lmbda, drop, init, num_filters, None, learn_rate)  # L
+            model = unet_shirui(input_channel, lmbda, drop, init, num_filters, opt.loss, None, learn_rate)  # L
         else:
-            model = unet_shirui(input_channel, lmbda, drop, init, num_filters, 'sigmoid',learn_rate)
-        
-#     elif opt.loss == 'cce':
-#         model = unet(1,(dim,dim,input_channel),'relu','softmax') 
-#     else:
-#         model = unet(1,(dim,dim,input_channel),'elu',None) 
+            model = unet_shirui(input_channel, lmbda, drop, init, num_filters, opt.loss, 'sigmoid',learn_rate)
 
     return model
 
@@ -146,6 +151,7 @@ def train_model(Data, opt):
     
     Y_pred = helper_pred(model, X_true, Y_true, opt)
     return X_true, Y_true, Y_pred
+
 
 def test_model(opt):
     

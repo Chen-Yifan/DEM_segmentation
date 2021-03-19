@@ -7,23 +7,46 @@ import random
 import sys
 import csv
 
+# part 1/2
+# def train_test_val_split(frame_data,mask_data, name_list, result_path):
+#     n = len(frame_data)
+#     a = int(n*0.75)
+#     b = int(n*0.85)
+#     # part2
+#     frame_data = np.flip(frame_data,0)
+#     mask_data = np.flip(mask_data,0)
+    
+#     # record test_names list in a csv
+#     test_names = name_list[b:]
+#     print('len test_files', len(test_names))
+#     with open(result_path+'/test_names.csv', 'w') as myfile:
+#         wr = csv.writer(myfile, dialect='excel')
+#         wr.writerow(test_names)
+#     x_train,x_val,x_test = frame_data[:a],frame_data[a:b],frame_data[b:]
+#     y_train,y_val,y_test = mask_data[:a],mask_data[a:b],mask_data[b:]
+#     return x_train, x_val, x_test, y_train, y_val, y_test
+    
+# part 3
 def train_test_val_split(frame_data,mask_data, name_list, result_path):
     n = len(frame_data)
     a = int(n*0.75)
-    b = int(n*0.85)
+    b = int(n*0.90)
+    frame_data = np.flip(frame_data,0)
+    mask_data = np.flip(mask_data,0)
+    
     # record test_names list in a csv
     test_names = name_list[b:]
     print('len test_files', len(test_names))
     with open(result_path+'/test_names.csv', 'w') as myfile:
         wr = csv.writer(myfile, dialect='excel')
         wr.writerow(test_names)
-    x_train,x_val,x_test = frame_data[:a],frame_data[a:b],frame_data[b:]
-    y_train,y_val,y_test = mask_data[:a],mask_data[a:b],mask_data[b:]
+    x_train,x_test, x_val = frame_data[:a],frame_data[a:b],frame_data[b:]
+    y_train,y_test, y_val = mask_data[:a],mask_data[a:b],mask_data[b:]
     return x_train, x_val, x_test, y_train, y_val, y_test
     
     
 def is_feature_present(input_array):
-    return (np.sum(input_array)>50)     # select the image with more than 50 pixel label
+    return (np.sum(input_array)>10)     # select the image with more than 50 pixel label
 
     
 def load_feature_data(frame_dir, mask_dir, feature_type='erosion', dim=128):
@@ -48,7 +71,7 @@ def load_feature_data(frame_dir, mask_dir, feature_type='erosion', dim=128):
     frame_names = os.listdir(frame_dir)
     frame_names.sort(key=lambda var:[int(x) if x.isdigit() else x
                                     for x in re.findall(r'[^0-9]|[0-9]+', var)])    # sort frame_names
-
+                                    
     print("** load image from directory loop starts:")
     for i in range(len(frame_names)):
         frame_file = frame_names[i]
@@ -87,8 +110,8 @@ def load_feature_data(frame_dir, mask_dir, feature_type='erosion', dim=128):
             # check the dimension, if dimension wrong, remove
             dims = frame_array.shape
             if dims[0]!=dim or dims[1]!=dim or (len(np.unique(frame_array))<3): # remove the file if the frame has less than 3 unique data
-                # os.remove(mask_path)
-                # os.remove(frame_path)
+                os.remove(mask_path)
+                os.remove(frame_path)
                 print('remove2',frame_file)
                 continue
             

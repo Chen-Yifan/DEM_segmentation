@@ -87,8 +87,14 @@ def flatten_binary_scores(scores, labels, ignore=None):
     vlabels = tf.boolean_mask(labels, valid, name='valid_labels')
     return vscores, vlabels
 
-def keras_lovasz_hinge(labels, logits):
-    return lovasz_hinge(logits, labels, per_image = True, ignore = None)
+# def keras_lovasz_hinge(labels, logits):
+#     return lovasz_hinge(logits, labels, per_image = True, ignore = None)
     
+def lovasz_loss(y_true, y_pred):
+    y_true, y_pred = K.cast(K.squeeze(y_true, -1), 'int32'), K.cast(K.squeeze(y_pred, -1), 'float32')
+    #logits = K.log(y_pred / (1. - y_pred))
+    logits = y_pred #Jiaxin
+    loss = lovasz_hinge(logits, y_true, per_image = False, ignore = None)
+    return loss
     
 ###########################################################   

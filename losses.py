@@ -15,6 +15,26 @@ def wbce( y_true, y_pred, weight1=0.7, weight0=0.3) :
     logloss = -(y_true * K.log(y_pred) * weight1 + (1 - y_true) * K.log(1 - y_pred) * weight0 )
     return K.mean( logloss, axis=-1)
     
+ALPHA = 0.7
+BETA = 0.3
+GAMMA = 1
+
+def FocalTverskyLoss(targets, inputs, alpha=ALPHA, beta=BETA, gamma=GAMMA, smooth=1e-6):
+    
+    #flatten label and prediction tensors
+    inputs = K.flatten(inputs)
+    targets = K.flatten(targets)
+    
+    #True Positives, False Positives & False Negatives
+    TP = K.sum((inputs * targets))
+    FP = K.sum(((1-targets) * inputs))
+    FN = K.sum((targets * (1-inputs)))
+           
+    Tversky = (TP + smooth) / (TP + alpha*FP + beta*FN + smooth)  
+    FocalTversky = K.pow((1 - Tversky), gamma)
+    
+    return FocalTversky
+        
 def dissimilarity_loss(y_true, y_pred):
     '''
     args:

@@ -246,7 +246,7 @@ def iou_back(y_true, y_pred):
     FN = tf.math.count_nonzero((1-y_pred)*y_true)
     return TP/(TP+FP+FN)
 
-def accuracy(threshold=0):
+def accuracy(threshold=0.5):
     def acc(y_true, y_pred):
         '''calculate classification accuracy'''
         if(y_pred.shape[-1]==2): # one-hot

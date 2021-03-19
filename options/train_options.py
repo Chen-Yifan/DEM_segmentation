@@ -17,10 +17,11 @@ class TrainOptions(BaseOptions):
         parser.add_argument('--lmbda', type=float, default=1e-6, help='weight regularization factor')
         parser.add_argument('--weight_init', type=str, default='he_normal')
         parser.add_argument('--dropout', type=float, default=0.15, help='dropout rate')
-        parser.add_argument('--lr', type=float, default=0.0001, help='learning rate')
+        parser.add_argument('--lr', type=float, default=1e-4, help='learning rate')
         parser.add_argument('--num_filters', type=int, default=112, help='number of filters for the first conv')
         parser.add_argument('--filter_length', type=int, default=3)
         parser.add_argument("--batch_size", type=int, default=32)
+        parser.add_argument("--pretrained_weights", type=str, default='')
         
         
         parser.add_argument('--pretrained', type=int, default=0)

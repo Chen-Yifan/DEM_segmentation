@@ -1,9 +1,9 @@
 #!/bin/bash
 python main.py \
---date 20building_clip \
+--date 21building_cln \
 --threshold 1 \
 --loss bce \
---ckpt_name unet64_bce_DEM_v2_whole \
---n_epoch 100 \
+--ckpt_name unet32_T_DEM_v2_part3_ispresent \
+--n_epoch 120 \
 --dim 128 \
---batch_size 16 \
+--batch_size 16 
