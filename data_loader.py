@@ -101,7 +101,7 @@ def load_feature_data(frame_dir, mask_dir, feature_type='erosion', dim=128):
                 frame_array = np.array(Image.open(frame_path))
                 label_array = np.array(Image.open(mask_path))    
             else:
-                os.remove(frame_path)
+                # os.remove(frame_path)
                 if os.path.exists(mask_path):
                     os.remove(mask_path)
                     print('remove1',frame_file)
@@ -110,8 +110,8 @@ def load_feature_data(frame_dir, mask_dir, feature_type='erosion', dim=128):
             # check the dimension, if dimension wrong, remove
             dims = frame_array.shape
             if dims[0]!=dim or dims[1]!=dim or (len(np.unique(frame_array))<3): # remove the file if the frame has less than 3 unique data
-                os.remove(mask_path)
-                os.remove(frame_path)
+                # os.remove(mask_path)
+                # os.remove(frame_path)
                 print('remove2',frame_file)
                 continue
             

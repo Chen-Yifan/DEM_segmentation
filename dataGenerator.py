@@ -72,17 +72,17 @@ def terrain_analysis(array, size):
     # print(minn,maxx)
     slope = 0.1 + (slope - minn) * 0.9 / (maxx - minn)
 
-    aspect = np.where(gi == 0, math.pi/2, np.arctan(hi/gi))
-    minn, maxx = np.min(aspect), np.max(aspect)
-    # print('aspect',minn,maxx)
-    aspect = 0.1 + (aspect - minn) * 0.9 / (maxx - minn)
+    # aspect = np.where(gi == 0, math.pi/2, np.arctan(hi/gi))
+    # minn, maxx = np.min(aspect), np.max(aspect)
+    # # print('aspect',minn,maxx)
+    # aspect = 0.1 + (aspect - minn) * 0.9 / (maxx - minn)
 
 #     planc  = -1*((np.power(hi, 2)*di)-(2*gi*hi*fi)+(np.power(gi,2)*ei)/(np.power((np.power(gi,2)+np.power(hi,2)),1.5)))
 #     profc  = -1*(((np.power(gi,2)*di)+(2*gi*hi*fi) +(np.power(hi,2)*ei))/ ((np.power(gi,2)+np.power(hi,2))*(np.power( (1+np.power(gi,2)+np.power(hi,2)),1.5)) ))
 #     meanc  = -1 *( ((1+np.power(hi,2))*di) -(2*gi*hi*fi) +((1+np.power(gi,2))*ei) / (2*np.power( (1+np.power(gi,2)+np.power(hi,2)),1.5)  ))
     
-    return np.stack([array, slope, aspect], axis=-1)
-    # return np.expand_dims(slope,axis=2)
+    # return np.stack([array, slope, aspect], axis=-1)
+    return np.expand_dims(slope,axis=2)
 
     
 def add_derivatives(batches, option):
@@ -113,7 +113,7 @@ def use_gradient(batches):
 
 
 
-def custom_image_generator(data, target, batch_size=32, gradient=False):
+def custom_image_generator(data, target, batch_size=32, gradient=False, DEM=True):
     """Custom image generator that manipulates image/target pairs to prevent
     overfitting in the Convolutional Neural Network.
     Parameters
@@ -152,30 +152,36 @@ def custom_image_generator(data, target, batch_size=32, gradient=False):
     mask_gen = mask_datagen.flow(train_mask, seed = seed, batch_size=batch_size, shuffle=True)
     train_gen = zip(img_gen, mask_gen)
 
-    #if(gradient):
-    #    train_gen = use_gradient(train_gen)
-    #else:
-    #    train_gen = add_derivatives(train_gen,'terrain')  # 8.3
-    # train_gen = add_derivatives(train_gen, 'hillshade')
+    if(DEM):
+        return train_gen
+        
+    # gradient or derivatives
+    if(gradient):
+        train_gen = use_gradient(train_gen)
+    else:
+        train_gen = add_derivatives(train_gen,'terrain')  # 8.3
+        # train_gen = add_derivatives(train_gen, 'hillshade')
     return train_gen
 
 
-def val_datagenerator(data, target, gradient=False):
-   data_out = []
-   for i in range(len(data)):
-        if gradient:
-            [dx, dy] = np.gradient(data[i,:,:,0])
-            out = np.sqrt((dx*dx)+(dy*dy))
-            # normalize
-            minn, maxx = np.min(out), np.max(out)
-            out = 0.1 + (out - minn) * 0.9 / (maxx - minn)
-            data_out.append(np.expand_dims(out,axis=2))
-        else:
-            # data_out.append(terrain_analysis(data[i,:,:,0],(1.5,1.5)))
-            data_out.append(hillshade(data[i,:,:,0], 30, 30))
-   data_out = np.array(data_out)
-   return (data_out, target)
-    
+def val_datagenerator(data, target, gradient=False, DEM=True):
+    if(DEM):
+        return (data, target)
+    data_out = []
+    for i in range(len(data)):
+         if gradient:
+             [dx, dy] = np.gradient(data[i,:,:,0])
+             out = np.sqrt((dx*dx)+(dy*dy))
+             # normalize
+             minn, maxx = np.min(out), np.max(out)
+             out = 0.1 + (out - minn) * 0.9 / (maxx - minn)
+             data_out.append(np.expand_dims(out,axis=2))
+         else:
+             data_out.append(terrain_analysis(data[i,:,:,0],(1.5,1.5)))
+            #  data_out.append(hillshade(data[i,:,:,0], 30, 30))
+    data_out = np.array(data_out)
+    return (data_out, target)
+     
 
 def no_aug_generator(data, target, batch_size=32, gradient=False):
     """Custom image generator that manipulates image/target pairs to prevent
@@ -211,47 +217,47 @@ def no_aug_generator(data, target, batch_size=32, gradient=False):
         # train_gen = use_gradient(train_gen)
     return train_gen
 
-def custom_image_generator2(data, target, batch_size=32):
-    """Custom image generator that manipulates image/target pairs to prevent
-    overfitting in the Convolutional Neural Network.
-    Parameters
-    ----------
-    data : array
-        Input images.
-    target : array
-        Target images.
-    batch_size : int, optional
-        Batch size for image manipulation.
-    Yields
-    ------
-    Manipulated images and targets.
+# def custom_image_generator2(data, target, batch_size=32):
+#     """Custom image generator that manipulates image/target pairs to prevent
+#     overfitting in the Convolutional Neural Network.
+#     Parameters
+#     ----------
+#     data : array
+#         Input images.
+#     target : array
+#         Target images.
+#     batch_size : int, optional
+#         Batch size for image manipulation.
+#     Yields
+#     ------
+#     Manipulated images and targets.
         
-    """
-    L, W = data[0].shape[0], data[0].shape[1]
-    while True:
-        for i in range(0, (len(data)//batch_size)*batch_size, batch_size):
-            d, t = data[i:i + batch_size].copy(), target[i:i + batch_size].copy()
+#     """
+#     L, W = data[0].shape[0], data[0].shape[1]
+#     while True:
+#         for i in range(0, (len(data)//batch_size)*batch_size, batch_size):
+#             d, t = data[i:i + batch_size].copy(), target[i:i + batch_size].copy()
 
-            # Random color inversion
-            # for j in np.where(np.random.randint(0, 2, batch_size) == 1)[0]:
-            #     d[j][d[j] > 0.] = 1. - d[j][d[j] > 0.]
+#             # Random color inversion
+#             # for j in np.where(np.random.randint(0, 2, batch_size) == 1)[0]:
+#             #     d[j][d[j] > 0.] = 1. - d[j][d[j] > 0.]
 
-            # Horizontal/vertical flips
-            for j in np.where(np.random.randint(0, 2, batch_size) == 1)[0]:
-                d[j], t[j] = np.fliplr(d[j]), np.fliplr(t[j])      # left/right
-            for j in np.where(np.random.randint(0, 2, batch_size) == 1)[0]:
-                d[j], t[j] = np.flipud(d[j]), np.flipud(t[j])      # up/down
+#             # Horizontal/vertical flips
+#             for j in np.where(np.random.randint(0, 2, batch_size) == 1)[0]:
+#                 d[j], t[j] = np.fliplr(d[j]), np.fliplr(t[j])      # left/right
+#             for j in np.where(np.random.randint(0, 2, batch_size) == 1)[0]:
+#                 d[j], t[j] = np.flipud(d[j]), np.flipud(t[j])      # up/down
 
-            # Random up/down & left/right pixel shifts, 90 degree rotations
-            npix = 15
-            h = np.random.randint(-npix, npix + 1, batch_size)    # Horizontal shift
-            v = np.random.randint(-npix, npix + 1, batch_size)    # Vertical shift
-            r = np.random.randint(0, 4, batch_size)               # 90 degree rotations
-            for j in range(batch_size):
-                d[j] = np.pad(d[j], ((npix, npix), (npix, npix), (0, 0)),
-                              mode='constant')[npix + h[j]:L + h[j] + npix,
-                                               npix + v[j]:W + v[j] + npix, :]
-                t[j] = np.pad(t[j], (npix,), mode='constant')[npix + h[j]:L + h[j] + npix, 
-																npix + v[j]:W + v[j] + npix]
-                d[j], t[j] = np.rot90(d[j], r[j]), np.rot90(t[j], r[j])
-            yield (d, t)
+#             # Random up/down & left/right pixel shifts, 90 degree rotations
+#             npix = 15
+#             h = np.random.randint(-npix, npix + 1, batch_size)    # Horizontal shift
+#             v = np.random.randint(-npix, npix + 1, batch_size)    # Vertical shift
+#             r = np.random.randint(0, 4, batch_size)               # 90 degree rotations
+#             for j in range(batch_size):
+#                 d[j] = np.pad(d[j], ((npix, npix), (npix, npix), (0, 0)),
+#                               mode='constant')[npix + h[j]:L + h[j] + npix,
+#                                               npix + v[j]:W + v[j] + npix, :]
+#                 t[j] = np.pad(t[j], (npix,), mode='constant')[npix + h[j]:L + h[j] + npix, 
+# 																npix + v[j]:W + v[j] + npix]
+#                 d[j], t[j] = np.rot90(d[j], r[j]), np.rot90(t[j], r[j])
+#             yield (d, t)

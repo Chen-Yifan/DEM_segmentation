@@ -30,9 +30,10 @@ def get_callbacks(weights_path, model_path, patience_lr):
 def helper_pred(model, X_true, Y_true, opt):
     # model.compile(loss='binary_crossentropy', metrics=[iou_label(),per_pixel_acc(),accuracy(),recall_m, precision_m, f1_m], optimizer=Adam(1e-4))
     # multi-band
-    if '3b' in opt.ckpt_name or opt.use_gradient==1:
-        print('use_gradient==True')
-        (X_true, Y_true) = val_datagenerator(X_true, Y_true, opt.use_gradient)
+    (X_true, Y_true) = val_datagenerator(X_true, Y_true, opt.use_gradient, opt.DEM_only) # no gen
+    # if '3b' in opt.ckpt_name or opt.use_gradient==1:
+    #     print('use_gradient==True')
+    #     (X_true, Y_true) = val_datagenerator(X_true, Y_true, opt.use_gradient)
     score = model.evaluate(X_true, Y_true)  
     Y_pred = model.predict(X_true)
     print('shape for skelentonize',Y_pred.shape, Y_true.shape)
@@ -53,7 +54,7 @@ def helper_pred(model, X_true, Y_true, opt):
     print('********************SAVE RESULTS ************************')
     result_dir = opt.result_path + '/epoch%s/'%opt.n_epoch
     mkdir(result_dir)
-    np.save(result_dir + 'pred_labels.npy', Y_pred)  
+    np.save(result_dir + 'pred_labels.npy', Y_pred)
     
     return Y_pred
 
@@ -74,10 +75,14 @@ def choose_model(opt):
     # different model and loss function
     if opt.model == 'unet':
         if opt.loss=='L':
-            # model = unet(input_channel, learn_rate, num_filters,'elu', opt.loss, None, pretrained_weights)
-            model = lovasz_unet(1,(dim,dim,input_channel),'elu',None) 
+            model = unet(input_channel, learn_rate, num_filters,'elu', opt.loss, None, pretrained_weights)
+            # model = lovasz_unet(1,(dim,dim,input_channel),'elu',None) 
         else:
             model = unet(input_channel, learn_rate, num_filters,'relu', opt.loss, 'sigmoid', pretrained_weights)
+        # if opt.loss == 'L':
+        #     model = unet(input_channel, learn_rate, num_filters, None)
+        # else:
+        #     model = unet(input_channel, learn_rate, num_filters)
 
     elif opt.model == 'unet_rgl':
         if opt.loss == 'L':
@@ -115,6 +120,7 @@ def train_model(Data, opt):
     n_epoch = opt.n_epoch
     bs = opt.batch_size
     use_gradient = opt.use_gradient
+    DEM_only = opt.DEM_only
     
     model = choose_model(opt)   # choose model based on options
     
@@ -129,19 +135,15 @@ def train_model(Data, opt):
             
     callbacks = get_callbacks(weights_path, opt.model_path, 5)
     
-    """save data to disk as npy"""
-    np.save(opt.result_path + '/inputs.npy', Data['test'][0])
-    np.save(opt.result_path + '/gt_labels.npy', Data['test'][1])
-    
     """Fit data/generator to model"""
     n_train, n_test, n_val = len(Data['train'][0]), len(Data['test'][0]), len(Data['val'][0])
     
     model.fit_generator(
             # no_aug_generator(Data['train'][0], Data['train'][1],bs, use_gradient),
-            custom_image_generator(Data['train'][0], Data['train'][1], bs, use_gradient),
+            custom_image_generator(Data['train'][0], Data['train'][1], bs, use_gradient, DEM_only),
             steps_per_epoch= n_train//bs, epochs=n_epoch, verbose=1,
-            validation_data=(Data['val'][0], Data['val'][1]),
-            # validation_data=val_datagenerator(Data['val'][0], Data['val'][1], use_gradient),  # no gen
+            # validation_data=(Data['val'][0], Data['val'][1]),
+            validation_data=val_datagenerator(Data['val'][0], Data['val'][1], use_gradient, DEM_only),  # no gen
             validation_steps= n_val,
             callbacks=callbacks)
             
@@ -171,17 +173,19 @@ def test_model(opt):
     optimizer = Adam(lr=learn_rate)
     
     if opt.loss=='bce':
-        model.compile(loss='binary_crossentropy', metrics=[iou_label(),per_pixel_acc(),accuracy(),recall_m, precision_m, f1_m], optimizer=optimizer)
+        model.compile(loss='binary_crossentropy', metrics=[iou_label(),dice_coefficient(),accuracy(),recall_m, precision_m, f1_m], optimizer=optimizer)
     elif opt.loss=='cce':
-        model.compile(loss=sparse_softmax_cce, metrics=[iou_label(),per_pixel_acc(),accuracy()], optimizer=optimizer)
+        model.compile(loss=sparse_softmax_cce, metrics=[iou_label(),dice_coefficient(),accuracy(),recall_m, precision_m, f1_m], optimizer=optimizer)
+    elif opt.loss=='T':
+        model.compile(loss=FocalTverskyLoss, metrics=[iou_label(),dice_coefficient(),accuracy(),recall_m, precision_m, f1_m], optimizer=optimizer)
     else:
-        model.compile(loss=L.lovasz_loss, metrics=[iou_label(),per_pixel_acc(),accuracy()], optimizer=optimizer)
+        model.compile(loss=L.lovasz_loss, metrics=[iou_label(),dice_coefficient(),accuracy(),recall_m, precision_m, f1_m], optimizer=optimizer)
         
     model.summary()
     
     print('***********FINISH TRAIN & START TESTING******************')
     X_true = np.load(opt.result_path + '/inputs.npy')
-    Y_true = np.load(opt.result_path + '/gt_labels.npy') 
+    Y_true = np.load(opt.result_path + '/gt_labels_MS.npy') 
     print(X_true.shape, Y_true.shape)
     
     Y_pred = helper_pred(model, X_true, Y_true, opt)

@@ -1,25 +1,25 @@
 #!/bin/bash
 #SBATCH --job-name='yifanDL1'
-#SBATCH --output='output/unet32_hillshade_erosion.%j.%N.out'
-#SBATCH --error='output/%j.%N.err'
+#SBATCH --output='output/whole_unet32_bce_slope.%j.%N.out'
+#SBATCH --error='output/whole_unet32_bce_slope%j.%N.err'
 #SBATCH --partition=gpux1
 #SBATCH --time=7
 module load wmlce/1.6.1-py3.6
 #!/bin/bash
-#!/bin/bash
 python main.py \
---dataroot /home/shared/dem/erosion_data/filtered_128_over \
---date aug \
+--dataroot /home/yifanc3/dataset/building_data/128_0p_whole/ \
+--frame_name DEM_retile/ \
+--mask_name label_manual_mask/ \
+--date 2105_building_manual \
+--dataset building \
 --isTrain \
---loss bce \
 --threshold 1 \
---input_channel 1 \
---ckpt_name unet32_hillshade \
---num_filters 32 \
+--loss bce \
 --model unet \
---n_epoch 300 \
+--ckpt_name whole_unet32_bce_slope \
+--num_filters 32 \
+--input_channel 1 \
+--n_epoch 150 \
 --dim 128 \
 --batch_size 16 \
---frame_name all_frames_5m6b/ \
---mask_name all_masks_5m6b/ \
---save_model \
+--save_model

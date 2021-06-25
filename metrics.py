@@ -193,8 +193,8 @@ def FN(y_true, y_pred):
     return FN/(FP + FN)
 
 
-def per_pixel_acc(threshold=0.5): # class1 and class0 actually the same
-    def per_pixel_accuracy(y_true, y_pred):
+def dice_coefficient(threshold=0.5): # class1 and class0 actually the same
+    def dice(y_true, y_pred):
     #     accuracy=(TP+TN)/(TP+TN+FP+FN)
         #class 1
         if(y_pred.shape[-1]==2): # one-hot
@@ -207,9 +207,9 @@ def per_pixel_acc(threshold=0.5): # class1 and class0 actually the same
         TN = tf.math.count_nonzero((1-y_pred)*(1-y_true))
         FP = tf.math.count_nonzero(y_pred*(1-y_true))
         FN = tf.math.count_nonzero((1-y_pred)*y_true)
-        acc1 = (TP)/(TP+FN)
+        acc1 = (2*TP)/(2*TP+FN+FP)
         return acc1
-    return per_pixel_accuracy
+    return dice
                   
                   
 def iou_label(threshold=0.5):

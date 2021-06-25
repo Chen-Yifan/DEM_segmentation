@@ -8,7 +8,8 @@ Created on Fri Sep 20 16:38:59 2019
 import os
 import numpy as np
 from options.train_options import TrainOptions
-from data_loader import load_data
+# from data_loader import load_data
+from data_loader_manual import load_data
 from define_model import train_model, test_model
 from visualize import save_visualization
 from util.util import *
@@ -28,8 +29,13 @@ def main():
         '''
         print('Start loading data ...')
         Data_dict = load_data(opt)
-        
-        
+        """save data to disk as npy"""
+        np.save(opt.result_path + '/inputs.npy', Data_dict['test'][0])
+        np.save(opt.result_path + '/gt_labels.npy', Data_dict['test'][1])
+        # save 
+        np.save(opt.result_path + '/gt_labels_MS.npy', Data_dict['test_MS'][1])
+        np.save(opt.result_path + '/gt_labels_ext.npy', Data_dict['test_ext'][1])
+
         # the actual model
         mkdir(opt.model_path)
         img, real, pred = train_model(Data_dict, opt)

@@ -1,25 +1,26 @@
 #!/bin/bash
 #SBATCH --job-name='yifanDL1'
-#SBATCH --output='output/label_cln_v2_bce_part2.%j.%N.out'
-#SBATCH --error='output/%j.%N.err'
+#SBATCH --output='output/whole_unet32_L_DEM.%j.%N.out'
+#SBATCH --error='output/whole_unet32_L_DEM.%j.%N.err'
 #SBATCH --partition=gpux1
 #SBATCH --time=4
 module load wmlce/1.6.1-py3.6
 #!/bin/bash
 python main.py \
---dataroot /home/yifanc3/ \
---date 21building_cln \
+--dataroot /home/yifanc3/dataset/building_data/128_0p_whole \
+--frame_name DEM_retile/ \
+--mask_name label_manual_mask/ \
+--date 2105_building_manual \
 --dataset building \
 --isTrain \
+--DEM_only \
 --threshold 1 \
---loss T \
+--loss L \
 --model unet \
---ckpt_name unet32_T_DEM_v2_part3_ispresent \
+--ckpt_name whole_unet32_L_DEM \
 --num_filters 32 \
 --input_channel 1 \
---n_epoch 180 \
+--n_epoch 150 \
 --dim 128 \
 --batch_size 16 \
---frame_name DEM_retile/ \
---mask_name label_cln_v2/ \
 --save_model
