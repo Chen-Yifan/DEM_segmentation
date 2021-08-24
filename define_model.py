@@ -185,7 +185,7 @@ def test_model(opt):
     
     print('***********FINISH TRAIN & START TESTING******************')
     X_true = np.load(opt.result_path + '/inputs.npy')
-    Y_true = np.load(opt.result_path + '/gt_labels_MS.npy') 
+    Y_true = np.load(opt.result_path + '/gt_labels_ext.npy') 
     print(X_true.shape, Y_true.shape)
     
     Y_pred = helper_pred(model, X_true, Y_true, opt)

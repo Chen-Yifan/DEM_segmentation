@@ -1,13 +1,12 @@
 #!/bin/bash
+# multi bands
 python main.py \
 --date 2105_building_manual \
 --threshold 1 \
 --loss bce \
---ckpt_name ourunet112_T_DEM \
---DEM_only \
---n_epoch 22 \
+--ckpt_name whole_unet32_bce_4c \
+--n_epoch 86 \
 --dim 128 \
---batch_size 16 
 
 python main.py \
 --date 2105_building_manual \

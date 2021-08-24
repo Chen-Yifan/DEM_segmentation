@@ -10,12 +10,12 @@ python main.py \
 --threshold 1 \
 --loss bce \
 --model unet \
---ckpt_name unet32_bce_DEM \
+--ckpt_name unet32_bce_DEM_bs32 \
 --num_filters 32 \
 --input_channel 1 \
 --n_epoch 150 \
 --dim 128 \
---batch_size 16 \
+--batch_size 32 \
 --save_model
 
 # Tverskey Focal loss
@@ -157,4 +157,22 @@ python main.py \
 --save_model
 
 
+# 4 channels  [array, slope, aspect, gradient]
+python main.py \
+--dataroot /home/yifanc3/dataset/building_data/128_0p_whole/ \
+--frame_name DEM_retile/ \
+--mask_name label_manual_mask/ \
+--date 2105_building_manual \
+--dataset building \
+--isTrain \
+--threshold 1 \
+--loss bce \
+--model unet \
+--ckpt_name whole_unet32_bce_4c \
+--num_filters 32 \
+--input_channel 4 \
+--n_epoch 150 \
+--dim 128 \
+--batch_size 16 \
+--save_model
 

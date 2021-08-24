@@ -72,17 +72,22 @@ def terrain_analysis(array, size):
     # print(minn,maxx)
     slope = 0.1 + (slope - minn) * 0.9 / (maxx - minn)
 
-    # aspect = np.where(gi == 0, math.pi/2, np.arctan(hi/gi))
-    # minn, maxx = np.min(aspect), np.max(aspect)
+    aspect = np.where(gi == 0, math.pi/2, np.arctan(hi/gi))
+    minn, maxx = np.min(aspect), np.max(aspect)
     # # print('aspect',minn,maxx)
-    # aspect = 0.1 + (aspect - minn) * 0.9 / (maxx - minn)
-
+    aspect = 0.1 + (aspect - minn) * 0.9 / (maxx - minn)
+    
+    [dx,dy] = np.gradient(array)
+    out = np.sqrt((dx*dx)+(dy*dy))
+    # normalize 
+    minn, maxx = np.min(out), np.max(out)
+    gradient = 0.1 + (out - minn) * 0.9 / (maxx - minn)
 #     planc  = -1*((np.power(hi, 2)*di)-(2*gi*hi*fi)+(np.power(gi,2)*ei)/(np.power((np.power(gi,2)+np.power(hi,2)),1.5)))
 #     profc  = -1*(((np.power(gi,2)*di)+(2*gi*hi*fi) +(np.power(hi,2)*ei))/ ((np.power(gi,2)+np.power(hi,2))*(np.power( (1+np.power(gi,2)+np.power(hi,2)),1.5)) ))
 #     meanc  = -1 *( ((1+np.power(hi,2))*di) -(2*gi*hi*fi) +((1+np.power(gi,2))*ei) / (2*np.power( (1+np.power(gi,2)+np.power(hi,2)),1.5)  ))
     
-    # return np.stack([array, slope, aspect], axis=-1)
-    return np.expand_dims(slope,axis=2)
+    return np.stack([array, slope, aspect, gradient], axis=-1)
+    # return np.expand_dims(slope,axis=2)
 
     
 def add_derivatives(batches, option):
